@@ -1,5 +1,5 @@
 
-import { Product, Category, Sale, UnitDefinition, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User } from '../types';
+import { Product, Category, Sale, UnitDefinition, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion } from '../types';
 
 export const INITIAL_USERS: User[] = [
   {
@@ -9,7 +9,9 @@ export const INITIAL_USERS: User[] = [
     email: 'admin@buildmaster.com',
     name: 'Owner Admin',
     role: 'Admin',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Owner+Admin&background=0ea5e9&color=fff'
+    avatarUrl: 'https://ui-avatars.com/api/?name=Owner+Admin&background=0ea5e9&color=fff',
+    department: 'Management',
+    branchId: 'b1'
   },
   {
     id: 'u2',
@@ -18,7 +20,9 @@ export const INITIAL_USERS: User[] = [
     email: 'manager@buildmaster.com',
     name: 'Manager Somchai',
     role: 'Manager',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Manager+Somchai&background=8b5cf6&color=fff'
+    avatarUrl: 'https://ui-avatars.com/api/?name=Manager+Somchai&background=8b5cf6&color=fff',
+    department: 'Sales',
+    branchId: 'b1'
   },
   {
     id: 'u3',
@@ -26,7 +30,9 @@ export const INITIAL_USERS: User[] = [
     password: '123', 
     name: 'Staff Somsri',
     role: 'Staff',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Staff+Somsri&background=10b981&color=fff'
+    avatarUrl: 'https://ui-avatars.com/api/?name=Staff+Somsri&background=10b981&color=fff',
+    department: 'Warehouse',
+    branchId: 'b1'
   },
   {
     id: 'u4',
@@ -34,9 +40,101 @@ export const INITIAL_USERS: User[] = [
     password: '123', 
     name: 'Cashier Noi',
     role: 'Cashier',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Cashier+Noi&background=f97316&color=fff'
+    avatarUrl: 'https://ui-avatars.com/api/?name=Cashier+Noi&background=f97316&color=fff',
+    department: 'Sales',
+    branchId: 'b1'
   }
 ];
+
+export const INITIAL_CUSTOMER_LEVELS: CustomerLevel[] = [
+  { id: 'lvl-1', name: 'General', discountPercentage: 0, color: '#64748b' },
+  { id: 'lvl-2', name: 'Silver Member', discountPercentage: 5, color: '#94a3b8' },
+  { id: 'lvl-3', name: 'Gold Member', discountPercentage: 10, color: '#eab308' },
+  { id: 'lvl-4', name: 'Platinum', discountPercentage: 15, color: '#8b5cf6' }
+];
+
+export const INITIAL_CUSTOMERS: Customer[] = [
+  { id: 'c1', code: 'CUST-001', name: 'General Customer', phone: '', loyaltyPoints: 0, address: '', levelId: 'lvl-1' },
+  { id: 'c2', code: 'CUST-002', name: 'ABC Construction Co.', phone: '081-234-5678', taxId: '1234567890', address: '88 Sukhumvit Rd', loyaltyPoints: 500, levelId: 'lvl-3' },
+  { id: 'c3', code: 'CUST-003', name: 'John Doe', phone: '089-987-6543', loyaltyPoints: 120, email: 'john@example.com', levelId: 'lvl-2' },
+];
+
+export const INITIAL_PROMOTIONS: Promotion[] = [
+  { 
+    id: 'promo-1', 
+    title: 'Summer Sale', 
+    imageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=1000', 
+    isActive: true 
+  },
+  { 
+    id: 'promo-2', 
+    title: 'New Tools Arrival', 
+    imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=1000', 
+    isActive: true 
+  },
+  { 
+    id: 'promo-3', 
+    title: 'Paint Discount', 
+    imageUrl: 'https://images.unsplash.com/photo-1531834685032-c34bf0d84c7c?auto=format&fit=crop&q=80&w=1000', 
+    isActive: true 
+  }
+];
+
+export const INITIAL_SETTINGS: SystemSettings = {
+  companyName: 'BuildMaster Construction Supply',
+  taxId: '1234567890123',
+  address: '123 Construction Ave, Bangkok, Thailand',
+  phone: '02-123-4567',
+  language: 'en',
+  currencySymbol: '$',
+  defaultItemsPerPage: 10,
+  
+  // Tax
+  tax: {
+    enabled: true,
+    rate: 7.0,
+    calculationMode: 'excluded', // Default to Excluded (Add on top)
+    displayOnReceipt: true
+  },
+
+  // Customer Display
+  customerDisplay: {
+    enabled: true,
+    welcomeMessage: 'Welcome to BuildMaster!',
+    promotionInterval: 5
+  },
+
+  // Receipt Defaults
+  receiptHeader: 'Thank you for shopping with us!',
+  receiptFooter: 'No returns after 7 days.',
+  receiptPaperSize: '80mm',
+  receiptAutoPrint: false,
+  receiptShowTaxId: true,
+  receiptShowCashier: true,
+  receiptCopies: 1,
+  receiptQrCodeUrl: '',
+  
+  // Device Configuration
+  currentBranchId: 'b1', // Default to Main HQ
+  currentPosId: 'pm1',   // Default to POS-01
+  deviceRole: 'Master',
+  
+  // Local Database
+  localDatabase: {
+    enabled: false,
+    type: 'postgresql',
+    host: 'localhost',
+    port: '5432',
+    databaseName: 'buildmaster_pos',
+    username: 'postgres',
+    password: ''
+  },
+
+  // Synchronization
+  masterApiUrl: 'http://192.168.1.50:8000',
+  autoSyncInterval: 0,
+  lastSyncTime: '2023-12-05 18:30:00'
+};
 
 export const INITIAL_UNITS: UnitDefinition[] = [
   // Length (Base: mm)
@@ -79,9 +177,16 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'Portland Cement Type 1',
     category: 'c1-1', // Bagged Cement
     price: 6.50,
+    branchPrices: [
+      { branchId: 'b2', price: 6.75 } // More expensive downtown
+    ],
     stock: 450,
     minStock: 50,
     unit: 'bag',
+    physical: {
+      weight: 50, // kg
+      width: 40, height: 10, depth: 60
+    },
     sku: 'CEM-001',
     barcode: '885000001',
     warehouseInventory: [
@@ -98,6 +203,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     stock: 12500,
     minStock: 2000,
     unit: 'pc',
+    physical: {
+      weight: 1.5,
+      width: 6, height: 4, depth: 14
+    },
     sku: 'BRK-002',
     barcode: '885000002',
     warehouseInventory: [
@@ -282,15 +391,35 @@ const generateHistoricalSales = (count: number): Sale[] => {
       });
     }
 
-    // Add Tax
+    // Add Tax (Assume 7% excluded for historical)
     total = total * 1.07;
+    
+    // Determine sync status (newer items might be pending)
+    let syncStatus: 'synced' | 'pending' | 'failed' = 'synced';
+    if (daysAgo === 0 && Math.random() > 0.5) {
+        syncStatus = 'pending';
+    }
+
+    // Assign random customer occasionally
+    let customerId = undefined;
+    let customerName = undefined;
+    if (Math.random() > 0.7) {
+       const cust = INITIAL_CUSTOMERS[Math.floor(Math.random() * INITIAL_CUSTOMERS.length)];
+       customerId = cust.id;
+       customerName = cust.name;
+    }
 
     sales.push({
       id: `S-HIST-${i}`,
       date: date.toISOString(),
       items: items,
       total: parseFloat(total.toFixed(2)),
-      paymentMethod: Math.random() > 0.5 ? 'cash' : 'card'
+      paymentMethod: Math.random() > 0.5 ? 'cash' : 'card',
+      paymentStatus: 'paid',
+      status: 'completed',
+      syncStatus,
+      customerId,
+      customerName
     });
   }
   
@@ -299,3 +428,15 @@ const generateHistoricalSales = (count: number): Sale[] => {
 };
 
 export const INITIAL_SALES: Sale[] = generateHistoricalSales(150); // Generate 150 historical sales
+
+export const INITIAL_SYNC_LOGS: SyncLog[] = [
+  { id: 'log-1', timestamp: '2023-12-05 18:30:00', type: 'Auto', status: 'Success', details: 'Uploaded 5 sales, Downloaded 0 updates', durationMs: 450 },
+  { id: 'log-2', timestamp: '2023-12-05 18:00:00', type: 'Auto', status: 'Success', details: 'Uploaded 2 sales', durationMs: 320 },
+  { id: 'log-3', timestamp: '2023-12-05 12:00:00', type: 'Manual', status: 'Success', details: 'Full sync completed', durationMs: 1200 },
+  { id: 'log-4', timestamp: '2023-12-04 09:00:00', type: 'Pull', status: 'Failed', details: 'Connection timeout', durationMs: 5000 },
+];
+
+export const INITIAL_SHIFT_SCHEDULES: ShiftSchedule[] = [
+  { id: 'sch-1', userId: 'u4', branchId: 'b1', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '18:00', note: 'Morning Shift' },
+  { id: 'sch-2', userId: 'u3', branchId: 'b1', date: new Date().toISOString().split('T')[0], startTime: '13:00', endTime: '22:00', note: 'Afternoon Shift' }
+];

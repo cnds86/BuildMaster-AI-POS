@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BuildMaster AI POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Lao:wght@100..900&family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['Inter', 'Noto Sans Thai', 'Noto Sans Lao', 'sans-serif'],
+              thai: ['Noto Sans Thai', 'sans-serif'],
+              lao: ['Noto Sans Lao', 'sans-serif'],
             },
             colors: {
               primary: {
@@ -34,7 +36,7 @@
     </script>
     <style>
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Inter', 'Noto Sans Thai', 'Noto Sans Lao', sans-serif;
         background-color: #f8fafc;
       }
       /* Custom scrollbar for table/lists */
@@ -61,7 +63,13 @@
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "next/": "https://aistudiocdn.com/next@^16.0.7/",
+    "zustand": "https://aistudiocdn.com/zustand@^5.0.9",
+    "tailwind-merge": "https://aistudiocdn.com/tailwind-merge@^3.4.0",
+    "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
+    "@prisma/client": "https://aistudiocdn.com/@prisma/client@^7.1.0",
+    "zod": "https://aistudiocdn.com/zod@^4.1.13"
   }
 }
 </script>

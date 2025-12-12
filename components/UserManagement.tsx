@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
 import { 
@@ -15,8 +16,11 @@ import {
   Store,
   LayoutDashboard,
   ClipboardList,
-  Package
+  Package,
+  Building2,
+  Briefcase
 } from 'lucide-react';
+import { useGlobal } from '../context/GlobalContext';
 
 interface UserManagementProps {
   users: User[];
@@ -31,6 +35,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   onUpdateUser,
   onDeleteUser
 }) => {
+  const { branches } = useGlobal();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -40,7 +45,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     name: '',
     email: '',
     role: 'Cashier',
-    avatarUrl: ''
+    avatarUrl: '',
+    department: '',
+    branchId: ''
   });
 
   const handleOpenModal = (user?: User) => {
@@ -52,7 +59,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         email: user.email || '',
         role: user.role,
         avatarUrl: user.avatarUrl || '',
-        password: '' // Don't pre-fill password for editing security
+        password: '', // Don't pre-fill password for editing security
+        department: user.department || '',
+        branchId: user.branchId || ''
       });
     } else {
       setEditingId(null);
@@ -62,7 +71,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({
         name: '',
         email: '',
         role: 'Cashier',
-        avatarUrl: ''
+        avatarUrl: '',
+        department: '',
+        branchId: ''
       });
     }
     setIsModalOpen(true);
@@ -83,7 +94,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       name: formData.name,
       email: formData.email,
       role: formData.role,
-      avatarUrl: formData.avatarUrl
+      avatarUrl: formData.avatarUrl,
+      department: formData.department,
+      branchId: formData.branchId
     };
 
     // Only update password if provided
@@ -172,7 +185,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
               <tr>
                 <th className="px-6 py-4 font-semibold text-slate-500 text-sm">User</th>
                 <th className="px-6 py-4 font-semibold text-slate-500 text-sm">Role</th>
-                <th className="px-6 py-4 font-semibold text-slate-500 text-sm">Contact</th>
+                <th className="px-6 py-4 font-semibold text-slate-500 text-sm">Branch & Dept</th>
                 <th className="px-6 py-4 font-semibold text-slate-500 text-sm text-center">Status</th>
                 <th className="px-6 py-4 font-semibold text-slate-500 text-sm text-right">Actions</th>
               </tr>
@@ -210,14 +223,22 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">
-                    {user.email ? (
-                      <div className="flex items-center">
-                        <Mail className="w-3 h-3 mr-1.5 text-slate-400"/>
-                        {user.email}
-                      </div>
-                    ) : (
-                      <span className="text-slate-400 italic">No email</span>
-                    )}
+                    <div className="flex flex-col space-y-1">
+                      {user.branchId ? (
+                        <div className="flex items-center text-xs text-slate-700 font-medium">
+                          <Building2 className="w-3 h-3 mr-1.5 text-slate-400"/>
+                          {branches.find(b => b.id === user.branchId)?.name || 'Unknown Branch'}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 italic">No branch assigned</span>
+                      )}
+                      {user.department && (
+                        <div className="flex items-center text-xs text-slate-500">
+                          <Briefcase className="w-3 h-3 mr-1.5 text-slate-400"/>
+                          {user.department}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center">
                      <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -321,14 +342,34 @@ export const UserManagement: React.FC<UserManagementProps> = ({
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Avatar URL <span className="text-slate-400 font-normal">(Optional)</span></label>
-                    <input
-                      type="text"
-                      value={formData.avatarUrl}
-                      onChange={e => setFormData({...formData, avatarUrl: e.target.value})}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-xs"
-                      placeholder="https://..."
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Department</label>
+                    <div className="relative">
+                       <Briefcase className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                       <input
+                        type="text"
+                        value={formData.department}
+                        onChange={e => setFormData({...formData, department: e.target.value})}
+                        className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="e.g. Sales, Warehouse"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Branch</label>
+                    <div className="relative">
+                       <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                       <select
+                        value={formData.branchId || ''}
+                        onChange={e => setFormData({...formData, branchId: e.target.value})}
+                        className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
+                      >
+                        <option value="">Select Branch</option>
+                        {branches.map(b => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 

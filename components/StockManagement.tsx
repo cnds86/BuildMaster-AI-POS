@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Warehouse, 
   Product, 
@@ -31,7 +30,9 @@ import {
   FileText, 
   ArrowRight,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface StockManagementProps {
@@ -42,6 +43,7 @@ interface StockManagementProps {
   reservations: StockReservation[];
   receipts: StockReceipt[];
   adjustments: StockAdjustment[];
+  defaultItemsPerPage?: number;
   
   onUpdateTransfer: (t: StockTransfer) => void;
   onUpdateCount: (c: StockCount) => void;
@@ -68,6 +70,7 @@ export const StockManagement: React.FC<StockManagementProps> = ({
   reservations,
   receipts,
   adjustments,
+  defaultItemsPerPage = 10,
   onUpdateTransfer,
   onUpdateCount,
   onUpdateReservation,
@@ -83,6 +86,9 @@ export const StockManagement: React.FC<StockManagementProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('transfer');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Generic form state to handle all types
   const [formData, setFormData] = useState<any>({});
@@ -95,7 +101,30 @@ export const StockManagement: React.FC<StockManagementProps> = ({
     costPrice?: number; // for Receipt
   }>({ productId: '', quantity: 1, countedQuantity: 0, costPrice: 0 });
 
+  // Reset page when tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
   const getWarehouseName = (id: string) => warehouses.find(w => w.id === id)?.name || id;
+
+  // List Data Logic with Pagination
+  const getList = () => {
+    let list: any[] = [];
+    switch (activeTab) {
+      case 'transfer': list = transfers; break;
+      case 'count': list = counts; break;
+      case 'reservation': list = reservations; break;
+      case 'receipt': list = receipts; break;
+      case 'adjustment': list = adjustments; break;
+    }
+    return list; // Return full list for pagination slice
+  };
+
+  const currentList = getList();
+  const totalPages = Math.ceil(currentList.length / defaultItemsPerPage);
+  const startIndex = (currentPage - 1) * defaultItemsPerPage;
+  const paginatedList = currentList.slice(startIndex, startIndex + defaultItemsPerPage);
 
   const handleOpenModal = (item?: any) => {
     setEditingId(item?.id || null);
@@ -154,7 +183,7 @@ export const StockManagement: React.FC<StockManagementProps> = ({
       
       newItem = {
         ...newItem,
-        quantity: sysQty, // For counts, 'quantity' usually implies system quantity in some contexts, but let's stick to type def
+        quantity: sysQty,
         systemQuantity: sysQty,
         countedQuantity: tempItem.countedQuantity || 0,
         diff: (tempItem.countedQuantity || 0) - sysQty
@@ -204,18 +233,6 @@ export const StockManagement: React.FC<StockManagementProps> = ({
       case 'adjustment': onUpdateAdjustment(payload); break;
     }
     setIsModalOpen(false);
-  };
-
-  // List Data
-  const getList = () => {
-    switch (activeTab) {
-      case 'transfer': return transfers;
-      case 'count': return counts;
-      case 'reservation': return reservations;
-      case 'receipt': return receipts;
-      case 'adjustment': return adjustments;
-      default: return [];
-    }
   };
 
   const getDeleteHandler = (id: string) => {
@@ -288,14 +305,14 @@ export const StockManagement: React.FC<StockManagementProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {getList().length === 0 ? (
+              {paginatedList.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-12 text-center text-slate-400">
                     No documents found.
                   </td>
                 </tr>
               ) : (
-                getList().map((item: any) => (
+                paginatedList.map((item: any) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-800">{item.referenceNo}</div>
@@ -376,6 +393,32 @@ export const StockManagement: React.FC<StockManagementProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {currentList.length > 0 && (
+          <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div className="text-sm text-slate-500">
+              Showing <span className="font-medium">{startIndex + 1}</span> to <span className="font-medium">{Math.min(startIndex + defaultItemsPerPage, currentList.length)}</span> of <span className="font-medium">{currentList.length}</span> results
+            </div>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-slate-600" />
+              </button>
+              <span className="text-sm font-medium text-slate-600">Page {currentPage} of {totalPages}</span>
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 border border-slate-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight className="w-4 h-4 text-slate-600" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Dynamic Modal */}

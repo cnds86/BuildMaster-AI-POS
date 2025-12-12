@@ -15,9 +15,10 @@ import {
   Cell,
   Legend
 } from 'recharts';
-import { Sale, Product, CategoryItem } from '../types';
-import { TrendingUp, DollarSign, Package, AlertCircle, AlertTriangle, CalendarRange } from 'lucide-react';
+import { Sale, Product } from '../types';
+import { TrendingUp, DollarSign, Package, AlertCircle, AlertTriangle, CalendarRange, Wallet } from 'lucide-react';
 import { INITIAL_CATEGORIES_TREE } from '../services/data';
+import { useGlobal } from '../context/GlobalContext';
 
 interface DashboardProps {
   sales: Sale[];
@@ -27,22 +28,28 @@ interface DashboardProps {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
 export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
+  const { t } = useGlobal();
+
   // 1. Filter Sales for Last Quarter (90 Days)
   const quarterMetrics = useMemo(() => {
     const today = new Date();
     const ninetyDaysAgo = new Date(today);
     ninetyDaysAgo.setDate(today.getDate() - 90);
 
-    const filteredSales = sales.filter(s => new Date(s.date) >= ninetyDaysAgo);
+    const filteredSales = sales.filter(s => new Date(s.date) >= ninetyDaysAgo && s.status !== 'voided');
     const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
     const totalOrders = filteredSales.length;
+    
+    // Calculate unpaid debt from ALL time, not just quarter
+    const totalOutstanding = sales
+        .filter(s => s.status !== 'voided' && (s.paymentStatus === 'unpaid' || s.paymentStatus === 'partial'))
+        .reduce((acc, s) => acc + (s.remainingAmount || s.total), 0);
 
-    return { filteredSales, totalRevenue, totalOrders };
+    return { filteredSales, totalRevenue, totalOrders, totalOutstanding };
   }, [sales]);
 
   // 2. Weekly/Daily Trend Data (Last 7 days or aggregated by week for quarter)
   const trendData = useMemo(() => {
-    // Aggregate by Date for the last 14 days for a clearer "Recent Trend" chart
     const dailyMap = new Map<string, number>();
     const today = new Date();
     
@@ -69,22 +76,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
 
     quarterMetrics.filteredSales.forEach(sale => {
       sale.items.forEach(item => {
-        // Find category name from ID if possible
         let catName = item.category;
         const catObj = INITIAL_CATEGORIES_TREE.find(c => c.id === item.category);
         if (catObj) catName = catObj.name;
-        // Group by root category if needed, but here we use direct category
         
         const lineTotal = item.sellPrice * item.quantity;
         catMap.set(catName, (catMap.get(catName) || 0) + lineTotal);
       });
     });
 
-    // Convert to array and sort
     return Array.from(catMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 6); // Top 6 Categories
+      .slice(0, 6);
   }, [quarterMetrics.filteredSales]);
 
   // 4. Top Selling Products
@@ -95,7 +99,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
       sale.items.forEach(item => {
         const existing = prodMap.get(item.id) || { name: item.name, revenue: 0, qty: 0, unit: item.unit };
         existing.revenue += (item.sellPrice * item.quantity);
-        existing.qty += (item.quantity / item.sellConversionFactor); // Normalize to base unit
+        existing.qty += (item.quantity / item.sellConversionFactor);
         prodMap.set(item.id, existing);
       });
     });
@@ -130,10 +134,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
     <div className="space-y-6 animate-fade-in pb-12">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Quarterly Performance Dashboard</h2>
+          <h2 className="text-2xl font-bold text-slate-800">{t('dashboard.title')}</h2>
           <p className="text-slate-500 text-sm flex items-center mt-1">
             <CalendarRange className="w-4 h-4 mr-1" />
-            Last 90 Days Report
+            {t('dashboard.subtitle')}
           </p>
         </div>
         <span className="text-sm text-slate-500">Live Data</span>
@@ -142,32 +146,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Quarterly Revenue" 
+          title={t('dashboard.revenue')}
           value={`$${quarterMetrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} 
           icon={DollarSign} 
           color="bg-green-500" 
-          subtext={`${quarterMetrics.totalOrders} total orders processed`}
+          subtext=""
         />
         <StatCard 
-          title="Avg. Order Value" 
-          value={`$${quarterMetrics.totalOrders > 0 ? (quarterMetrics.totalRevenue / quarterMetrics.totalOrders).toFixed(2) : '0.00'}`} 
-          icon={TrendingUp} 
-          color="bg-blue-500" 
-          subtext="Per transaction average"
+          title="Outstanding Debt"
+          value={`$${quarterMetrics.totalOutstanding.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} 
+          icon={Wallet} 
+          color="bg-orange-500" 
+          subtext="Accounts Receivable"
         />
         <StatCard 
-          title="Active Products" 
+          title={t('common.total') + ' ' + t('common.items')}
           value={products.length} 
           icon={Package} 
           color="bg-purple-500" 
-          subtext="Total SKU count"
+          subtext=""
         />
         <StatCard 
-          title="Stock Alerts" 
+          title={t('dashboard.lowStock')}
           value={lowStockCount} 
           icon={AlertCircle} 
           color={lowStockCount > 0 ? "bg-red-500" : "bg-slate-400"} 
-          subtext={lowStockCount > 0 ? "Items below min threshold" : "Inventory healthy"}
+          subtext=""
         />
       </div>
 
@@ -177,7 +181,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
           <div className="p-4 bg-red-100 border-b border-red-200 flex items-center justify-between">
             <h3 className="text-red-800 font-bold flex items-center">
               <AlertTriangle className="w-5 h-5 mr-2" />
-              Critical Low Stock Warnings ({lowStockCount})
+              {t('dashboard.critical')} ({lowStockCount})
             </h3>
           </div>
           <div className="p-4 overflow-x-auto">
@@ -187,7 +191,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
                     <span className="font-semibold text-slate-700 truncate mb-1" title={p.name}>{p.name}</span>
                     <div className="flex justify-between items-end mt-auto">
                       <div className="flex flex-col">
-                        <span className="text-xs text-slate-500">Stock</span>
+                        <span className="text-xs text-slate-500">{t('inventory.stock')}</span>
                         <span className="text-xl font-bold text-red-600">{p.stock}</span>
                       </div>
                       <div className="flex flex-col items-end">
@@ -205,9 +209,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Trend Chart */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 mb-6">Revenue Trend (Last 14 Days)</h3>
+          <h3 className="text-lg font-semibold text-slate-800 mb-6">{t('dashboard.trend')}</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
@@ -231,9 +234,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
           </div>
         </div>
 
-        {/* Category Breakdown Pie Chart */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-semibold text-slate-800 mb-6">Revenue by Category</h3>
+          <h3 className="text-lg font-semibold text-slate-800 mb-6">{t('dashboard.byCategory')}</h3>
           <div className="h-80">
              <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -264,18 +266,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
         </div>
       </div>
 
-      {/* Top Products Table & Category Bar Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         {/* Top Selling Products */}
          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-800 mb-4">Top 5 Selling Products</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">{t('dashboard.topProducts')}</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Product</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Sold Qty</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">Revenue</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase">{t('inventory.productName')}</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">{t('dashboard.soldQty')}</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase text-right">{t('dashboard.revenue')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -297,9 +297,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
             </div>
          </div>
 
-         {/* Bar Chart for Categories */}
          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-800 mb-6">Top Categories (Bar)</h3>
+            <h3 className="text-lg font-semibold text-slate-800 mb-6">{t('dashboard.byCategory')}</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={categoryData} layout="vertical" margin={{ left: 20 }}>

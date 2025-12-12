@@ -42,15 +42,29 @@ export interface ProductInventory {
   quantity: number;
 }
 
+export interface BranchPrice {
+  branchId: string;
+  price: number;
+}
+
+export interface ProductPhysical {
+  weight?: number; // kg
+  width?: number;  // cm
+  height?: number; // cm
+  depth?: number;  // cm (length)
+}
+
 export interface Product {
   id: string;
   name: string;
   category: Category | string; 
-  price: number;     // Price of the MAIN unit
+  price: number;     // Base Price (Global)
+  branchPrices?: BranchPrice[]; // Overrides per branch
   stock: number;     // Stock count in MAIN units (Aggregate Total)
   minStock?: number; // Minimum stock threshold for alerts
   warehouseInventory?: ProductInventory[]; // Breakdown by warehouse
   unit: string;      // Name of the MAIN unit (e.g., 'bag', 'box')
+  physical?: ProductPhysical; // New: Physical attributes
   imageUrl?: string;
   sku: string;       // SKU of MAIN unit
   barcode: string;   // Barcode of MAIN unit
@@ -69,9 +83,19 @@ export interface CartItem extends Product {
 export interface Sale {
   id: string;
   items: CartItem[];
-  total: number;
+  subtotal?: number; // Raw total before discount/tax
+  discountAmount?: number; // Deduction amount
+  total: number; // Final payable amount
   date: string;
-  paymentMethod: 'cash' | 'card' | 'transfer';
+  paymentMethod: 'cash' | 'card' | 'transfer' | 'qr' | 'credit';
+  paymentStatus: 'paid' | 'unpaid' | 'partial'; // Track debt status
+  amountReceived?: number; // Amount given by customer
+  change?: number; // Change returned
+  remainingAmount?: number; // Amount left to pay (for credit/partial)
+  status: 'completed' | 'voided'; // Order status
+  syncStatus?: 'synced' | 'pending' | 'failed'; // Track sync state
+  customerId?: string; // Link to customer
+  customerName?: string; // Snapshot of name
 }
 
 export interface EstimateRequest {
@@ -84,6 +108,38 @@ export interface EstimateResultItem {
   unit: string;
   reasoning: string;
   matchedProductId?: string; // If found in inventory
+}
+
+// --- AI Inventory Analysis Types ---
+export interface ReorderSuggestion {
+  productId: string;
+  productName: string;
+  currentStock: number;
+  suggestedReorderQty: number;
+  priority: 'High' | 'Medium' | 'Low';
+  reasoning: string;
+}
+
+export interface NewProductSuggestion {
+  name: string;
+  categoryName: string;
+  estimatedPrice: number;
+  reasoning: string;
+  suggestedUnit: string;
+}
+
+export interface BundleSuggestion {
+  bundleName: string;
+  components: string[];
+  estimatedPrice: number;
+  reasoning: string;
+  targetAudience: string;
+}
+
+export interface InventoryAnalysisResult {
+  reorders: ReorderSuggestion[];
+  newProducts: NewProductSuggestion[];
+  bundles: BundleSuggestion[];
 }
 
 export interface Branch {
@@ -121,6 +177,28 @@ export interface StorageLocation {
   bin: string;    // e.g., Bin B (Slot)
   fullCode: string; // Helper: A-01-03-B
   type?: 'Pallet' | 'Shelf' | 'Floor';
+}
+
+// --- Customer Types ---
+export interface CustomerLevel {
+  id: string;
+  name: string;
+  discountPercentage: number;
+  color?: string;
+}
+
+export interface Customer {
+  id: string;
+  code: string; // Membership ID or Code
+  name: string;
+  phone: string;
+  taxId?: string;
+  address?: string;
+  email?: string;
+  loyaltyPoints: number;
+  notes?: string;
+  levelId?: string;
+  level?: CustomerLevel;
 }
 
 // --- Stock Management Types ---
@@ -205,6 +283,16 @@ export interface StockAdjustment {
   reason: string; // Mandatory
 }
 
+// --- Sync Types ---
+export interface SyncLog {
+  id: string;
+  timestamp: string;
+  type: 'Auto' | 'Manual' | 'Push' | 'Pull';
+  status: 'Success' | 'Failed' | 'Partial';
+  details: string; // e.g., "5 Sales uploaded, 0 Products updated"
+  durationMs: number;
+}
+
 // --- User & Roles ---
 
 export type UserRole = 'Admin' | 'Manager' | 'Staff' | 'Cashier';
@@ -217,4 +305,112 @@ export interface User {
   name: string;
   role: UserRole;
   avatarUrl?: string;
+  department?: string;
+  branchId?: string;
+}
+
+// --- Shift Management ---
+// Actual working record (Time Clock)
+export interface Shift {
+  id: string;
+  userId: string;
+  branchId: string;
+  startTime: string;
+  endTime?: string;
+  startCash: number;
+  endCash?: number;
+  notes?: string;
+  status: 'Open' | 'Closed';
+  userName?: string; // Optional helper
+  branchName?: string; // Optional helper
+}
+
+// Planned Schedule (Roster)
+export interface ShiftSchedule {
+  id: string;
+  userId: string;
+  branchId: string;
+  date: string; // YYYY-MM-DD
+  startTime: string; // HH:mm (24hr)
+  endTime: string; // HH:mm (24hr)
+  note?: string;
+}
+
+// --- Settings & Promotions ---
+export type Language = 'en' | 'th' | 'lo';
+
+export interface Promotion {
+  id: string;
+  title: string;
+  imageUrl: string;
+  isActive: boolean;
+  order?: number;
+}
+
+export interface LocalDatabaseConfig {
+  enabled: boolean;
+  type: 'postgresql' | 'sqlite' | 'mysql';
+  host: string;
+  port: string;
+  databaseName: string;
+  username: string;
+  password: string;
+}
+
+export interface TaxSettings {
+  enabled: boolean;             // Calculate Tax/VAT?
+  rate: number;                 // e.g. 7.0 for 7%
+  calculationMode: 'included' | 'excluded'; // 'included' (Price has VAT) or 'excluded' (Price + VAT)
+  displayOnReceipt: boolean;    // Show tax line on UI/Receipt
+}
+
+export interface CustomerDisplaySettings {
+  enabled: boolean;
+  welcomeMessage: string;
+  promotionInterval: number; // Seconds
+}
+
+export interface SystemSettings {
+  // Company Info
+  companyName: string;
+  taxId: string;
+  address: string;
+  phone: string;
+  
+  // Localization
+  language: Language;
+  currencySymbol: string;
+  
+  // Interface
+  defaultItemsPerPage: number;
+
+  // Tax / VAT
+  tax: TaxSettings;
+
+  // Customer Display
+  customerDisplay: CustomerDisplaySettings;
+
+  // Receipt & Print
+  receiptHeader: string;
+  receiptFooter: string;
+  receiptLogoUrl?: string;
+  receiptQrCodeUrl?: string; // Bank QR Code for receipt
+  receiptPaperSize: '58mm' | '80mm' | 'A4';
+  receiptAutoPrint: boolean;
+  receiptShowTaxId: boolean;
+  receiptShowCashier: boolean;
+  receiptCopies: number;
+
+  // Device Configuration
+  currentBranchId?: string;
+  currentPosId?: string;
+  deviceRole?: 'Master' | 'Slave';
+  
+  // Local Database (For Slave offline mode)
+  localDatabase?: LocalDatabaseConfig;
+
+  // Synchronization (Master/Slave)
+  masterApiUrl?: string; // e.g., http://192.168.1.100:3000
+  autoSyncInterval?: number; // In minutes, 0 for manual
+  lastSyncTime?: string;
 }

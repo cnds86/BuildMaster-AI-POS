@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { EstimateResultItem, Product } from "../types";
+import { EstimateResultItem, Product, InventoryAnalysisResult, Sale } from "../types";
 
 const API_KEY = process.env.API_KEY || '';
 
@@ -70,5 +71,108 @@ export const getConstructionEstimate = async (
   } catch (error) {
     console.error("Gemini Estimate Error:", error);
     throw error;
+  }
+};
+
+export const analyzeInventory = async (products: Product[], sales: Sale[]): Promise<InventoryAnalysisResult | null> => {
+  if (!ai) {
+    console.warn("Gemini API Key is missing.");
+    return null;
+  }
+
+  // Create a condensed view of inventory
+  const productSummary = products.map(p => ({
+    id: p.id,
+    name: p.name,
+    stock: p.stock,
+    min: p.minStock || 20,
+    unit: p.unit,
+    category: p.category
+  }));
+
+  // Create a summary of sales transactions (condensed to save tokens)
+  // We only send the last 20 transactions to analyze recent trends
+  const recentSales = sales.slice(0, 20).map(s => ({
+    items: s.items.map(i => i.name)
+  }));
+
+  const systemInstruction = `
+    You are an intelligent retail inventory manager for a construction materials store.
+    
+    Data Provided:
+    1. Current Product Inventory (Stock levels).
+    2. Recent Sales Transactions (Items bought together).
+
+    Your tasks:
+    1. REORDERS: Identify items critically low (stock <= minStock) and suggest reorder qty.
+    2. NEW PRODUCTS: Suggest NEW products we should add based on gaps in our catalog.
+    3. BUNDLES: Analyze the sales transactions. If certain items are frequently bought together (e.g. Cement + Sand), suggest a "Bundle" or "Combo Pack" product we could create to simplify purchasing or offer a deal.
+
+    Return the result strictly as a JSON object with 'reorders', 'newProducts', and 'bundles' arrays.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: JSON.stringify({ inventory: productSummary, sales: recentSales }),
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            reorders: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  productId: { type: Type.STRING },
+                  productName: { type: Type.STRING },
+                  currentStock: { type: Type.NUMBER },
+                  suggestedReorderQty: { type: Type.NUMBER },
+                  priority: { type: Type.STRING, enum: ['High', 'Medium', 'Low'] },
+                  reasoning: { type: Type.STRING }
+                }
+              }
+            },
+            newProducts: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  name: { type: Type.STRING },
+                  categoryName: { type: Type.STRING },
+                  estimatedPrice: { type: Type.NUMBER },
+                  suggestedUnit: { type: Type.STRING },
+                  reasoning: { type: Type.STRING }
+                }
+              }
+            },
+            bundles: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  bundleName: { type: Type.STRING },
+                  components: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  estimatedPrice: { type: Type.NUMBER },
+                  reasoning: { type: Type.STRING },
+                  targetAudience: { type: Type.STRING }
+                }
+              }
+            }
+          },
+          required: ['reorders', 'newProducts', 'bundles']
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text) as InventoryAnalysisResult;
+    }
+    return null;
+  } catch (error) {
+    console.error("Gemini Inventory Analysis Error:", error);
+    return null;
   }
 };

@@ -14,9 +14,15 @@ import {
   ClipboardList,
   FileCheck,
   UserCircle,
-  Users
+  Users,
+  Settings,
+  RefreshCw,
+  Contact,
+  Clock,
+  Tv
 } from 'lucide-react';
 import { User, UserRole } from '../types';
+import { useGlobal } from '../context/GlobalContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -36,17 +42,23 @@ interface NavItemConfig {
 const NAV_ITEMS: NavItemConfig[] = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', allowedRoles: ['Admin', 'Manager'] },
   { id: 'pos', icon: ShoppingCart, label: 'Point of Sale', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
+  { id: 'shifts', icon: Clock, label: 'My Shift', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
   { id: 'inventory', icon: Package, label: 'Inventory', allowedRoles: ['Admin', 'Manager', 'Staff'] },
   { id: 'stock', icon: ClipboardList, label: 'Stock Mgmt', allowedRoles: ['Admin', 'Manager', 'Staff'] },
+  { id: 'customers', icon: Contact, label: 'Customers', allowedRoles: ['Admin', 'Manager', 'Cashier'] },
   { id: 'approvals', icon: FileCheck, label: 'Approvals', allowedRoles: ['Admin', 'Manager'] },
+  { id: 'promotions', icon: Tv, label: 'Promotions', allowedRoles: ['Admin', 'Manager'] },
+  { id: 'sync', icon: RefreshCw, label: 'Data Sync', allowedRoles: ['Admin', 'Manager'] },
   { id: 'categories', icon: FolderTree, label: 'Categories', allowedRoles: ['Admin'] },
   { id: 'units', icon: Scale, label: 'Unit Mgmt', allowedRoles: ['Admin'] },
   { id: 'branches', icon: Store, label: 'Branches & POS', allowedRoles: ['Admin'] },
   { id: 'warehouses', icon: Container, label: 'Warehouse (WMS)', allowedRoles: ['Admin'] },
   { id: 'users', icon: Users, label: 'Users & Roles', allowedRoles: ['Admin'] },
+  { id: 'settings', icon: Settings, label: 'Settings', allowedRoles: ['Admin', 'Manager'] },
 ];
 
 export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, currentUser, onLogout }) => {
+  const { t } = useGlobal();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   // Filter nav items based on user role
@@ -67,7 +79,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
             <div className="bg-construction-orange p-2 rounded-lg">
               <Hammer className="w-6 h-6 text-white" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight">BuildMaster</h1>
+            <h1 className="text-xl font-bold tracking-tight">{t('app.name')}</h1>
           </div>
         </div>
 
@@ -114,7 +126,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
                 }`}
               >
                 <Icon className="w-5 h-5 mr-3" />
-                <span className="font-medium">{item.label}</span>
+                <span className="font-medium">{t(`nav.${item.id}`)}</span>
               </button>
             );
           })}
@@ -126,7 +138,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
             className="flex items-center w-full px-4 py-3 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3" />
-            <span>Logout</span>
+            <span>{t('nav.logout')}</span>
           </button>
         </div>
       </aside>
@@ -137,7 +149,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10">
           <div className="flex items-center space-x-2">
             <Hammer className="w-6 h-6 text-construction-orange" />
-            <span className="font-bold text-slate-800">BuildMaster</span>
+            <span className="font-bold text-slate-800">{t('app.name')}</span>
           </div>
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-600">
             <Menu className="w-6 h-6" />
