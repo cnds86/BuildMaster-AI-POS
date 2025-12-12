@@ -1,9 +1,11 @@
+
+// ... (imports remain mostly same, ensure useState, useMemo etc are there)
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, CartItem, Category, EstimateResultItem, SystemSettings, Customer, Sale } from '../types';
 import { 
   Search, ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, Sparkles, Box, 
   ArrowLeft, ScanBarcode, Layers, User, X, Percent, Star, QrCode, ArrowRight, Printer, CheckCircle, FileText,
-  Monitor
+  Monitor, Tag
 } from 'lucide-react';
 import { AiAssistant } from './AiAssistant';
 import { useGlobal } from '../context/GlobalContext';
@@ -26,12 +28,16 @@ interface PosTerminalProps {
 
 export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSale, settings }) => {
   const { customers, customerLevels, t, promotions } = useGlobal();
-  const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCartStore();
+  const { cart, addToCart, removeFromCart, updateQuantity, setQuantity, clearCart } = useCartStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  
+  // Discount State
+  const [manualDiscount, setManualDiscount] = useState<{ type: 'percent' | 'fixed', value: number } | null>(null);
+  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   
   // Checkout & Payment State
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -55,14 +61,26 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
   const rawSubtotal = cart.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
   
-  // 1. Apply Discount
-  let discountAmount = 0;
-  let discountedSubtotal = rawSubtotal;
-  
-  if (customerLevel && customerLevel.discountPercentage > 0) {
-    discountAmount = rawSubtotal * (customerLevel.discountPercentage / 100);
-    discountedSubtotal = rawSubtotal - discountAmount;
+  // 1. Apply Discounts
+  // A. Customer Level Discount
+  const customerDiscountPercent = customerLevel?.discountPercentage || 0;
+  const customerDiscountAmount = customerDiscountPercent > 0 
+    ? rawSubtotal * (customerDiscountPercent / 100) 
+    : 0;
+
+  // B. Manual Discount
+  let manualDiscountAmount = 0;
+  if (manualDiscount) {
+    if (manualDiscount.type === 'percent') {
+      manualDiscountAmount = rawSubtotal * (manualDiscount.value / 100);
+    } else {
+      manualDiscountAmount = manualDiscount.value;
+    }
   }
+
+  // Total Discount (Capped at Subtotal)
+  let discountAmount = Math.min(customerDiscountAmount + manualDiscountAmount, rawSubtotal);
+  let discountedSubtotal = rawSubtotal - discountAmount;
 
   // 2. Apply Tax
   let taxAmount = 0;
@@ -93,29 +111,51 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const remainingDebt = Math.max(0, finalTotal - receivedAmount);
 
   // --- Broadcast Channel for Customer Display ---
+  // Helper to build the payload
+  const getDisplayPayload = () => {
+    const now = new Date();
+    const activePromotions = promotions?.filter(p => {
+      if (!p.isActive) return false;
+      const start = p.startDate ? new Date(p.startDate) : null;
+      const end = p.endDate ? new Date(p.endDate) : null;
+      if (end) end.setHours(23, 59, 59, 999);
+      if (start && now < start) return false;
+      if (end && now > end) return false;
+      return true;
+    }) || [];
+
+    return {
+      type: isCheckoutOpen ? 'CHECKOUT' : (cart.length === 0 ? 'RESET' : 'UPDATE'),
+      cart: cart,
+      subtotal: rawSubtotal,
+      discount: discountAmount,
+      tax: taxAmount,
+      total: finalTotal,
+      customer: selectedCustomer,
+      paymentMethod: paymentMethod,
+      amountReceived: receivedAmount,
+      change: change,
+      companyName: settings?.companyName,
+      settings: settings?.customerDisplay,
+      activePromotions: activePromotions
+    };
+  };
+
   useEffect(() => {
     if (settings?.customerDisplay?.enabled) {
       const channel = new BroadcastChannel('customer_display_channel');
       
-      const activePromotions = promotions?.filter(p => p.isActive) || [];
-
-      const payload = {
-        type: isCheckoutOpen ? 'CHECKOUT' : (cart.length === 0 ? 'RESET' : 'UPDATE'),
-        cart: cart,
-        subtotal: rawSubtotal,
-        discount: discountAmount,
-        tax: taxAmount,
-        total: finalTotal,
-        customer: selectedCustomer,
-        paymentMethod: paymentMethod,
-        amountReceived: receivedAmount,
-        change: change,
-        companyName: settings?.companyName,
-        settings: settings?.customerDisplay,
-        activePromotions: activePromotions // Send active ads
-      };
-
+      // 1. Post updates when state changes
+      const payload = getDisplayPayload();
       channel.postMessage(payload);
+
+      // 2. Listen for "New Tab Opened" requests to sync immediately
+      channel.onmessage = (event) => {
+        if (event.data && event.data.type === 'REQUEST_INITIAL_STATE') {
+           // Send current state immediately to the new tab
+           channel.postMessage(getDisplayPayload());
+        }
+      };
 
       return () => {
         channel.close();
@@ -124,9 +164,16 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   }, [cart, rawSubtotal, discountAmount, taxAmount, finalTotal, selectedCustomer, isCheckoutOpen, paymentMethod, receivedAmount, change, settings, promotions]);
 
   const handleOpenCustomerDisplay = () => {
-    window.open('/customer-display', 'CustomerDisplay', 'width=1024,height=768,menubar=no,toolbar=no,location=no,status=no');
+    const win = window.open('/customer-display', 'CustomerDisplay', 'width=1024,height=768,menubar=no,toolbar=no,location=no,status=no');
+    // Force send an update after a short delay to ensure window is ready
+    setTimeout(() => {
+       const channel = new BroadcastChannel('customer_display_channel');
+       channel.postMessage(getDisplayPayload());
+       channel.close();
+    }, 1000);
   };
 
+  // ... (Filtering logic same as before) ...
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const searchLower = searchTerm.toLowerCase();
@@ -221,7 +268,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
     setIsProcessing(true);
     
-    // For non-cash methods, assume full payment unless credit
     let finalReceived = 0;
     let finalChange = 0;
 
@@ -248,7 +294,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         finalChange
       );
       
-      // Notify Customer Display of Success
       if (settings?.customerDisplay?.enabled) {
         const channel = new BroadcastChannel('customer_display_channel');
         channel.postMessage({
@@ -264,6 +309,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
       setLastSale(sale);
       setIsCheckoutOpen(false);
       clearCart();
+      setManualDiscount(null); // Reset manual discount on success
       setSelectedCustomer(null);
       setIsReceiptOpen(true);
     } catch (error) {
@@ -297,9 +343,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
   const cartItemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  // Discount Modal Local State
+  const [tempDiscount, setTempDiscount] = useState<{ type: 'percent' | 'fixed', value: number }>({ type: 'percent', value: 0 });
+
   return (
     <div className="flex flex-col lg:flex-row h-full gap-6 relative">
       <div className="flex-1 flex flex-col min-w-0 h-full">
+        {/* ... Header and Search ... */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-slate-800">{t('pos.newOrder')}</h2>
           <div className="flex space-x-2">
@@ -485,6 +535,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         fixed inset-y-0 right-0 z-40 w-full md:w-[400px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:shadow-none lg:w-[380px] lg:border-l lg:border-slate-200 flex flex-col
         ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
+        {/* ... Cart Header and Items ... */}
         <div className="p-5 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
           <div className="flex items-center">
             <ShoppingCart className="w-5 h-5 text-slate-700 mr-2" />
@@ -519,17 +570,29 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3 mx-3">
+                <div className="flex items-center space-x-1 mx-2">
                   <button 
                     onClick={() => updateQuantity(index, -1)}
-                    className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                    className="w-7 h-7 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="font-bold text-slate-800 w-6 text-center text-sm">{item.quantity}</span>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity.toString()}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val) && val >= 1) {
+                        setQuantity(index, val);
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    className="w-12 h-7 text-center text-sm font-bold text-slate-800 bg-transparent border border-slate-200 rounded focus:border-primary-500 focus:outline-none mx-1 appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  />
                   <button 
                     onClick={() => updateQuantity(index, 1)}
-                    className="p-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                    className="w-7 h-7 flex items-center justify-center rounded bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                   >
                     <Plus className="w-3 h-3" />
                   </button>
@@ -576,10 +639,25 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
               <span>${rawSubtotal.toFixed(2)}</span>
             </div>
             
-            {discountAmount > 0 && (
-               <div className="flex justify-between text-green-600 font-medium">
-                 <span className="flex items-center"><Percent className="w-3 h-3 mr-1" /> Discount ({customerLevel?.discountPercentage}%)</span>
-                 <span>-${discountAmount.toFixed(2)}</span>
+            {/* Discount Section */}
+            <div className="flex justify-between items-center text-green-600 font-medium">
+               <button 
+                 onClick={() => {
+                    setTempDiscount(manualDiscount || { type: 'percent', value: 0 });
+                    setIsDiscountModalOpen(true);
+                 }}
+                 className="flex items-center hover:underline focus:outline-none"
+               >
+                 <Percent className="w-3 h-3 mr-1" /> 
+                 Discount 
+                 {(customerLevel || manualDiscount) && <span className="text-xs ml-1 bg-green-100 px-1.5 rounded-full no-underline hover:no-underline">Edit</span>}
+               </button>
+               <span>-${discountAmount.toFixed(2)}</span>
+            </div>
+            {/* Show breakdown if both exist */}
+            {(customerLevel && manualDiscount) && (
+               <div className="text-[10px] text-green-500 text-right -mt-1 italic">
+                  (Member: ${customerDiscountAmount.toFixed(2)} + Manual: ${manualDiscountAmount.toFixed(2)})
                </div>
             )}
 
@@ -619,6 +697,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
       {/* Customer Modal */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+           {/* ... existing customer modal content ... */}
            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
                  <h3 className="font-bold text-slate-800">{t('pos.selectCustomer')}</h3>
@@ -680,6 +759,90 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
                  </div>
               </div>
            </div>
+        </div>
+      )}
+
+      {/* Discount Modal */}
+      {isDiscountModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-fade-in">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center"><Tag className="w-5 h-5 mr-2 text-primary-600" /> Apply Discount</h3>
+              <button onClick={() => setIsDiscountModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+               <div className="flex bg-slate-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setTempDiscount(prev => ({ ...prev, type: 'percent' }))}
+                    className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${tempDiscount.type === 'percent' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Percentage (%)
+                  </button>
+                  <button 
+                    onClick={() => setTempDiscount(prev => ({ ...prev, type: 'fixed' }))}
+                    className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${tempDiscount.type === 'fixed' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    Fixed Amount ($)
+                  </button>
+               </div>
+
+               <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    {tempDiscount.type === 'fixed' ? 'Amount' : 'Percentage'}
+                  </label>
+                  <div className="relative">
+                     <input 
+                        type="number" 
+                        min="0"
+                        step={tempDiscount.type === 'fixed' ? "0.01" : "1"}
+                        value={tempDiscount.value || ''}
+                        onChange={(e) => setTempDiscount(prev => ({ ...prev, value: parseFloat(e.target.value) || 0 }))}
+                        className="w-full pl-4 pr-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-lg font-bold"
+                        placeholder="0"
+                     />
+                     {tempDiscount.type === 'percent' && <span className="absolute right-4 top-3.5 text-slate-400 font-bold">%</span>}
+                     {tempDiscount.type === 'fixed' && <span className="absolute left-4 top-3.5 text-slate-400 font-bold hidden">$</span>}
+                  </div>
+               </div>
+               
+               {tempDiscount.type === 'percent' && (
+                  <div className="grid grid-cols-4 gap-2">
+                     {[5, 10, 15, 20].map(pct => (
+                        <button 
+                           key={pct}
+                           onClick={() => setTempDiscount({ type: 'percent', value: pct })}
+                           className={`py-2 border rounded-lg text-sm font-medium transition-colors ${tempDiscount.value === pct ? 'bg-primary-50 border-primary-200 text-primary-700' : 'border-slate-200 hover:bg-slate-50'}`}
+                        >
+                           {pct}%
+                        </button>
+                     ))}
+                  </div>
+               )}
+
+               <div className="flex space-x-3 pt-2">
+                  <button 
+                     onClick={() => {
+                        setManualDiscount(null);
+                        setIsDiscountModalOpen(false);
+                     }}
+                     className="flex-1 py-3 border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                  >
+                     Remove
+                  </button>
+                  <button 
+                     onClick={() => {
+                        setManualDiscount(tempDiscount);
+                        setIsDiscountModalOpen(false);
+                     }}
+                     className="flex-1 py-3 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 transition-colors shadow-lg"
+                  >
+                     Apply
+                  </button>
+               </div>
+            </div>
+          </div>
         </div>
       )}
 

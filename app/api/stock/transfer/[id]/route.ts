@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { stockTransferSchema } from '../../../../lib/validations';
@@ -29,7 +28,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       // If status changed to Approved, execute movement
       if (existing.status !== 'Approved' && validated.status === 'Approved') {
-        for (const item of validated.items) {
+         for (const item of validated.items) {
           // 1. Decrement Source
           const sourceInv = await tx.inventory.findFirst({
             where: { warehouseId: validated.sourceWarehouseId, productId: item.productId }
@@ -79,12 +78,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    // Check status first? Usually can only delete Drafts.
-    const transfer = await prisma.stockTransfer.findUnique({ where: { id } });
-    if (transfer && transfer.status === 'Approved') {
-        return NextResponse.json({ error: 'Cannot delete approved transfers' }, { status: 403 });
-    }
-
+    // Allow deleting Approved items as per user request (act as Cancel)
+    
     await prisma.stockTransfer.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {

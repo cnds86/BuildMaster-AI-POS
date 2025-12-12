@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, ProductVariant, UnitDefinition, CategoryItem, Warehouse, InventoryAnalysisResult, Sale, Branch } from '../types';
-import { Search, Plus, Edit2, Trash2, X, Check, Layers, Box, ArrowRight, ArrowLeftRight, RefreshCw, Info, Building2, AlertTriangle, Bell, Sparkles, Loader2, TrendingUp, AlertCircle, PackagePlus, Scale, DollarSign, Store, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, Check, Layers, Box, ArrowRight, ArrowLeftRight, RefreshCw, Info, Building2, AlertTriangle, Bell, Sparkles, Loader2, TrendingUp, AlertCircle, PackagePlus, Scale, DollarSign, Store, ChevronLeft, ChevronRight, ShoppingBag, Image as ImageIcon, Upload, Palette, Ruler } from 'lucide-react';
 import { analyzeInventory } from '../services/geminiService';
 import { useGlobal } from '../context/GlobalContext';
 
@@ -15,6 +15,9 @@ interface InventoryProps {
   onDeleteProduct: (id: string) => void;
   onAddProduct: (product: Product) => void;
 }
+
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 export const Inventory: React.FC<InventoryProps> = ({ products, units, categories, warehouses = [], sales, onUpdateProduct, onDeleteProduct, onAddProduct }) => {
   const { branches, settings, t } = useGlobal();
@@ -33,6 +36,8 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
   const [aiResult, setAiResult] = useState<InventoryAnalysisResult | null>(null);
   const [activeAiTab, setActiveAiTab] = useState<'reorder' | 'new' | 'bundles'>('reorder');
   
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     sku: '',
@@ -43,7 +48,8 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
     minStock: 20,
     unit: '',
     physical: { weight: 0, width: 0, height: 0, depth: 0 },
-    branchPrices: []
+    branchPrices: [],
+    imageUrl: ''
   });
   
   const [variants, setVariants] = useState<Partial<ProductVariant>[]>([]);
@@ -113,7 +119,8 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
       minStock: 20,
       unit: units[0]?.symbol || 'pc',
       physical: { weight: 0, width: 0, height: 0, depth: 0 },
-      branchPrices: []
+      branchPrices: [],
+      imageUrl: ''
     });
     setVariants([]);
     setIsModalOpen(true);
@@ -132,10 +139,38 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
       minStock: product.minStock || 20,
       unit: product.unit,
       physical: product.physical || { weight: 0, width: 0, height: 0, depth: 0 },
-      branchPrices: product.branchPrices || []
+      branchPrices: product.branchPrices || [],
+      imageUrl: product.imageUrl || ''
     });
     setVariants(product.variants ? product.variants.map(v => ({...v})) : []);
     setIsModalOpen(true);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      alert(`File size exceeds the limit of ${MAX_FILE_SIZE_MB}MB.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, imageUrl: '' }));
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   useEffect(() => {
@@ -178,7 +213,8 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
       minStock: 20,
       unit: matchedUnit,
       physical: { weight: 0, width: 0, height: 0, depth: 0 },
-      branchPrices: []
+      branchPrices: [],
+      imageUrl: ''
     });
     setVariants([]);
     setIsModalOpen(true);
@@ -245,7 +281,9 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
       code,
       barcode,
       conversionFactor: 1, 
-      price: formData.price
+      price: formData.price,
+      color: '',
+      size: ''
     }]);
   };
 
@@ -304,7 +342,8 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
         variants: variants.length > 0 ? variants as ProductVariant[] : undefined,
         warehouseInventory: editingId 
           ? products.find(p => p.id === editingId)?.warehouseInventory 
-          : [{ warehouseId: 'wh1', quantity: formData.stock || 0 }]
+          : [{ warehouseId: 'wh1', quantity: formData.stock || 0 }],
+        imageUrl: formData.imageUrl
       };
       
       if (editingId) onUpdateProduct(productData);
@@ -382,8 +421,17 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 transition-colors group ${isLowStock ? 'bg-red-50 border-l-4 border-red-500' : ''}`}>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-800">{product.name}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">ID: {product.id}</div>
+                      <div className="flex items-center space-x-3">
+                        {product.imageUrl && (
+                          <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0">
+                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-slate-800">{product.name}</div>
+                          <div className="text-xs text-slate-400 mt-0.5">ID: {product.id}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="mb-2">
@@ -397,7 +445,12 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
                         <div key={v.id} className="flex items-center text-xs pl-2 border-l-2 border-construction-orange/30 mb-1">
                            <span className="w-12 text-construction-orange font-semibold uppercase truncate" title={v.name}>{v.name}</span>
                            <span className="font-mono bg-orange-50 px-1.5 rounded text-orange-700 mr-2">{v.code}</span>
-                           <span className="font-mono text-orange-600">{v.barcode}</span>
+                           {v.color && (
+                             <span className="inline-block w-3 h-3 rounded-full border border-slate-200 mr-1 shadow-sm" style={{ backgroundColor: v.color }}></span>
+                           )}
+                           {v.size && (
+                             <span className="text-slate-500 mr-1">[{v.size}]</span>
+                           )}
                          </div>
                       ))}
                     </td>
@@ -509,6 +562,7 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
 
       {isAiModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          {/* AI Modal Content ... (Same as before) */}
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-fade-in">
             <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-6 flex items-center justify-between shrink-0">
               <div className="flex items-center space-x-3">
@@ -745,11 +799,70 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
             </div>
             
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
-              {/* Tabs Content Implementation (Simplified for brevity, similar structure as before but using state) */}
+              {/* Tabs Content Implementation */}
               {activeTab === 'general' && (
                 <div className="space-y-6 animate-fade-in">
                    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Image Upload Section */}
+                        <div className="md:col-span-2 mb-2">
+                          <label className="block text-sm font-medium text-slate-700 mb-2">Product Image</label>
+                          <div className="flex items-center space-x-6">
+                            <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-32 h-32 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-primary-400 transition-colors relative overflow-hidden group"
+                            >
+                              {formData.imageUrl ? (
+                                <>
+                                  <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                     <div className="bg-white/20 p-2 rounded-full backdrop-blur-sm">
+                                        <Edit2 className="w-5 h-5 text-white" />
+                                     </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <ImageIcon className="w-8 h-8 text-slate-400 mb-2" />
+                                  <span className="text-xs text-slate-500 font-medium">Upload</span>
+                                </>
+                              )}
+                            </div>
+                            
+                            <div className="flex-1">
+                               <p className="text-sm text-slate-600 mb-2">
+                                 Upload a product image to display in POS and Catalog.
+                               </p>
+                               <div className="flex space-x-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm"
+                                  >
+                                    Choose File
+                                  </button>
+                                  {formData.imageUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={handleRemoveImage}
+                                      className="px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-sm font-medium text-red-600 hover:bg-red-100"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                               </div>
+                               <p className="text-xs text-slate-400 mt-2">Max 5MB. Formats: JPG, PNG, WEBP</p>
+                            </div>
+                            <input 
+                              type="file" 
+                              ref={fileInputRef} 
+                              className="hidden" 
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                            />
+                          </div>
+                        </div>
+
                         <div className="md:col-span-2">
                           <label className="block text-sm font-medium text-slate-700 mb-1">{t('inventory.productName')} *</label>
                           <input
@@ -915,7 +1028,8 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
                                        <div>
                                           <label className="block text-xs font-medium text-slate-500 mb-1">Variant Unit</label>
                                           <select
@@ -934,36 +1048,68 @@ export const Inventory: React.FC<InventoryProps> = ({ products, units, categorie
                                           </select>
                                        </div>
                                        <div>
-                                          <label className="block text-xs font-medium text-slate-500 mb-1">Price</label>
+                                          <label className="block text-xs font-medium text-slate-500 mb-1 flex items-center"><Ruler className="w-3 h-3 mr-1"/> Size (Optional)</label>
                                           <input
-                                            type="number"
-                                            value={variant.price}
-                                            onChange={e => {
-                                               const newVars = [...variants];
-                                               newVars[index].price = parseFloat(e.target.value) || 0;
-                                               setVariants(newVars);
-                                            }}
+                                            type="text"
+                                            value={variant.size || ''}
+                                            placeholder="e.g. XL, 10mm"
+                                            onChange={e => handleVariantChange(index, 'size', e.target.value)}
                                             className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm"
                                           />
                                        </div>
+                                       <div>
+                                          <label className="block text-xs font-medium text-slate-500 mb-1 flex items-center"><Palette className="w-3 h-3 mr-1"/> Color (Optional)</label>
+                                          <div className="relative">
+                                            <input
+                                              type="text"
+                                              value={variant.color || ''}
+                                              placeholder="e.g. Red, #FF0000"
+                                              onChange={e => handleVariantChange(index, 'color', e.target.value)}
+                                              className="w-full px-3 py-1.5 border border-slate-300 rounded text-sm pl-8"
+                                            />
+                                            <div 
+                                              className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 rounded-full border border-slate-300 shadow-sm"
+                                              style={{ backgroundColor: variant.color || 'transparent' }}
+                                            />
+                                          </div>
+                                       </div>
                                     </div>
-                                    <div className="bg-white p-3 rounded border border-slate-200 flex items-center text-sm">
-                                       <span className="text-slate-500 mr-2">Ratio:</span>
-                                       <select
-                                          value={isBundle ? 'bundle' : 'sub'}
-                                          onChange={(e) => handleVariantRelationChange(index, displayRatio, e.target.value as 'bundle' | 'sub')}
-                                          className="px-2 py-1 text-xs border rounded bg-slate-50 mr-2"
-                                        >
-                                          <option value="sub">Sub-unit</option>
-                                          <option value="bundle">Bundle</option>
-                                        </select>
-                                        <input 
-                                          type="number" 
-                                          min="1"
-                                          value={displayRatio}
-                                          onChange={(e) => handleVariantRelationChange(index, parseFloat(e.target.value) || 1, isBundle ? 'bundle' : 'sub')}
-                                          className="w-16 px-1 py-0.5 border rounded text-center font-bold mx-1"
-                                        />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                       <div className="bg-white p-2 rounded border border-slate-200 flex items-center text-sm">
+                                          <span className="text-slate-500 mr-2 text-xs uppercase font-bold">Ratio:</span>
+                                          <select
+                                              value={isBundle ? 'bundle' : 'sub'}
+                                              onChange={(e) => handleVariantRelationChange(index, displayRatio, e.target.value as 'bundle' | 'sub')}
+                                              className="px-2 py-1 text-xs border rounded bg-slate-50 mr-2"
+                                            >
+                                              <option value="sub">Sub-unit</option>
+                                              <option value="bundle">Bundle</option>
+                                            </select>
+                                            <input 
+                                              type="number" 
+                                              min="1"
+                                              value={displayRatio}
+                                              onChange={(e) => handleVariantRelationChange(index, parseFloat(e.target.value) || 1, isBundle ? 'bundle' : 'sub')}
+                                              className="w-16 px-1 py-0.5 border rounded text-center font-bold mx-1"
+                                            />
+                                       </div>
+                                       <div>
+                                          <div className="relative">
+                                            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs">$</span>
+                                            <input
+                                              type="number"
+                                              value={variant.price}
+                                              onChange={e => {
+                                                 const newVars = [...variants];
+                                                 newVars[index].price = parseFloat(e.target.value) || 0;
+                                                 setVariants(newVars);
+                                              }}
+                                              className="w-full pl-6 px-3 py-1.5 border border-slate-300 rounded text-sm font-bold text-slate-700"
+                                              placeholder="Price"
+                                            />
+                                          </div>
+                                       </div>
                                     </div>
                                 </div>
                               );

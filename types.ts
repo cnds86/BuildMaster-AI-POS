@@ -30,11 +30,13 @@ export interface CategoryItem {
 
 export interface ProductVariant {
   id: string;
-  name: string;      // e.g., 'Piece', 'Small', 'Red'
+  name: string;      // e.g., 'Piece', 'Small', 'Red' (Unit Name or Variant Name)
   code: string;      // SKU/Code for the variant
   barcode: string;   // Barcode for the variant
-  conversionFactor: number; // How many variants in the main unit (e.g. 12 pieces in 1 box)
+  conversionFactor: number; // How many variants in the main unit
   price: number;     // Price per variant
+  color?: string;    // New: Color specification (e.g., 'Red', '#FF0000')
+  size?: string;     // New: Size specification (e.g., 'XL', '10mm')
 }
 
 export interface ProductInventory {
@@ -345,6 +347,8 @@ export interface Promotion {
   imageUrl: string;
   isActive: boolean;
   order?: number;
+  startDate?: string; // ISO Date
+  endDate?: string;   // ISO Date
 }
 
 export interface LocalDatabaseConfig {

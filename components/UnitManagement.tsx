@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UnitDefinition, UnitCategory } from '../types';
-import { Plus, Edit2, Trash2, Check, X, Ruler, Weight, Hash, Info } from 'lucide-react';
+import { Plus, Edit2, Trash2, Check, X, Ruler, Weight, Hash, Info, ArrowRightLeft } from 'lucide-react';
 
 interface UnitManagementProps {
   units: UnitDefinition[];
@@ -15,6 +15,9 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
+  // UX State for flexible conversion definition
+  const [referenceUnitId, setReferenceUnitId] = useState<string>('');
+
   const [formData, setFormData] = useState<Partial<UnitDefinition>>({
     name: '',
     symbol: '',
@@ -33,9 +36,15 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
   const baseUnit = filteredUnits.find(u => u.isBase);
 
   const handleOpenModal = (unit?: UnitDefinition) => {
+    // Determine the base unit for the relevant category (active or unit's own)
+    const targetCategory = unit ? unit.category : activeCategory;
+    const currentBase = units.find(u => u.category === targetCategory && u.isBase);
+
     if (unit) {
       setEditingId(unit.id);
       setFormData({ ...unit });
+      // Default reference to base unit when opening edit
+      setReferenceUnitId(currentBase?.id || '');
     } else {
       setEditingId(null);
       setFormData({
@@ -45,6 +54,8 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
         baseFactor: 1,
         isBase: false
       });
+      // Default reference to base unit for new item
+      setReferenceUnitId(currentBase?.id || '');
     }
     setIsModalOpen(true);
   };
@@ -52,6 +63,21 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Enforce Single Base Unit Rule
+    if (formData.isBase) {
+      const categoryToCheck = editingId ? formData.category : activeCategory;
+      const existingBase = units.find(u => 
+        u.category === categoryToCheck && 
+        u.isBase && 
+        u.id !== editingId
+      );
+      
+      if (existingBase) {
+        // Automatically unmark the previous base unit
+        onUpdateUnit({ ...existingBase, isBase: false });
+      }
+    }
+
     if (editingId) {
       onUpdateUnit({ ...formData, id: editingId } as UnitDefinition);
     } else {
@@ -63,6 +89,31 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
     }
     setIsModalOpen(false);
   };
+
+  // Helper to calculate display value based on current baseFactor and selected reference
+  // Display Ratio = (Unit's Base Factor) / (Reference Unit's Base Factor)
+  const getDisplayRatio = () => {
+    if (formData.isBase) return 1;
+    if (!referenceUnitId) return formData.baseFactor || 1;
+    
+    const refUnit = units.find(u => u.id === referenceUnitId);
+    if (!refUnit || refUnit.baseFactor === 0) return 0;
+    
+    // Calculate ratio
+    const ratio = (formData.baseFactor || 0) / refUnit.baseFactor;
+    
+    // Handle floating point precision for display if needed, but keeping raw allows precision editing
+    return parseFloat(ratio.toFixed(6)); 
+  };
+
+  const handleRatioChange = (val: number) => {
+    const refUnit = units.find(u => u.id === referenceUnitId);
+    const refFactor = refUnit ? refUnit.baseFactor : 1;
+    // New Base Factor = User Input Ratio * Reference Unit Base Factor
+    setFormData({ ...formData, baseFactor: val * refFactor });
+  };
+
+  const selectedRefUnit = units.find(u => u.id === referenceUnitId);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -221,42 +272,57 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
                   className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
                 />
                 <label htmlFor="isBase" className="text-sm font-medium text-slate-700">
-                  Is this the Base Unit? (e.g. Piece for Quantity, Gram for Weight)
+                  Is this the Base Unit? (e.g. Piece, Gram)
                 </label>
               </div>
 
               {!formData.isBase && (
                  <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Conversion / Base Factor
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Conversion Definition
                   </label>
                   
-                  <div className="flex items-center space-x-2 bg-slate-50 p-2 rounded-lg border border-slate-200">
-                     <span className="text-sm font-semibold text-slate-600 whitespace-nowrap">1 {formData.symbol || 'Unit'} =</span>
-                     <input
-                      type="number"
-                      required
-                      step="0.000001"
-                      value={formData.baseFactor}
-                      onChange={e => setFormData({...formData, baseFactor: parseFloat(e.target.value)})}
-                      className="w-24 px-2 py-1 border border-slate-300 rounded text-center font-bold text-slate-800 focus:ring-2 focus:ring-primary-500"
-                    />
-                    <span className="text-sm font-semibold text-slate-600 whitespace-nowrap">{baseUnit?.name || 'Base Units'} ({baseUnit?.symbol})</span>
-                  </div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                     <div className="flex items-center space-x-3">
+                        <span className="font-bold text-slate-800 text-sm whitespace-nowrap">
+                           1 {formData.symbol || 'Unit'}
+                        </span>
+                        <ArrowRightLeft className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                        
+                        <div className="flex-1 flex items-center space-x-2">
+                           <input
+                              type="number"
+                              required
+                              step="0.000001"
+                              value={getDisplayRatio()}
+                              onChange={e => handleRatioChange(parseFloat(e.target.value))}
+                              className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-center font-bold text-slate-800 focus:ring-2 focus:ring-primary-500"
+                           />
+                           <select
+                              value={referenceUnitId}
+                              onChange={e => setReferenceUnitId(e.target.value)}
+                              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 text-sm"
+                           >
+                              {filteredUnits.map(u => (
+                                 <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>
+                              ))}
+                           </select>
+                        </div>
+                     </div>
 
-                  <div className="text-xs text-slate-500 mt-2 flex items-start bg-blue-50 p-2 rounded border border-blue-100 text-blue-800">
-                    <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
-                    {activeCategory === 'Quantity' ? (
-                      <span>
-                        <strong>Tip:</strong> For fixed units like <strong>Dozen</strong>, enter <strong>12</strong>. 
-                        For container units (e.g., <strong>Box, Pack</strong>) that depend on the product, you can set a default of <strong>1</strong> here. 
-                        You can override the exact ratio (e.g., 1 Box = 24 Pieces) when adding products in the Inventory.
-                      </span>
-                    ) : (
-                      <span>
-                        Example: If Base is <strong>{baseUnit?.symbol || 'g'}</strong>, and this is <strong>{formData.symbol || 'kg'}</strong>, enter <strong>1000</strong>.
-                      </span>
-                    )}
+                     <div className="text-xs text-slate-500 flex items-start bg-blue-50 p-2 rounded border border-blue-100 text-blue-800">
+                        <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                        <div>
+                           <span>
+                              Stored as: <strong>{formData.baseFactor?.toLocaleString()} {baseUnit?.symbol}</strong> (Base).
+                           </span>
+                           {selectedRefUnit && !selectedRefUnit.isBase && (
+                              <div className="mt-1">
+                                 Defining relative to <strong>{selectedRefUnit.name}</strong> makes it easy to set up hierarchies (e.g. 1 Pallet = 50 Boxes).
+                              </div>
+                           )}
+                        </div>
+                     </div>
                   </div>
                 </div>
               )}

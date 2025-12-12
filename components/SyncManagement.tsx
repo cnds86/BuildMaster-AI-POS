@@ -35,11 +35,11 @@ export const SyncManagement: React.FC<SyncManagementProps> = ({ settings, logs, 
 
   const handleSyncAction = (type: 'Auto' | 'Manual' | 'Push' | 'Pull') => {
     setSyncingType(type);
-    // Simulate delay before passing to parent
+    // Simulate shorter delay before passing to parent
     setTimeout(() => {
       onSync(type);
       setSyncingType(null);
-    }, 2000);
+    }, 500);
   };
 
   return (

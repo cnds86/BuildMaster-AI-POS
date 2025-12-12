@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -45,16 +44,16 @@ const NAV_ITEMS: NavItemConfig[] = [
   { id: 'shifts', icon: Clock, label: 'My Shift', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
   { id: 'inventory', icon: Package, label: 'Inventory', allowedRoles: ['Admin', 'Manager', 'Staff'] },
   { id: 'stock', icon: ClipboardList, label: 'Stock Mgmt', allowedRoles: ['Admin', 'Manager', 'Staff'] },
-  { id: 'customers', icon: Contact, label: 'Customers', allowedRoles: ['Admin', 'Manager', 'Cashier'] },
+  { id: 'customers', icon: Contact, label: 'Customers', allowedRoles: ['Admin', 'Manager', 'Cashier', 'Staff'] },
   { id: 'approvals', icon: FileCheck, label: 'Approvals', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'promotions', icon: Tv, label: 'Promotions', allowedRoles: ['Admin', 'Manager'] },
+  { id: 'promotions', icon: Tv, label: 'Promotions', allowedRoles: ['Admin', 'Manager', 'Staff'] },
   { id: 'sync', icon: RefreshCw, label: 'Data Sync', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'categories', icon: FolderTree, label: 'Categories', allowedRoles: ['Admin'] },
-  { id: 'units', icon: Scale, label: 'Unit Mgmt', allowedRoles: ['Admin'] },
-  { id: 'branches', icon: Store, label: 'Branches & POS', allowedRoles: ['Admin'] },
-  { id: 'warehouses', icon: Container, label: 'Warehouse (WMS)', allowedRoles: ['Admin'] },
-  { id: 'users', icon: Users, label: 'Users & Roles', allowedRoles: ['Admin'] },
-  { id: 'settings', icon: Settings, label: 'Settings', allowedRoles: ['Admin', 'Manager'] },
+  { id: 'categories', icon: FolderTree, label: 'Categories', allowedRoles: ['Admin', 'Staff', 'Manager'] },
+  { id: 'units', icon: Scale, label: 'Unit Mgmt', allowedRoles: ['Admin', 'Staff', 'Manager'] },
+  { id: 'branches', icon: Store, label: 'Branches & POS', allowedRoles: ['Admin', 'Manager'] },
+  { id: 'warehouses', icon: Container, label: 'Warehouse (WMS)', allowedRoles: ['Admin', 'Staff', 'Manager'] },
+  { id: 'users', icon: Users, label: 'Users & Roles', allowedRoles: ['Admin', 'Manager'] },
+  { id: 'settings', icon: Settings, label: 'Settings', allowedRoles: ['Admin'] },
 ];
 
 export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, currentUser, onLogout }) => {

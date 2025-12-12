@@ -7,6 +7,7 @@ interface CartState {
   addToCart: (product: Product, qty?: number, variantId?: string) => void;
   removeFromCart: (index: number) => void;
   updateQuantity: (index: number, delta: number) => void;
+  setQuantity: (index: number, quantity: number) => void;
   clearCart: () => void;
   total: number;
 }
@@ -71,6 +72,19 @@ export const useCartStore = create<CartState>((set, get) => ({
         if (i === index) {
           const newQty = Math.max(1, item.quantity + delta);
           return { ...item, quantity: newQty };
+        }
+        return item;
+      });
+      const newTotal = newCart.reduce((sum, item) => sum + item.sellPrice * item.quantity, 0);
+      return { cart: newCart, total: newTotal };
+    });
+  },
+
+  setQuantity: (index, quantity) => {
+    set((state) => {
+      const newCart = state.cart.map((item, i) => {
+        if (i === index) {
+          return { ...item, quantity: Math.max(1, quantity) };
         }
         return item;
       });

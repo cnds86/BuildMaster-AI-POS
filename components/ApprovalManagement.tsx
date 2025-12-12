@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { 
   StockTransfer, 
@@ -113,21 +112,15 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
 
   const handleApprove = (e: React.MouseEvent, item: any) => {
     e.stopPropagation();
-    // Determine the correct target status based on document type
-    // Count & Receipt -> 'Completed' ensures stock is updated immediately in App.tsx logic
-    // Transfer & Adjustment -> 'Approved' triggers the stock movement logic in App.tsx
-    // Reservation -> 'Approved' just updates status
-    const targetStatus: DocumentStatus = (item.type === 'count' || item.type === 'receipt') 
-      ? 'Completed' 
-      : 'Approved';
-
-    // Directly call status change to prevent blocking UI/confirm dialog issues
-    onStatusChange(item.type, item.id, targetStatus);
+    // Only Approve. Execution happens in Stock Management via 'Complete'.
+    if (window.confirm('Are you sure you want to Approve this request?')) {
+      onStatusChange(item.type, item.id, 'Approved');
+    }
   };
 
   const handleReject = (e: React.MouseEvent, item: any) => {
     e.stopPropagation();
-    if (confirm(`Reject and Cancel ${item.typeLabel} ${item.referenceNo}?`)) {
+    if (window.confirm('Are you sure you want to Reject this request?')) {
       onStatusChange(item.type, item.id, 'Cancelled');
     }
   };
@@ -185,10 +178,7 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
                         {/* Items Preview */}
                         <div className="mt-3 flex flex-wrap gap-2">
                            {item.items.slice(0, 3).map((prod: any, idx: number) => {
-                             // Correctly determine quantity to display based on document type
                              const displayQty = item.type === 'count' ? prod.countedQuantity : prod.quantity;
-                             
-                             // For adjustments, show + or -
                              const prefix = (item.type === 'adjustment' && prod.quantity > 0) ? '+' : '';
                              
                              return (
