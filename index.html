@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -54,6 +55,96 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
       }
+      /* Scanner Animation */
+      @keyframes scan {
+        0%, 100% { top: 0%; }
+        50% { top: 100%; }
+      }
+      .animate-scan {
+        animation: scan 2s linear infinite;
+      }
+
+      /* --- Advanced Thermal Print Styles --- */
+      @media print {
+        @page {
+          margin: 0;
+          size: auto;
+        }
+        
+        body {
+          margin: 0;
+          padding: 0;
+          background: white;
+        }
+
+        /* Hide EVERYTHING by default */
+        body * {
+          visibility: hidden;
+          height: 0;
+          overflow: hidden;
+        }
+
+        /* Only show the targeted print area */
+        #printable-receipt, #printable-receipt * {
+          visibility: visible;
+          height: auto;
+          overflow: visible;
+        }
+        
+        #printable-labels, #printable-labels * {
+          visibility: visible;
+          height: auto;
+          overflow: visible;
+        }
+
+        /* Receipt Positioning */
+        #printable-receipt {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          padding: 10px 0; /* Minimal padding for thermal paper */
+          margin: 0;
+          background: white;
+          color: black !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+
+        /* Label Positioning */
+        #printable-labels {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          margin: 0;
+          padding: 10mm;
+          background: white;
+          color: black !important;
+          display: grid !important; /* Force grid layout for stickers */
+        }
+
+        /* Specific fix for thermal width classes dynamically applied by React */
+        .print-w-58mm {
+          width: 58mm !important;
+          font-size: 10px !important;
+        }
+        .print-w-80mm {
+          width: 80mm !important;
+          font-size: 12px !important;
+        }
+        .print-w-A4 {
+          width: 210mm !important;
+          font-size: 12pt !important;
+          padding: 20mm !important;
+        }
+
+        /* Ensure images/QR print correctly */
+        img {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
     </style>
   <script type="importmap">
 {
@@ -69,12 +160,25 @@
     "tailwind-merge": "https://aistudiocdn.com/tailwind-merge@^3.4.0",
     "clsx": "https://aistudiocdn.com/clsx@^2.1.1",
     "@prisma/client": "https://aistudiocdn.com/@prisma/client@^7.1.0",
-    "zod": "https://aistudiocdn.com/zod@^4.1.13"
+    "zod": "https://aistudiocdn.com/zod@^4.1.13",
+    "zustand/": "https://esm.sh/zustand@^5.0.9/",
+    "bcryptjs": "https://esm.sh/bcryptjs@^3.0.3"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

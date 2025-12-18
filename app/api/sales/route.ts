@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { saleSchema } from '../../../lib/validations';
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { items, total, paymentMethod, customerId } = saleSchema.parse(body);
+    const { items, total, paymentMethod, customerId, source = 'pos' } = saleSchema.parse(body);
 
     // Use a transaction to ensure Sale creation and Inventory Updates happen atomically
     const result = await prisma.$transaction(async (tx) => {
@@ -75,16 +76,8 @@ export async function POST(request: Request) {
         if (item.variantId) {
           const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
           if (variant && variant.conversionFactor > 0) {
-             // Example: Selling 1 Box (factor 12) -> deduct 12 pieces from base stock
-             // Note: This logic depends on whether you track Variant Stock or Base Stock. 
-             // We assume Base Stock tracking for simplicity here.
-             // If factor < 1 (Bundle), it's handled differently, but generally we normalize to base.
              if (variant.conversionFactor >= 1) {
                 deductQty = item.quantity * variant.conversionFactor;
-             } else {
-                // Bundle case (1 Main = 0.5 Variant? Rare). Usually 1 Box = 12 Pieces.
-                // If we sell 1 piece (factor 1/12), we deduct 1 piece.
-                // If we sell 1 Box (factor 12), we deduct 12 pieces.
              }
           }
         }
@@ -101,6 +94,11 @@ export async function POST(request: Request) {
         });
 
         if (variantInv) {
+          // Check for back-office constraint
+          if (source === 'back-office' && variantInv.quantity < item.quantity) {
+             throw new Error(`Insufficient stock for product variant (Requested: ${item.quantity}, Available: ${variantInv.quantity}). Back-office sales cannot result in negative stock.`);
+          }
+
           await tx.inventory.update({
             where: { id: variantInv.id },
             data: { quantity: { decrement: item.quantity } } // Deduct directly from specific variant stock
@@ -116,10 +114,24 @@ export async function POST(request: Request) {
           });
 
           if (prodInventory) {
+             // Check for back-office constraint
+             if (source === 'back-office' && prodInventory.quantity < deductQty) {
+                throw new Error(`Insufficient stock for product (Requested: ${deductQty}, Available: ${prodInventory.quantity}). Back-office sales cannot result in negative stock.`);
+             }
+
              await tx.inventory.update({
                where: { id: prodInventory.id },
                data: { quantity: { decrement: deductQty } }
              });
+          } else {
+             // Inventory record doesn't exist at all
+             if (source === 'back-office') {
+                throw new Error(`No inventory record found for product ID ${item.productId}. Back-office sales cannot result in negative stock.`);
+             }
+             
+             // If POS, we might strictly technically need a record to decrement, 
+             // but often POS will create negative record if missing. 
+             // For this demo, assuming base record exists from seed or creation.
           }
         }
       }
@@ -128,8 +140,9 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(result, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Sale Processing Error:', error);
-    return NextResponse.json({ error: 'Transaction failed' }, { status: 500 });
+    const message = error.message || 'Transaction failed';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

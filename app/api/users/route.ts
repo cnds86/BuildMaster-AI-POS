@@ -1,13 +1,24 @@
 
-
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 import { userSchema } from '../../../lib/validations';
+import { hashPassword } from '../../../lib/auth';
 
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
-      orderBy: { name: 'asc' }
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        role: true,
+        email: true,
+        avatarUrl: true,
+        department: true,
+        branchId: true,
+        // Exclude password
+      }
     });
     return NextResponse.json(users);
   } catch (error) {
@@ -20,10 +31,13 @@ export async function POST(request: Request) {
     const body = await request.json();
     const validated = userSchema.parse(body);
 
+    // Hash Password
+    const hashedPassword = await hashPassword(validated.password!);
+
     const user = await prisma.user.create({
       data: {
         username: validated.username,
-        password: validated.password!, // Required for create
+        password: hashedPassword, 
         name: validated.name,
         role: validated.role,
         email: validated.email,
@@ -33,8 +47,11 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json(user, { status: 201 });
+    // Remove password from response
+    const { password: _, ...safeUser } = user;
+
+    return NextResponse.json(safeUser, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid data or User already exists' }, { status: 400 });
   }
 }

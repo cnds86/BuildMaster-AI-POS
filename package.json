@@ -19,7 +19,8 @@
     "tailwind-merge": "^3.4.0",
     "clsx": "^2.1.1",
     "@prisma/client": "^7.1.0",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "bcryptjs": "^3.0.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -1,107 +1,66 @@
 
-import { Product, Category, Sale, UnitDefinition, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion } from '../types';
+import { Product, Category, Sale, UnitDefinition, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion, AuditLog } from '../types';
 
 export const INITIAL_USERS: User[] = [
-  {
-    id: 'u1',
-    username: 'admin',
-    password: '123', // Demo password
-    email: 'admin@buildmaster.com',
-    name: 'Owner Admin',
-    role: 'Admin',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Owner+Admin&background=0ea5e9&color=fff',
-    department: 'Management',
-    branchId: 'b1'
-  },
-  {
-    id: 'u2',
-    username: 'manager',
-    password: '123', 
-    email: 'manager@buildmaster.com',
-    name: 'Manager Somchai',
-    role: 'Manager',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Manager+Somchai&background=8b5cf6&color=fff',
-    department: 'Sales',
-    branchId: 'b1'
-  },
-  {
-    id: 'u3',
-    username: 'staff',
-    password: '123', 
-    name: 'Staff Somsri',
-    role: 'Staff',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Staff+Somsri&background=10b981&color=fff',
-    department: 'Warehouse',
-    branchId: 'b1'
-  },
-  {
-    id: 'u4',
-    username: 'cashier',
-    password: '123', 
-    name: 'Cashier Noi',
-    role: 'Cashier',
-    avatarUrl: 'https://ui-avatars.com/api/?name=Cashier+Noi&background=f97316&color=fff',
-    department: 'Sales',
-    branchId: 'b1'
-  }
+  { id: 'u1', username: 'admin', password: '123', name: 'Owner Admin', role: 'Admin', email: 'admin@buildmaster.com', branchId: 'b1' },
+  { id: 'u2', username: 'manager', password: '123', name: 'Manager Somchai', role: 'Manager', email: 'manager@buildmaster.com', branchId: 'b1' },
+  { id: 'u3', username: 'staff', password: '123', name: 'Staff Somsri', role: 'Staff', branchId: 'b1' },
+  { id: 'u4', username: 'cashier', password: '123', name: 'Cashier Noi', role: 'Cashier', branchId: 'b1' },
 ];
 
 export const INITIAL_CUSTOMER_LEVELS: CustomerLevel[] = [
-  { id: 'lvl-1', name: 'General', discountPercentage: 0, color: '#64748b' },
-  { id: 'lvl-2', name: 'Silver Member', discountPercentage: 5, color: '#94a3b8' },
-  { id: 'lvl-3', name: 'Gold Member', discountPercentage: 10, color: '#eab308' },
-  { id: 'lvl-4', name: 'Platinum', discountPercentage: 15, color: '#8b5cf6' }
+  { id: 'l1', name: 'General', discountPercentage: 0, color: '#64748b' },
+  { id: 'l2', name: 'Member', discountPercentage: 5, color: '#3b82f6' },
+  { id: 'l3', name: 'VIP', discountPercentage: 10, color: '#eab308' },
 ];
 
 export const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 'c1', code: 'CUST-001', name: 'General Customer', phone: '', loyaltyPoints: 0, address: '', levelId: 'lvl-1' },
-  { id: 'c2', code: 'CUST-002', name: 'ABC Construction Co.', phone: '081-234-5678', taxId: '1234567890', address: '88 Sukhumvit Rd', loyaltyPoints: 500, levelId: 'lvl-3' },
-  { id: 'c3', code: 'CUST-003', name: 'John Doe', phone: '089-987-6543', loyaltyPoints: 120, email: 'john@example.com', levelId: 'lvl-2' },
+  { id: 'c1', code: 'CUST-001', name: 'General Customer', phone: '', loyaltyPoints: 0, levelId: 'l1' },
+  { id: 'c2', code: 'CUST-002', name: 'ABC Construction Co.', phone: '020-5555-8888', taxId: '1234567890', address: '88 Lane Xang Ave', loyaltyPoints: 500, levelId: 'l2' },
+  { id: 'c3', code: 'CUST-003', name: 'John Doe', phone: '020-9999-7777', loyaltyPoints: 120, email: 'john@example.com', levelId: 'l1' },
 ];
 
 export const INITIAL_PROMOTIONS: Promotion[] = [
   { 
     id: 'promo-1', 
     title: 'Summer Sale', 
-    imageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=1000', 
-    isActive: true 
-  },
-  { 
-    id: 'promo-2', 
-    title: 'New Tools Arrival', 
-    imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=1000', 
-    isActive: true 
-  },
-  { 
-    id: 'promo-3', 
-    title: 'Paint Discount', 
-    imageUrl: 'https://images.unsplash.com/photo-1531834685032-c34bf0d84c7c?auto=format&fit=crop&q=80&w=1000', 
-    isActive: true 
+    imageUrl: 'https://images.unsplash.com/photo-1581094794329-cd1361ddee21?auto=format&fit=crop&q=80&w=1000', 
+    isActive: true,
+    startDate: '2023-01-01'
   }
 ];
 
 export const INITIAL_SETTINGS: SystemSettings = {
   companyName: 'BuildMaster Construction Supply',
   taxId: '1234567890123',
-  address: '123 Construction Ave, Bangkok, Thailand',
-  phone: '02-123-4567',
-  language: 'en',
-  currencySymbol: '$',
+  address: '123 Lane Xang Avenue, Vientiane, Laos',
+  phone: '021-123-4567',
+  language: 'lo',
+  currencySymbol: '₭',
   defaultItemsPerPage: 10,
+  monthlyTarget: 500000000, 
   
-  // Tax
+  // Financials
   tax: {
     enabled: true,
     rate: 7.0,
-    calculationMode: 'excluded', // Default to Excluded (Add on top)
+    calculationMode: 'excluded', 
     displayOnReceipt: true
   },
+  cashDenominations: [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500],
 
   // Customer Display
   customerDisplay: {
     enabled: true,
-    welcomeMessage: 'Welcome to BuildMaster!',
+    welcomeMessage: 'ສະບາຍດີ! ຍິນດີຕ້ອນຮັບສູ່ BuildMaster',
     promotionInterval: 5
+  },
+
+  // Loyalty Program
+  loyaltyProgram: {
+    enabled: true,
+    earnRate: 10000, // 1 point per 10,000 Kip
+    redeemRate: 100 // 1 point = 100 Kip discount
   },
 
   // Receipt Defaults
@@ -112,11 +71,23 @@ export const INITIAL_SETTINGS: SystemSettings = {
   receiptShowTaxId: true,
   receiptShowCashier: true,
   receiptCopies: 1,
+  receiptLogoUrl: '',
   receiptQrCodeUrl: '',
   
+  // Bank Accounts
+  showBankInfoOnReceipt: true,
+  bankAccounts: [
+    {
+      id: 'ba-1',
+      bankName: 'BCEL',
+      accountName: 'BuildMaster Co., Ltd.',
+      accountNumber: '123-12-3456789-0'
+    }
+  ],
+  
   // Device Configuration
-  currentBranchId: 'b1', // Default to Main HQ
-  currentPosId: 'pm1',   // Default to POS-01
+  currentBranchId: 'b1', 
+  currentPosId: 'pm1',   
   deviceRole: 'Master',
   
   // Local Database
@@ -137,21 +108,16 @@ export const INITIAL_SETTINGS: SystemSettings = {
 };
 
 export const INITIAL_UNITS: UnitDefinition[] = [
-  // Length (Base: mm)
   { id: 'u1', name: 'Millimeter', symbol: 'mm', category: 'Length', baseFactor: 1, isBase: true },
   { id: 'u2', name: 'Centimeter', symbol: 'cm', category: 'Length', baseFactor: 10, isBase: false },
   { id: 'u3', name: 'Meter', symbol: 'm', category: 'Length', baseFactor: 1000, isBase: false },
-  
-  // Weight (Base: g)
   { id: 'u4', name: 'Gram', symbol: 'g', category: 'Weight', baseFactor: 1, isBase: true },
   { id: 'u5', name: 'Kilogram', symbol: 'kg', category: 'Weight', baseFactor: 1000, isBase: false },
   { id: 'u6', name: 'Ton', symbol: 'ton', category: 'Weight', baseFactor: 1000000, isBase: false },
-
-  // Quantity (Base: pc)
   { id: 'u7', name: 'Piece', symbol: 'pc', category: 'Quantity', baseFactor: 1, isBase: true },
   { id: 'u8', name: 'Dozen', symbol: 'doz', category: 'Quantity', baseFactor: 12, isBase: false },
-  { id: 'u9', name: 'Pack', symbol: 'pk', category: 'Quantity', baseFactor: 1, isBase: false }, // Variable, conceptually 1
-  { id: 'u10', name: 'Box', symbol: 'box', category: 'Quantity', baseFactor: 1, isBase: false }, // Variable
+  { id: 'u9', name: 'Pack', symbol: 'pk', category: 'Quantity', baseFactor: 1, isBase: false },
+  { id: 'u10', name: 'Box', symbol: 'box', category: 'Quantity', baseFactor: 1, isBase: false },
 ];
 
 export const INITIAL_CATEGORIES_TREE: CategoryItem[] = [
@@ -176,9 +142,10 @@ export const INITIAL_PRODUCTS: Product[] = [
     id: 'p1',
     name: 'Portland Cement Type 1',
     category: 'c1-1', // Bagged Cement
-    price: 6.50,
+    price: 65000,
+    costPrice: 52000,
     branchPrices: [
-      { branchId: 'b2', price: 6.75 } // More expensive downtown
+      { branchId: 'b2', price: 68000 } 
     ],
     stock: 450,
     minStock: 50,
@@ -199,7 +166,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     id: 'p2',
     name: 'Red Brick',
     category: 'c1', // Cement & Concrete (General)
-    price: 0.85,
+    price: 1500,
+    costPrice: 800,
     stock: 12500,
     minStock: 2000,
     unit: 'pc',
@@ -214,14 +182,15 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     imageUrl: 'https://images.unsplash.com/photo-1590059598858-a57758372658?auto=format&fit=crop&q=80&w=300',
     variants: [
-      { id: 'v2-1', name: 'Pallet', code: 'BRK-002-PAL', barcode: '885000002P', conversionFactor: 500, price: 400.00 }
+      { id: 'v2-1', name: 'Pallet', code: 'BRK-002-PAL', barcode: '885000002P', conversionFactor: 500, price: 700000, costPrice: 350000 }
     ]
   },
   {
     id: 'p3',
     name: 'Steel Rebar 12mm',
     category: 'c2-1', // Rebar
-    price: 12.00,
+    price: 120000,
+    costPrice: 95000,
     stock: 280,
     minStock: 100,
     unit: 'bar',
@@ -235,7 +204,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     id: 'p4',
     name: 'Interior Paint White',
     category: 'c4', // Paints
-    price: 24.50,
+    price: 450000,
+    costPrice: 350000,
     stock: 15, // Low stock demo
     minStock: 30,
     unit: 'can',
@@ -249,7 +219,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     id: 'p5',
     name: 'Ceramic Floor Tile 60x60',
     category: 'c8', // Consumables (Example)
-    price: 4.50, // Per Tile
+    price: 55000, // Per Tile
+    costPrice: 40000,
     stock: 1000,
     minStock: 100,
     unit: 'tile',
@@ -259,14 +230,15 @@ export const INITIAL_PRODUCTS: Product[] = [
       { warehouseId: 'wh1', quantity: 1000 }
     ],
     variants: [
-      { id: 'v5-1', name: 'Box', code: 'TIL-005-BOX', barcode: '885000005B', conversionFactor: 12, price: 54.00 } // 1 Box = 12 Tiles, Price 4.5 * 12
+      { id: 'v5-1', name: 'Box', code: 'TIL-005-BOX', barcode: '885000005B', conversionFactor: 12, price: 650000, costPrice: 450000 }
     ]
   },
   {
     id: 'p6',
     name: 'Drinking Water',
     category: 'c8',
-    price: 0.50, // Per Bottle
+    price: 5000, // Per Bottle
+    costPrice: 2000,
     stock: 500,
     minStock: 50,
     unit: 'bottle',
@@ -276,14 +248,14 @@ export const INITIAL_PRODUCTS: Product[] = [
       { warehouseId: 'wh1', quantity: 500 }
     ],
     variants: [
-      { id: 'v6-1', name: 'Pack', code: 'WTR-006-PK', barcode: '885000006P', conversionFactor: 24, price: 10.00 } // Bulk discount: 24 * 0.5 = 12, but sold at 10
+      { id: 'v6-1', name: 'Pack', code: 'WTR-006-PK', barcode: '885000006P', conversionFactor: 12, price: 50000, costPrice: 20000 }
     ]
   }
 ];
 
 export const INITIAL_BRANCHES: Branch[] = [
-  { id: 'b1', name: 'Main HQ', address: '123 Construction Ave', phone: '02-123-4567', manager: 'Manager Somchai', isActive: true },
-  { id: 'b2', name: 'Downtown Branch', address: '45 City Center Rd', phone: '02-987-6543', manager: 'Alice Smith', isActive: true },
+  { id: 'b1', name: 'Main HQ', address: '123 Lane Xang Ave', phone: '021-123-4567', manager: 'Manager Somchai', isActive: true },
+  { id: 'b2', name: 'Downtown Branch', address: '45 Samsenthai Rd', phone: '021-987-6543', manager: 'Alice Smith', isActive: true },
 ];
 
 export const INITIAL_POS_MACHINES: PosMachine[] = [
@@ -409,17 +381,22 @@ const generateHistoricalSales = (count: number): Sale[] => {
        customerName = cust.name;
     }
 
+    // Assign random user
+    const randomUser = INITIAL_USERS[Math.floor(Math.random() * INITIAL_USERS.length)];
+
     sales.push({
       id: `S-HIST-${i}`,
       date: date.toISOString(),
       items: items,
-      total: parseFloat(total.toFixed(2)),
+      total: parseFloat(total.toFixed(0)), // Kip doesn't usually use decimals
       paymentMethod: Math.random() > 0.5 ? 'cash' : 'card',
       paymentStatus: 'paid',
       status: 'completed',
       syncStatus,
       customerId,
-      customerName
+      customerName,
+      userId: randomUser.id,
+      userName: randomUser.name
     });
   }
   
@@ -439,4 +416,11 @@ export const INITIAL_SYNC_LOGS: SyncLog[] = [
 export const INITIAL_SHIFT_SCHEDULES: ShiftSchedule[] = [
   { id: 'sch-1', userId: 'u4', branchId: 'b1', date: new Date().toISOString().split('T')[0], startTime: '09:00', endTime: '18:00', note: 'Morning Shift' },
   { id: 'sch-2', userId: 'u3', branchId: 'b1', date: new Date().toISOString().split('T')[0], startTime: '13:00', endTime: '22:00', note: 'Afternoon Shift' }
+];
+
+export const INITIAL_AUDIT_LOGS: AuditLog[] = [
+  { id: 'aud-1', action: 'SETTINGS_UPDATE', userId: 'u1', userName: 'Owner Admin', details: 'Changed company tax rate to 7%', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), severity: 'medium' },
+  { id: 'aud-2', action: 'USER_CREATE', userId: 'u1', userName: 'Owner Admin', details: 'Created user "Cashier Noi"', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), severity: 'medium' },
+  { id: 'aud-3', action: 'STOCK_APPROVE', userId: 'u2', userName: 'Manager Somchai', details: 'Approved transfer TR-2310-001', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), severity: 'low' },
+  { id: 'aud-4', action: 'SALE_VOID', userId: 'u2', userName: 'Manager Somchai', details: 'Voided sale S-HIST-5 due to wrong item entry', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), severity: 'high', resourceId: 'S-HIST-5' },
 ];

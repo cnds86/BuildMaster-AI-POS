@@ -35,6 +35,18 @@ export default function CustomerDisplayPage() {
 
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
 
+  // Simple formatter since we don't have full context access here easily without provider wrapping,
+  // but we can infer from locale or just format basic number.
+  // Ideally, the POS should send pre-formatted strings, but we'll try to match the style.
+  const formatPrice = (amount: number) => {
+     return new Intl.NumberFormat('lo-LA', {
+        style: 'currency',
+        currency: 'LAK', // Default to Kip for this display as requested
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+     }).format(amount);
+  };
+
   useEffect(() => {
     // Connect to the broadcast channel
     const channel = new BroadcastChannel('customer_display_channel');
@@ -135,13 +147,13 @@ export default function CustomerDisplayPage() {
         <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-10 min-w-[450px] z-10 shadow-xl">
            <div className="flex justify-between text-xl mb-4 text-green-50">
              <span>Total Amount</span>
-             <span className="font-bold text-white text-2xl">${data.total.toFixed(2)}</span>
+             <span className="font-bold text-white text-2xl">{formatPrice(data.total)}</span>
            </div>
            <div className="border-t border-white/30 my-4"></div>
            {data.change !== undefined && data.change > 0 && (
              <div className="flex justify-between items-center">
                <span className="text-green-50 text-2xl">Change Due</span>
-               <span className="text-5xl font-bold text-white">${data.change.toFixed(2)}</span>
+               <span className="text-5xl font-bold text-white">{formatPrice(data.change)}</span>
              </div>
            )}
         </div>
@@ -180,12 +192,12 @@ export default function CustomerDisplayPage() {
                  <div>
                     <h3 className="text-lg font-bold text-slate-800 line-clamp-2">{item.name}</h3>
                     <p className="text-slate-500 font-medium mt-1">
-                      {item.quantity} {item.sellUnit} <span className="text-xs text-slate-400">@ ${item.sellPrice.toFixed(2)}</span>
+                      {item.quantity} {item.sellUnit} <span className="text-xs text-slate-400">@ {formatPrice(item.sellPrice)}</span>
                     </p>
                  </div>
               </div>
               <div className="text-xl font-bold text-slate-900 pl-4">
-                ${(item.quantity * item.sellPrice).toFixed(2)}
+                {formatPrice(item.quantity * item.sellPrice)}
               </div>
             </div>
           ))}
@@ -210,7 +222,7 @@ export default function CustomerDisplayPage() {
              {data.discount > 0 && (
                 <div className="text-right">
                    <p className="text-xs text-blue-600 uppercase font-bold">You Saved</p>
-                   <p className="text-xl font-bold text-green-600">${data.discount.toFixed(2)}</p>
+                   <p className="text-xl font-bold text-green-600">{formatPrice(data.discount)}</p>
                 </div>
              )}
           </div>
@@ -245,7 +257,7 @@ export default function CustomerDisplayPage() {
                      
                      <div className="bg-slate-100 rounded-xl p-4 mb-4">
                         <div className="text-sm text-slate-500 uppercase tracking-wide font-bold mb-1">Total Due</div>
-                        <div className="text-5xl font-bold text-slate-900">${data.total.toFixed(2)}</div>
+                        <div className="text-5xl font-bold text-slate-900">{formatPrice(data.total)}</div>
                      </div>
                      
                      <div className="inline-flex items-center px-4 py-2 rounded-full bg-slate-200 text-slate-700 font-bold text-sm uppercase">
@@ -268,25 +280,25 @@ export default function CustomerDisplayPage() {
           <div className="space-y-4 mb-8">
             <div className="flex justify-between text-slate-600 text-lg">
               <span>Subtotal</span>
-              <span className="font-medium">${data.subtotal.toFixed(2)}</span>
+              <span className="font-medium">{formatPrice(data.subtotal)}</span>
             </div>
             {data.discount > 0 && (
               <div className="flex justify-between text-green-600 text-lg font-medium">
                 <span>Discount</span>
-                <span>-${data.discount.toFixed(2)}</span>
+                <span>-{formatPrice(data.discount)}</span>
               </div>
             )}
             {data.tax > 0 && (
               <div className="flex justify-between text-slate-500 text-lg">
                 <span>Tax</span>
-                <span>${data.tax.toFixed(2)}</span>
+                <span>{formatPrice(data.tax)}</span>
               </div>
             )}
           </div>
           <div className="pt-6 border-t-2 border-dashed border-slate-200">
             <div className="flex justify-between items-end">
               <span className="text-2xl font-bold text-slate-700">Total</span>
-              <span className="text-7xl font-bold text-slate-900 tracking-tighter leading-none">${data.total.toFixed(2)}</span>
+              <span className="text-7xl font-bold text-slate-900 tracking-tighter leading-none">{formatPrice(data.total)}</span>
             </div>
           </div>
         </div>

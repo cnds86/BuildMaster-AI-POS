@@ -1,32 +1,24 @@
 
 import { PrismaClient } from '@prisma/client';
+import { hashSync } from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clear existing data (optional, careful in prod)
-  // await prisma.saleItem.deleteMany();
-  // await prisma.sale.deleteMany();
-  // await prisma.inventory.deleteMany();
-  // await prisma.productVariant.deleteMany();
-  // await prisma.product.deleteMany();
-  // await prisma.category.deleteMany();
-  // await prisma.warehouse.deleteMany();
-  // await prisma.branch.deleteMany();
-  // await prisma.user.deleteMany();
-  // await prisma.customer.deleteMany();
+  const hashedPassword = hashSync('123', 10);
 
   // 1. Users
   await prisma.user.createMany({
     data: [
-      { id: 'u1', username: 'admin', password: '123', name: 'Owner Admin', role: 'Admin', email: 'admin@buildmaster.com' },
-      { id: 'u2', username: 'manager', password: '123', name: 'Manager Somchai', role: 'Manager', email: 'manager@buildmaster.com' },
-      { id: 'u3', username: 'staff', password: '123', name: 'Staff Somsri', role: 'Staff' },
-      { id: 'u4', username: 'cashier', password: '123', name: 'Cashier Noi', role: 'Cashier' },
+      { id: 'u1', username: 'admin', password: hashedPassword, name: 'Owner Admin', role: 'Admin', email: 'admin@buildmaster.com' },
+      { id: 'u2', username: 'manager', password: hashedPassword, name: 'Manager Somchai', role: 'Manager', email: 'manager@buildmaster.com' },
+      { id: 'u3', username: 'staff', password: hashedPassword, name: 'Staff Somsri', role: 'Staff' },
+      { id: 'u4', username: 'cashier', password: hashedPassword, name: 'Cashier Noi', role: 'Cashier' },
     ],
     skipDuplicates: true,
   });
 
+  // ... (Rest of seeding logic for customers, products, etc. remains same)
   // 2. Customers
   await prisma.customer.createMany({
     data: [
@@ -57,12 +49,10 @@ async function main() {
   });
 
   // 5. Categories
-  // Create roots first
-  const cat1 = await prisma.category.upsert({ where: { id: 'c1' }, update: {}, create: { id: 'c1', name: 'Cement & Concrete' } });
-  const cat2 = await prisma.category.upsert({ where: { id: 'c2' }, update: {}, create: { id: 'c2', name: 'Steel & Metal' } });
-  const cat4 = await prisma.category.upsert({ where: { id: 'c4' }, update: {}, create: { id: 'c4', name: 'Paints & Finishes' } });
+  await prisma.category.upsert({ where: { id: 'c1' }, update: {}, create: { id: 'c1', name: 'Cement & Concrete' } });
+  await prisma.category.upsert({ where: { id: 'c2' }, update: {}, create: { id: 'c2', name: 'Steel & Metal' } });
+  await prisma.category.upsert({ where: { id: 'c4' }, update: {}, create: { id: 'c4', name: 'Paints & Finishes' } });
   
-  // Create children
   await prisma.category.upsert({ where: { id: 'c1-1' }, update: {}, create: { id: 'c1-1', name: 'Bagged Cement', parentId: 'c1' } });
   await prisma.category.upsert({ where: { id: 'c2-1' }, update: {}, create: { id: 'c2-1', name: 'Rebar', parentId: 'c2' } });
 
@@ -83,7 +73,6 @@ async function main() {
     }
   });
 
-  // Initial Inventory for p1
   await prisma.inventory.createMany({
     data: [
       { productId: 'p1', warehouseId: 'wh1', quantity: 400 },

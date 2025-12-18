@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { EstimateResultItem, Product, InventoryAnalysisResult, Sale } from "../types";
+import { EstimateResultItem, Product, InventoryAnalysisResult, Sale, BusinessInsight } from "../types";
 
 const API_KEY = process.env.API_KEY || '';
 
@@ -173,6 +173,88 @@ export const analyzeInventory = async (products: Product[], sales: Sale[]): Prom
     return null;
   } catch (error) {
     console.error("Gemini Inventory Analysis Error:", error);
+    return null;
+  }
+};
+
+export const generateBusinessInsights = async (sales: Sale[], products: Product[]): Promise<BusinessInsight | null> => {
+  if (!ai) {
+    // Return dummy data if no key, ensuring UI works
+    return {
+      summary: "Simulated Insight: Revenue is trending positively. Consider restocking fast-moving items like Cement.",
+      trendDirection: "up",
+      actionItems: ["Restock Cement", "Review pricing for Red Brick", "Promote slow-moving Tiles"],
+      predictedRevenueNextWeek: 12500,
+      topPerformingCategory: "Cement & Concrete"
+    };
+  }
+
+  // Summarize daily sales for the last 30 days
+  const dailyRevenue: Record<string, number> = {};
+  const categoryRevenue: Record<string, number> = {};
+  
+  sales.forEach(s => {
+    const date = new Date(s.date).toISOString().split('T')[0];
+    dailyRevenue[date] = (dailyRevenue[date] || 0) + s.total;
+    
+    s.items.forEach(item => {
+       // Simplified category tracking using item name keywords or ID if available
+       // In production, map ID to Category Name properly
+       const cat = item.category || 'General'; 
+       categoryRevenue[cat] = (categoryRevenue[cat] || 0) + (item.sellPrice * item.quantity);
+    });
+  });
+
+  const lowStockCount = products.filter(p => p.stock <= (p.minStock || 0)).length;
+
+  const context = {
+    dailySales: dailyRevenue,
+    categoryPerformance: categoryRevenue,
+    lowStockItemsCount: lowStockCount,
+    totalProducts: products.length
+  };
+
+  const systemInstruction = `
+    You are a senior business analyst for a retail store.
+    Analyze the provided sales data (Daily Revenue map) and Inventory status.
+    
+    Tasks:
+    1. Write a 1-sentence Executive Summary of performance.
+    2. Determine the trend direction ('up', 'down', 'stable').
+    3. List 3 actionable bullet points for the manager (e.g., restock, run promo, cut costs).
+    4. Predict the TOTAL revenue for the NEXT 7 DAYS based on the recent daily trend.
+    5. Identify the top performing category name.
+
+    Return JSON matching the BusinessInsight interface.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: JSON.stringify(context),
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            trendDirection: { type: Type.STRING, enum: ['up', 'down', 'stable'] },
+            actionItems: { type: Type.ARRAY, items: { type: Type.STRING } },
+            predictedRevenueNextWeek: { type: Type.NUMBER },
+            topPerformingCategory: { type: Type.STRING }
+          },
+          required: ['summary', 'trendDirection', 'actionItems', 'predictedRevenueNextWeek', 'topPerformingCategory']
+        }
+      }
+    });
+
+    if (response.text) {
+      return JSON.parse(response.text) as BusinessInsight;
+    }
+    return null;
+  } catch (error) {
+    console.error("Gemini Business Insight Error:", error);
     return null;
   }
 };

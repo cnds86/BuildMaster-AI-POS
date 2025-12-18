@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       data: {
         userId: validated.userId,
         branchId: validated.branchId,
+        posId: validated.posId, // Store POS ID
         startCash: validated.startCash,
         notes: validated.notes,
         status: 'Open'

@@ -1,7 +1,9 @@
 
 import React, { useState } from 'react';
 import { UnitDefinition, UnitCategory } from '../types';
-import { Plus, Edit2, Trash2, Check, X, Ruler, Weight, Hash, Info, ArrowRightLeft } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { UnitList } from './unit/UnitList';
+import { UnitFormModal } from './unit/UnitFormModal';
 
 interface UnitManagementProps {
   units: UnitDefinition[];
@@ -13,12 +15,7 @@ interface UnitManagementProps {
 export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit, onUpdateUnit, onDeleteUnit }) => {
   const [activeCategory, setActiveCategory] = useState<UnitCategory>('Length');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  
-  // UX State for flexible conversion definition
-  const [referenceUnitId, setReferenceUnitId] = useState<string>('');
-
-  const [formData, setFormData] = useState<Partial<UnitDefinition>>({
+  const [editingUnit, setEditingUnit] = useState<Partial<UnitDefinition>>({
     name: '',
     symbol: '',
     category: 'Length',
@@ -26,50 +23,29 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
     isBase: false
   });
 
-  const categories: { id: UnitCategory; icon: any; label: string }[] = [
-    { id: 'Length', icon: Ruler, label: 'Length' },
-    { id: 'Weight', icon: Weight, label: 'Weight' },
-    { id: 'Quantity', icon: Hash, label: 'Quantity' },
-  ];
-
-  const filteredUnits = units.filter(u => u.category === activeCategory);
-  const baseUnit = filteredUnits.find(u => u.isBase);
-
   const handleOpenModal = (unit?: UnitDefinition) => {
-    // Determine the base unit for the relevant category (active or unit's own)
-    const targetCategory = unit ? unit.category : activeCategory;
-    const currentBase = units.find(u => u.category === targetCategory && u.isBase);
-
     if (unit) {
-      setEditingId(unit.id);
-      setFormData({ ...unit });
-      // Default reference to base unit when opening edit
-      setReferenceUnitId(currentBase?.id || '');
+      setEditingUnit({ ...unit });
     } else {
-      setEditingId(null);
-      setFormData({
+      setEditingUnit({
         name: '',
         symbol: '',
         category: activeCategory,
         baseFactor: 1,
         isBase: false
       });
-      // Default reference to base unit for new item
-      setReferenceUnitId(currentBase?.id || '');
     }
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = (formData: Partial<UnitDefinition>) => {
     // Enforce Single Base Unit Rule
     if (formData.isBase) {
-      const categoryToCheck = editingId ? formData.category : activeCategory;
+      const categoryToCheck = formData.id ? formData.category : activeCategory;
       const existingBase = units.find(u => 
         u.category === categoryToCheck && 
         u.isBase && 
-        u.id !== editingId
+        u.id !== formData.id
       );
       
       if (existingBase) {
@@ -78,8 +54,8 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
       }
     }
 
-    if (editingId) {
-      onUpdateUnit({ ...formData, id: editingId } as UnitDefinition);
+    if (formData.id) {
+      onUpdateUnit(formData as UnitDefinition);
     } else {
       onAddUnit({
         ...formData,
@@ -90,262 +66,39 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
     setIsModalOpen(false);
   };
 
-  // Helper to calculate display value based on current baseFactor and selected reference
-  // Display Ratio = (Unit's Base Factor) / (Reference Unit's Base Factor)
-  const getDisplayRatio = () => {
-    if (formData.isBase) return 1;
-    if (!referenceUnitId) return formData.baseFactor || 1;
-    
-    const refUnit = units.find(u => u.id === referenceUnitId);
-    if (!refUnit || refUnit.baseFactor === 0) return 0;
-    
-    // Calculate ratio
-    const ratio = (formData.baseFactor || 0) / refUnit.baseFactor;
-    
-    // Handle floating point precision for display if needed, but keeping raw allows precision editing
-    return parseFloat(ratio.toFixed(6)); 
-  };
-
-  const handleRatioChange = (val: number) => {
-    const refUnit = units.find(u => u.id === referenceUnitId);
-    const refFactor = refUnit ? refUnit.baseFactor : 1;
-    // New Base Factor = User Input Ratio * Reference Unit Base Factor
-    setFormData({ ...formData, baseFactor: val * refFactor });
-  };
-
-  const selectedRefUnit = units.find(u => u.id === referenceUnitId);
-
   return (
-    <div className="space-y-6 h-full flex flex-col">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 h-full flex flex-col pb-20 md:pb-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Unit Management</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Unit Management</h2>
           <p className="text-slate-500">Configure global units and conversion factors.</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="flex items-center justify-center px-4 py-2 bg-construction-orange text-white rounded-lg hover:bg-orange-600 transition-colors font-medium shadow-sm"
+          className="flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold shadow-sm whitespace-nowrap"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-5 h-5 mr-2" />
           Add Unit
         </button>
       </div>
 
-      {/* Category Tabs */}
-      <div className="grid grid-cols-3 gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          const isActive = activeCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`flex items-center justify-center py-3 rounded-lg transition-all ${
-                isActive 
-                  ? 'bg-slate-800 text-white shadow-md' 
-                  : 'text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              <Icon className="w-4 h-4 mr-2" />
-              <span className="font-medium">{cat.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Units Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 overflow-hidden flex flex-col">
-         <div className="overflow-x-auto flex-1">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Unit Name</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Symbol</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversion Ratio</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredUnits.map((unit) => (
-                <tr key={unit.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center">
-                      <span className="font-medium text-slate-800">{unit.name}</span>
-                      {unit.isBase && (
-                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold uppercase rounded-full">Base Unit</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="font-mono bg-slate-100 px-2 py-1 rounded text-slate-600 text-sm">
-                      {unit.symbol}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-600">
-                    {unit.isBase ? (
-                      <span className="text-slate-400 italic">Reference Standard</span>
-                    ) : (
-                      <div className="flex items-center">
-                        <span className="font-medium">1 {unit.symbol}</span>
-                        <span className="mx-2 text-slate-400">=</span>
-                        <span>{unit.baseFactor} {baseUnit?.symbol || 'base units'}</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                      <button 
-                        onClick={() => handleOpenModal(unit)}
-                        className="p-1.5 text-slate-500 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => onDeleteUnit(unit.id)}
-                        disabled={unit.isBase}
-                        className={`p-1.5 rounded transition-colors ${
-                          unit.isBase 
-                          ? 'text-slate-200 cursor-not-allowed' 
-                          : 'text-slate-500 hover:text-red-600 hover:bg-red-50'
-                        }`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredUnits.length === 0 && (
-            <div className="p-12 text-center text-slate-400">
-              No units defined for this category.
-            </div>
-          )}
-        </div>
-      </div>
+      <UnitList 
+        units={units}
+        activeCategory={activeCategory}
+        onCategoryChange={setActiveCategory}
+        onEdit={handleOpenModal}
+        onDelete={onDeleteUnit}
+      />
 
       {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
-              <h3 className="text-xl font-bold text-slate-800">
-                {editingId ? 'Edit Unit' : 'Add New Unit'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Unit Name</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder={activeCategory === 'Quantity' ? 'e.g. Dozen, Pack, Box' : 'e.g. Kilogram'}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Symbol / Abbreviation</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.symbol}
-                  onChange={e => setFormData({...formData, symbol: e.target.value})}
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  placeholder={activeCategory === 'Quantity' ? 'e.g. doz, pk, box' : 'e.g. kg'}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2 my-2">
-                 <input
-                  type="checkbox"
-                  id="isBase"
-                  checked={formData.isBase}
-                  onChange={e => setFormData({...formData, isBase: e.target.checked, baseFactor: 1})}
-                  className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-500"
-                />
-                <label htmlFor="isBase" className="text-sm font-medium text-slate-700">
-                  Is this the Base Unit? (e.g. Piece, Gram)
-                </label>
-              </div>
-
-              {!formData.isBase && (
-                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Conversion Definition
-                  </label>
-                  
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                     <div className="flex items-center space-x-3">
-                        <span className="font-bold text-slate-800 text-sm whitespace-nowrap">
-                           1 {formData.symbol || 'Unit'}
-                        </span>
-                        <ArrowRightLeft className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                        
-                        <div className="flex-1 flex items-center space-x-2">
-                           <input
-                              type="number"
-                              required
-                              step="0.000001"
-                              value={getDisplayRatio()}
-                              onChange={e => handleRatioChange(parseFloat(e.target.value))}
-                              className="w-24 px-3 py-2 border border-slate-300 rounded-lg text-center font-bold text-slate-800 focus:ring-2 focus:ring-primary-500"
-                           />
-                           <select
-                              value={referenceUnitId}
-                              onChange={e => setReferenceUnitId(e.target.value)}
-                              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 text-sm"
-                           >
-                              {filteredUnits.map(u => (
-                                 <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>
-                              ))}
-                           </select>
-                        </div>
-                     </div>
-
-                     <div className="text-xs text-slate-500 flex items-start bg-blue-50 p-2 rounded border border-blue-100 text-blue-800">
-                        <Info className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
-                        <div>
-                           <span>
-                              Stored as: <strong>{formData.baseFactor?.toLocaleString()} {baseUnit?.symbol}</strong> (Base).
-                           </span>
-                           {selectedRefUnit && !selectedRefUnit.isBase && (
-                              <div className="mt-1">
-                                 Defining relative to <strong>{selectedRefUnit.name}</strong> makes it easy to set up hierarchies (e.g. 1 Pallet = 50 Boxes).
-                              </div>
-                           )}
-                        </div>
-                     </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-construction-orange text-white font-medium rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
-                >
-                  Save Unit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <UnitFormModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSubmit}
+        initialData={editingUnit}
+        activeCategory={activeCategory}
+        units={units}
+      />
     </div>
   );
 };

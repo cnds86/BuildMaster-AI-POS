@@ -1,7 +1,23 @@
 
-
+// ... (imports)
 import { z } from "zod";
 
+// ... (other schemas)
+
+export const shiftStartSchema = z.object({
+  userId: z.string(),
+  branchId: z.string(),
+  posId: z.string().optional(), // Added field
+  startCash: z.number().min(0),
+  notes: z.string().optional()
+});
+
+export const shiftEndSchema = z.object({
+  endCash: z.number().min(0),
+  notes: z.string().optional()
+});
+
+// ... (rest of file)
 export const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   sku: z.string().min(1, "SKU is required"),
@@ -28,11 +44,13 @@ export const saleSchema = z.object({
     sellPrice: z.number(),
   })),
   total: z.number(),
-  paymentMethod: z.enum(['cash', 'card', 'transfer']),
+  paymentMethod: z.enum(['cash', 'card', 'transfer', 'qr', 'credit']),
   customerId: z.string().optional(),
+  source: z.enum(['pos', 'back-office']).default('pos').optional(),
 });
 
 export const customerLevelSchema = z.object({
+// ... (rest of file remains unchanged)
   name: z.string().min(1, "Name is required"),
   discountPercentage: z.number().min(0).max(100),
   color: z.string().optional()
@@ -166,20 +184,9 @@ export const userSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   role: z.enum(['Admin', 'Manager', 'Staff', 'Cashier']),
   avatarUrl: z.string().optional(),
+  coverUrl: z.string().optional(), // Added coverUrl
   department: z.string().optional(),
   branchId: z.string().optional()
-});
-
-export const shiftStartSchema = z.object({
-  userId: z.string(),
-  branchId: z.string(),
-  startCash: z.number().min(0),
-  notes: z.string().optional()
-});
-
-export const shiftEndSchema = z.object({
-  endCash: z.number().min(0),
-  notes: z.string().optional()
 });
 
 export const settingsSchema = z.object({
