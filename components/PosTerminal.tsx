@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Product, CartItem, EstimateResultItem, SystemSettings, Customer, Sale } from '../types';
+import { Product, CartItem, EstimateResultItem, SystemSettings, Customer, Sale, ProductVariant } from '../types';
 import { Sparkles, User, ClipboardList, Monitor, Menu, ChevronLeft } from 'lucide-react';
 import { AiAssistant } from './AiAssistant';
 import { BarcodeScanner } from './BarcodeScanner';
@@ -15,6 +15,7 @@ import { ReceiptModal } from './pos/ReceiptModal';
 import { CustomerModal } from './pos/CustomerModal';
 import { DiscountModal } from './pos/DiscountModal';
 import { RecallModal } from './pos/RecallModal';
+import { VariantSelectorModal } from './pos/VariantSelectorModal';
 
 interface PosTerminalProps {
   products: Product[];
@@ -51,6 +52,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const [isRecallModalOpen, setIsRecallModalOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
 
   // Transaction State
   const [manualDiscount, setManualDiscount] = useState<{ type: 'percent' | 'fixed', value: number } | null>(null);
@@ -65,13 +68,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const branchProducts = useMemo(() => {
     if (!activeBranchId) return products;
 
-    // Get warehouse IDs belonging to this branch
     const branchWarehouseIds = warehouses
       .filter(w => w.branchId === activeBranchId)
       .map(w => w.id);
 
     return products.map(p => {
-      // 1. Calculate Stock for this branch
       const branchStock = p.warehouseInventory?.reduce((acc, inv) => {
         if (branchWarehouseIds.includes(inv.warehouseId)) {
           return acc + inv.quantity;
@@ -79,7 +80,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         return acc;
       }, 0) || 0;
 
-      // 2. Check for Branch Price override
       const branchPriceConfig = p.branchPrices?.find(bp => bp.branchId === activeBranchId);
       const effectivePrice = branchPriceConfig ? branchPriceConfig.price : p.price;
 
@@ -99,7 +99,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
   const rawSubtotal = cart.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
   
-  // 1. Apply Discounts
   const customerDiscountPercent = customerLevel?.discountPercentage || 0;
   const customerDiscountAmount = customerDiscountPercent > 0 
     ? rawSubtotal * (customerDiscountPercent / 100) 
@@ -120,7 +119,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   let discountAmount = Math.min(customerDiscountAmount + manualDiscountAmount + loyaltyDiscountAmount, rawSubtotal);
   let discountedSubtotal = rawSubtotal - discountAmount;
 
-  // 2. Apply Tax
   let taxAmount = 0;
   let finalTotal = discountedSubtotal;
   const taxConfig = settings?.tax;
@@ -147,7 +145,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         tax: taxAmount,
         total: finalTotal,
         customer: selectedCustomer,
-        // paymentMethod and amountReceived would be passed during checkout updates if we sync live
         companyName: settings?.companyName,
         settings: settings?.customerDisplay
       };
@@ -168,11 +165,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   // --- Keyboard Shortcuts ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Allow default actions inside inputs unless it's a specific function key we want to override globally
       const target = e.target as HTMLElement;
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
 
-      // F-Keys override everything usually
       if (e.key === 'F4') {
         e.preventDefault();
         setIsCustomerModalOpen(true);
@@ -187,7 +182,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
       }
       else if (e.key === 'F9') {
         e.preventDefault();
-        // Focus search input
         const searchInput = document.getElementById('pos-search-input');
         if (searchInput) {
             searchInput.focus();
@@ -201,7 +195,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         }
       }
       else if (e.key === 'Escape') {
-         // Smart Close: Close top-most modal first
          if (isCheckoutOpen) setIsCheckoutOpen(false);
          else if (isDiscountModalOpen) setIsDiscountModalOpen(false);
          else if (isCustomerModalOpen) setIsCustomerModalOpen(false);
@@ -210,6 +203,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
          else if (isAiModalOpen) setIsAiModalOpen(false);
          else if (isScannerOpen) setIsScannerOpen(false);
          else if (isCartOpen) setIsCartOpen(false);
+         else if (isVariantModalOpen) setIsVariantModalOpen(false);
          else if (document.activeElement?.id === 'pos-search-input') {
             setSearchTerm('');
             (document.activeElement as HTMLInputElement).blur();
@@ -228,17 +222,37 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     isReceiptOpen, 
     isAiModalOpen, 
     isScannerOpen,
-    isCartOpen
+    isCartOpen,
+    isVariantModalOpen
   ]);
 
   // --- Handlers ---
+  const handleProductSelect = (product: Product) => {
+    if (product.variants && product.variants.length > 0) {
+      setSelectedProductForVariant(product);
+      setIsVariantModalOpen(true);
+    } else {
+      addToCart(product, 1);
+      setSearchTerm('');
+    }
+  };
+
+  const handleVariantConfirm = (product: Product, quantity: number, variantId?: string) => {
+    addToCart(product, quantity, variantId);
+    setIsVariantModalOpen(false);
+    setSelectedProductForVariant(null);
+    setSearchTerm('');
+  };
+
   const performScan = (code: string) => {
+    // 1. Check direct Product Barcode
     const mainMatch = branchProducts.find(p => p.barcode === code || p.sku === code);
     if (mainMatch) {
-      addToCart(mainMatch, 1, undefined);
-      setSearchTerm(''); 
+      handleProductSelect(mainMatch);
       return;
     }
+    
+    // 2. Check Variant Barcodes
     for (const p of branchProducts) {
       if (p.variants) {
         const variantMatch = p.variants.find(v => v.barcode === code || v.code === code);
@@ -249,6 +263,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         }
       }
     }
+    
     alert(`Product not found: ${code}`);
   };
 
@@ -318,7 +333,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-extrabold text-slate-900 hidden md:block">{t('pos.newOrder')}</h2>
             
-            {/* Quick Actions */}
             <div className="flex space-x-2">
                <button 
                  onClick={() => setIsRecallModalOpen(true)}
@@ -348,7 +362,6 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
                </button>
              )}
              
-             {/* Customer Selector - Style A: Black/White */}
              <button 
               onClick={() => setIsCustomerModalOpen(true)}
               title="Shortcut: F4"
@@ -372,6 +385,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
              setSearchTerm={setSearchTerm}
              onScanClick={() => setIsScannerOpen(true)}
              onScan={performScan}
+             onProductSelect={handleProductSelect}
            />
         </div>
       </div>
@@ -465,6 +479,16 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         onScan={performScan} 
         dummyCodes={barcodeList as string[]} 
       />
+
+      {selectedProductForVariant && (
+        <VariantSelectorModal 
+          isOpen={isVariantModalOpen}
+          onClose={() => setIsVariantModalOpen(false)}
+          product={selectedProductForVariant}
+          onConfirm={handleVariantConfirm}
+          formatPrice={formatPrice}
+        />
+      )}
     </div>
   );
 };

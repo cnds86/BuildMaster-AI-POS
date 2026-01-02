@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, UnitDefinition, CategoryItem } from '../types';
+import { Product, UnitDefinition, CategoryItem, ProductInventory } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_UNITS, INITIAL_CATEGORIES_TREE } from '../services/data';
 
 interface InventoryState {
@@ -13,8 +13,8 @@ interface InventoryState {
   updateProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   
-  // Specific inventory actions
-  updateProductStock: (productId: string, quantityDelta: number) => void;
+  // Updated to support specific warehouse updates
+  updateProductStock: (productId: string, quantityDelta: number, warehouseId?: string) => void;
 
   addUnit: (unit: UnitDefinition) => void;
   updateUnit: (unit: UnitDefinition) => void;
@@ -38,10 +38,33 @@ export const useInventoryStore = create<InventoryState>()(
       updateProduct: (product) => set((state) => ({ products: state.products.map(p => p.id === product.id ? product : p) })),
       deleteProduct: (id) => set((state) => ({ products: state.products.filter(p => p.id !== id) })),
 
-      updateProductStock: (productId, quantityDelta) => set((state) => ({
-        products: state.products.map(p => 
-          p.id === productId ? { ...p, stock: p.stock + quantityDelta } : p
-        )
+      updateProductStock: (productId, quantityDelta, warehouseId) => set((state) => ({
+        products: state.products.map(p => {
+          if (p.id !== productId) return p;
+
+          // 1. Update Global Stock
+          const newGlobalStock = p.stock + quantityDelta;
+
+          // 2. Update Warehouse-Specific Stock if warehouseId is provided
+          let newWarehouseInventory = p.warehouseInventory || [];
+          if (warehouseId) {
+            const existingWhIdx = newWarehouseInventory.findIndex(inv => inv.warehouseId === warehouseId);
+            if (existingWhIdx > -1) {
+              newWarehouseInventory = newWarehouseInventory.map((inv, idx) => 
+                idx === existingWhIdx ? { ...inv, quantity: inv.quantity + quantityDelta } : inv
+              );
+            } else {
+              // Add new record if it didn't exist in that warehouse
+              newWarehouseInventory = [...newWarehouseInventory, { warehouseId, quantity: quantityDelta }];
+            }
+          }
+
+          return { 
+            ...p, 
+            stock: newGlobalStock,
+            warehouseInventory: newWarehouseInventory
+          };
+        })
       })),
 
       addUnit: (unit) => set((state) => ({ units: [...state.units, unit] })),

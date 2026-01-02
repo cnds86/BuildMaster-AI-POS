@@ -1,4 +1,5 @@
 
+
 // ... (previous imports and enums)
 
 export enum Category {
@@ -13,8 +14,6 @@ export enum Category {
 }
 
 export type UnitCategory = 'Weight' | 'Length' | 'Quantity';
-
-// ... (UnitDefinition, CategoryItem, ProductVariant, ProductInventory, BranchPrice, ProductPhysical, Product, CartItem, HeldOrder interfaces)
 
 export interface UnitDefinition {
   id: string;
@@ -32,16 +31,16 @@ export interface CategoryItem {
   description?: string;
 }
 
+// New Interface for Variants
 export interface ProductVariant {
   id: string;
-  name: string;
-  code: string;
+  name: string; // e.g., "Small", "Red", "10kg"
+  code: string; // Specific SKU
   barcode: string;
-  conversionFactor: number;
   price: number;
   costPrice?: number;
-  color?: string;
-  size?: string;
+  stock?: number;
+  conversionFactor?: number;
 }
 
 export interface ProductInventory {
@@ -70,18 +69,20 @@ export interface Product {
   branchPrices?: BranchPrice[];
   stock: number;
   minStock?: number;
-  minOrderQuantity?: number; // New Field
+  minOrderQuantity?: number;
   warehouseInventory?: ProductInventory[];
   unit: string;
   physical?: ProductPhysical;
   imageUrl?: string;
   sku: string;
   barcode: string;
+  // Added variants array
   variants?: ProductVariant[];
 }
 
 export interface CartItem extends Product {
   quantity: number;
+  // Added variant selection
   selectedVariantId?: string;
   sellPrice: number; 
   sellUnit: string;  
@@ -102,7 +103,7 @@ export interface Sale {
   items: CartItem[];
   subtotal?: number;
   discountAmount?: number;
-  taxAmount?: number; // Added
+  taxAmount?: number;
   total: number;
   date: string;
   paymentMethod: 'cash' | 'card' | 'transfer' | 'qr' | 'credit';
@@ -122,6 +123,7 @@ export interface Sale {
   originalSaleId?: string;
 }
 
+// ... (Rest of the file remains unchanged)
 export interface Quotation {
   id: string;
   referenceNo: string;
@@ -142,7 +144,6 @@ export interface Quotation {
   note?: string;
 }
 
-// ... (Rest of the file remains unchanged)
 export interface EstimateRequest { query: string; }
 export interface EstimateResultItem {
   productName: string;
@@ -157,17 +158,14 @@ export interface BundleSuggestion { bundleName: string; components: string[]; es
 export interface InventoryAnalysisResult { reorders: ReorderSuggestion[]; newProducts: NewProductSuggestion[]; bundles: BundleSuggestion[]; }
 export interface BusinessInsight { summary: string; trendDirection: 'up' | 'down' | 'stable'; actionItems: string[]; predictedRevenueNextWeek: number; topPerformingCategory: string; }
 
-// ... (Branch, PosMachine, Warehouse, Location types remain unchanged)
 export interface Branch { id: string; name: string; address: string; phone: string; manager: string; isActive: boolean; }
 export interface PosMachine { id: string; branchId: string; machineNumber: string; status: 'active' | 'maintenance' | 'inactive'; lastActive?: string; }
 export interface Warehouse { id: string; branchId: string; name: string; code: string; type: 'General' | 'Cold Storage' | 'Hazardous' | 'Showroom'; description?: string; }
 export interface StorageLocation { id: string; warehouseId: string; zone: string; rack: string; shelf: string; bin: string; fullCode: string; type?: 'Pallet' | 'Shelf' | 'Floor'; }
 
-// ... (Customer types remain unchanged)
 export interface CustomerLevel { id: string; name: string; discountPercentage: number; color?: string; }
 export interface Customer { id: string; code: string; name: string; phone: string; taxId?: string; address?: string; email?: string; loyaltyPoints: number; notes?: string; levelId?: string; level?: CustomerLevel; }
 
-// ... (Stock Doc types remain unchanged)
 export type DocumentStatus = 'Draft' | 'Approved' | 'Completed' | 'Cancelled';
 export interface StockItem { productId: string; variantId?: string; productName: string; unit: string; quantity: number; note?: string; }
 export interface StockTransfer { id: string; date: string; sourceWarehouseId: string; targetWarehouseId: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; }
@@ -178,14 +176,11 @@ export interface StockReceiptItem extends StockItem { costPrice: number; }
 export interface StockReceipt { id: string; date: string; warehouseId: string; vendorName: string; vendorInvoiceNo?: string; status: DocumentStatus; items: StockReceiptItem[]; referenceNo: string; totalCost: number; }
 export interface StockAdjustment { id: string; date: string; warehouseId: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; reason: string; }
 
-// ... (Sync types remain unchanged)
 export interface SyncLog { id: string; timestamp: string; type: 'Auto' | 'Manual' | 'Push' | 'Pull'; status: 'Success' | 'Failed' | 'Partial'; details: string; durationMs: number; }
 
-// --- User & Roles ---
 export type UserRole = 'Admin' | 'Manager' | 'Staff' | 'Cashier';
 export interface User { id: string; username: string; password?: string; email?: string; name: string; role: UserRole; avatarUrl?: string; coverUrl?: string; department?: string; branchId?: string; }
 
-// --- Shift Management (Updated) ---
 export interface CashTransaction {
   id: string;
   shiftId: string;
@@ -200,7 +195,7 @@ export interface Shift {
   id: string;
   userId: string;
   branchId: string;
-  posId?: string; // New Field for POS Machine ID
+  posId?: string;
   startTime: string;
   endTime?: string;
   startCash: number;
@@ -215,16 +210,15 @@ export interface Shift {
 export interface ShiftSchedule { 
   id: string; 
   userId: string; 
-  originalUserId?: string; // The original owner of the shift before swapping
+  originalUserId?: string; 
   branchId: string; 
   date: string; 
   startTime: string; 
   endTime: string; 
   note?: string;
-  isSwap?: boolean; // Indicates if this shift was swapped/modified from original plan
+  isSwap?: boolean; 
 }
 
-// ... (Settings & Promotion types remain unchanged)
 export type Language = 'en' | 'th' | 'lo';
 export interface Promotion { id: string; title: string; imageUrl: string; isActive: boolean; order?: number; startDate?: string; endDate?: string; }
 export interface LocalDatabaseConfig { enabled: boolean; type: 'postgresql' | 'sqlite' | 'mysql'; host: string; port: string; databaseName: string; username: string; password: string; }
@@ -271,7 +265,6 @@ export interface SystemSettings {
   lastSyncTime?: string; 
 }
 
-// ... (Notification types remain unchanged)
 export interface AppNotification { id: string; title: string; message: string; type: 'info' | 'warning' | 'error' | 'success'; timestamp: string; read: boolean; link?: string; }
 export type AuditAction = 'SALE_VOID' | 'SALE_RETURN' | 'USER_CREATE' | 'USER_DELETE' | 'SETTINGS_UPDATE' | 'STOCK_APPROVE' | 'STOCK_REJECT' | 'SHIFT_OVERRIDE' | 'LOGIN_FAILED' | 'CASH_IN' | 'CASH_OUT';
 export interface AuditLog { id: string; action: AuditAction; userId: string; userName: string; details: string; timestamp: string; severity: 'low' | 'medium' | 'high' | 'critical'; resourceId?: string; }

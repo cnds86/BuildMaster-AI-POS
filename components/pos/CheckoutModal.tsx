@@ -47,7 +47,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.key === 'F12') {
          e.preventDefault();
          // Check validity before submitting
          if (isProcessing) return;

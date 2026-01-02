@@ -1,4 +1,5 @@
 
+
 import { Product, Category, Sale, UnitDefinition, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion, AuditLog } from '../types';
 
 export const INITIAL_USERS: User[] = [
@@ -346,7 +347,7 @@ const generateHistoricalSales = (count: number): Sale[] => {
         const v = product.variants[0];
         sellPrice = v.price;
         sellUnit = v.name;
-        conversion = v.conversionFactor;
+        conversion = v.conversionFactor || 1;
         variantId = v.id;
       }
 

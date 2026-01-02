@@ -60,25 +60,11 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   };
   buildCatOptions(null, 0);
 
-  const unitsByCategory = units.reduce((acc, unit) => {
-    if (!acc[unit.category]) acc[unit.category] = [];
-    acc[unit.category].push(unit);
-    return acc;
-  }, {} as Record<string, UnitDefinition[]>);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     const isNum = ['price', 'costPrice', 'stock', 'minStock'].includes(name);
     
     setFormData(prev => ({ ...prev, [name]: isNum ? (parseFloat(value) || 0) : value }));
-
-    if (name === 'price') {
-      const newMainPrice = parseFloat(value) || 0;
-      setVariants(prev => prev.map(v => {
-         const factor = v.conversionFactor || 1;
-         return { ...v, price: factor !== 0 ? newMainPrice / factor : 0 };
-      }));
-    }
   };
 
   const handlePhysicalChange = (field: string, value: string) => {
@@ -103,39 +89,33 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleAddVariant = () => {
     const suffix = (variants.length + 1).toString().padStart(3, '0');
     setVariants(prev => [...prev, {
-      id: `v-${Date.now()}`,
-      name: '', code: `${formData.sku || 'SKU'}-${suffix}`, barcode: formData.barcode ? `${formData.barcode}${suffix}` : '',
-      conversionFactor: 1, price: formData.price, costPrice: formData.costPrice
+      id: `v-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      name: '', 
+      code: `${formData.sku || 'SKU'}-${suffix}`, 
+      barcode: '',
+      price: formData.price, 
+      costPrice: formData.costPrice,
+      stock: 0
     }]);
-  };
-
-  const handleVariantChange = (index: number, field: keyof ProductVariant, value: any) => {
-    setVariants(prev => {
-      const newVars = [...prev];
-      newVars[index] = { ...newVars[index], [field]: field === 'name' ? value : (parseFloat(value) || value) };
-      
-      if (field === 'name') {
-        const main = units.find(u => u.symbol === formData.unit);
-        const sub = units.find(u => u.symbol === value);
-        if (main && sub && main.category === sub.category) {
-          const factor = main.baseFactor / sub.baseFactor;
-          newVars[index].conversionFactor = factor;
-          newVars[index].price = (formData.price || 0) / factor;
-        }
-      }
-      return newVars;
-    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.unit) {
+      
+      // Calculate total stock if variants exist
+      let finalStock = formData.stock || 0;
+      if (variants.length > 0) {
+         finalStock = variants.reduce((acc, v) => acc + (v.stock || 0), 0);
+      }
+
       const productData: Product = {
         ...initialData,
         ...formData as Product,
+        stock: finalStock,
         id: initialData?.id || `P-${Date.now()}`,
         variants: variants.length > 0 ? variants as ProductVariant[] : undefined,
-        warehouseInventory: initialData?.warehouseInventory || [{ warehouseId: 'wh1', quantity: formData.stock || 0 }],
+        warehouseInventory: initialData?.warehouseInventory || [{ warehouseId: 'wh1', quantity: finalStock }],
       };
       onSubmit(productData);
       onClose();
@@ -154,7 +134,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
            {[
              { id: 'general', label: 'General Info', icon: Box },
              { id: 'physical', label: 'Physical Attributes', icon: Scale },
-             { id: 'pricing', label: 'Pricing & Branches', icon: DollarSign },
+             { id: 'pricing', label: 'Pricing', icon: DollarSign },
              { id: 'variants', label: 'Variants', icon: Layers },
            ].map(tab => (
              <button
@@ -196,8 +176,7 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               variants={variants} 
               setVariants={setVariants} 
               handleAddVariant={handleAddVariant} 
-              handleVariantChange={handleVariantChange} 
-              unitsByCategory={unitsByCategory}
+              currencySymbol={currencySymbol}
             />
           )}
         </form>

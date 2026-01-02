@@ -11,6 +11,7 @@ interface ProductGridProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onScan: (code: string) => void; 
+  onProductSelect: (product: Product) => void;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ 
@@ -18,7 +19,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   onScanClick,
   searchTerm,
   setSearchTerm,
-  onScan
+  onScan,
+  onProductSelect
 }) => {
   const { formatPrice, t } = useGlobal();
   const addToCart = useCartStore((state) => state.addToCart);
@@ -57,7 +59,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           <form onSubmit={handleFormSubmit} className="relative flex-1 flex gap-3">
             <div className="relative flex-1 group">
                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-slate-800 transition-colors" />
-               {/* Style A: Gray background input */}
                <input
                  id="pos-search-input"
                  type="text"
@@ -73,18 +74,17 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             </button>
           </form>
 
-          {/* View Toggle */}
           <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 items-center self-end md:self-auto h-[52px]">
              <button 
                 onClick={() => setViewMode('list')} 
-                className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`p-2.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
                 title="List View"
              >
                 <List className="w-5 h-5" />
              </button>
              <button 
                 onClick={() => setViewMode('grid')} 
-                className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
                 title="Grid View"
              >
                 <LayoutGrid className="w-5 h-5" />
@@ -92,7 +92,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
           </div>
         </div>
 
-        {/* Categories - Style A: Black Active Pill */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
           <button 
             onClick={() => setSelectedCategory('all')} 
@@ -112,7 +111,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       </div>
 
-      {/* Products Display */}
       <div className="flex-1 overflow-y-auto px-6 pb-24 md:pb-6 custom-scrollbar bg-white">
         {filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-slate-400 mt-10">
@@ -123,7 +121,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             <p className="text-sm">Try adjusting your search or category.</p>
           </div>
         ) : viewMode === 'grid' ? (
-          // GRID VIEW - Style A
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredProducts.map((product) => {
                const hasVariants = product.variants && product.variants.length > 0;
@@ -133,10 +130,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                return (
                 <div 
                   key={product.id} 
-                  onClick={() => !hasVariants && addToCart(product, undefined)} 
+                  onClick={() => onProductSelect(product)} 
                   className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-xl hover:border-slate-200 transition-all cursor-pointer flex flex-col group relative h-full"
                 >
-                  {/* Image Area */}
                   <div className="h-40 bg-slate-50 relative flex items-center justify-center overflow-hidden">
                     {product.imageUrl ? (
                       <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -144,13 +140,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                       <Box className="w-12 h-12 text-slate-200" />
                     )}
                     
-                    {/* Style A: Stock Badge Top Right */}
                     <span className={`absolute top-3 right-3 px-2 py-1 rounded-md text-[10px] font-bold shadow-sm backdrop-blur-md ${isLowStock ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800'}`}>
                       {stock} {product.unit}
                     </span>
                   </div>
 
-                  {/* Content Area */}
                   <div className="p-4 flex-1 flex flex-col">
                     <div className="mb-2">
                         <h3 className="font-bold text-slate-900 text-sm leading-tight line-clamp-2">
@@ -161,26 +155,18 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     
                     <div className="mt-auto pt-2">
                       {hasVariants ? (
-                        <div className="space-y-1">
-                           <div className="flex flex-wrap gap-1">
-                              {product.variants!.slice(0, 3).map(v => (
-                                <button 
-                                  key={v.id} 
-                                  onClick={(e) => { e.stopPropagation(); addToCart(product, undefined, v.id); }} 
-                                  className="px-2 py-1 bg-slate-100 hover:bg-slate-800 hover:text-white text-[10px] font-bold rounded text-slate-600 border border-slate-200 truncate transition-colors"
-                                >
-                                   {v.name}
-                                </button>
-                              ))}
-                              {product.variants!.length > 3 && <span className="text-[10px] text-slate-400 self-center">+{product.variants!.length - 3}</span>}
+                        <div className="flex items-center justify-between">
+                           <div className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                              {product.variants!.length} Variants
                            </div>
+                           <Plus className="w-5 h-5 text-slate-300 group-hover:text-slate-900 transition-colors" />
                         </div>
                       ) : (
                         <div className="flex items-center justify-between">
-                           {/* Style A: Black Price Badge */}
                            <div className="bg-slate-900 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-sm">
                               {formatPrice(product.price)}
                            </div>
+                           <Plus className="w-5 h-5 text-slate-300 group-hover:text-slate-900 transition-colors" />
                         </div>
                       )}
                     </div>
@@ -190,7 +176,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             })}
           </div>
         ) : (
-          // LIST VIEW
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
              <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase sticky top-0 z-10">
@@ -204,12 +189,11 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm">
                    {filteredProducts.map(product => {
-                      const hasVariants = product.variants && product.variants.length > 0;
                       return (
                          <tr 
                             key={product.id} 
                             className="hover:bg-slate-50 transition-colors cursor-pointer group"
-                            onClick={() => !hasVariants && addToCart(product, undefined)}
+                            onClick={() => onProductSelect(product)}
                          >
                             <td className="p-3 pl-6">
                                <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
@@ -223,7 +207,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                </div>
                             </td>
                             <td className="p-3 text-right font-bold text-slate-900 text-base">
-                               {formatPrice(product.price)}
+                               {product.variants && product.variants.length > 0 ? 'Multiple' : formatPrice(product.price)}
                             </td>
                             <td className="p-3 text-center">
                                <span className={`text-xs font-bold px-2 py-1 rounded-full ${product.stock > (product.minStock||0) ? 'bg-slate-100 text-slate-600' : 'bg-red-50 text-red-700'}`}>
@@ -231,23 +215,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                                </span>
                             </td>
                             <td className="p-3 text-right pr-6">
-                               {hasVariants ? (
-                                  <div className="flex flex-wrap justify-end gap-1.5">
-                                     {product.variants!.map(v => (
-                                        <button 
-                                           key={v.id}
-                                           onClick={(e) => { e.stopPropagation(); addToCart(product, undefined, v.id); }}
-                                           className="px-2 py-1 text-xs bg-white border border-slate-300 rounded hover:bg-slate-900 hover:text-white hover:border-slate-900 font-medium transition-colors shadow-sm"
-                                        >
-                                           {v.name}
-                                        </button>
-                                     ))}
-                                  </div>
-                               ) : (
-                                  <button className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-900 hover:text-white transition-all shadow-sm">
-                                     <Plus className="w-5 h-5" />
-                                  </button>
-                               )}
+                               <button className="p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-900 hover:text-white transition-all shadow-sm">
+                                  <Plus className="w-5 h-5" />
+                                </button>
                             </td>
                          </tr>
                       );

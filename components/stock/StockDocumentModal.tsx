@@ -69,7 +69,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
             {editingId ? <Edit2 className="w-5 h-5 mr-2 text-blue-500" /> : <Plus className="w-5 h-5 mr-2 text-green-500" />}
             {editingId ? 'Edit' : 'New'} {activeTab}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -79,7 +79,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
             
             {error && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
                 {error}
               </div>
             )}
@@ -98,6 +98,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
               products={products}
               isReadOnly={isReadOnly}
               activeTab={activeTab}
+              sourceWarehouseId={formData.sourceWarehouseId || formData.warehouseId}
             />
           </div>
         </div>
@@ -115,7 +116,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
              <button
                 type="button"
                 onClick={handleSaveClick}
-                className="px-6 py-2.5 bg-construction-orange text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
              >
                 Save Draft
              </button>
