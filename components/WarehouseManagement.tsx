@@ -5,6 +5,7 @@ import { WarehouseList } from './warehouse/WarehouseList';
 import { LocationGrid } from './warehouse/LocationGrid';
 import { WarehouseFormModal } from './warehouse/WarehouseFormModal';
 import { LocationFormModal } from './warehouse/LocationFormModal';
+import { Container, Package } from 'lucide-react';
 
 interface WarehouseManagementProps {
   branches: Branch[];
@@ -79,18 +80,28 @@ export const WarehouseManagement: React.FC<WarehouseManagementProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full space-y-6 pb-20 md:pb-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col h-full space-y-6 animate-fade-in max-w-[1600px] mx-auto w-full px-1">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Warehouse Management (WMS)</h2>
-          <p className="text-slate-500">Manage storage facilities, zones, racks, and bins.</p>
+          <div className="flex items-center gap-3 mb-2">
+             <div className="p-2 bg-slate-900 text-white rounded-xl">
+                <Container className="w-5 h-5" />
+             </div>
+             <h2 className="text-4xl font-black text-slate-900 tracking-tight">Warehouse Mgmt</h2>
+          </div>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] flex items-center ml-11">
+            <Package className="w-4 h-4 mr-2 text-construction-orange" />
+            Storage Facilities & Inventory Mapping
+          </p>
         </div>
       </div>
 
-      {/* Main Content Area: Stacks on Mobile */}
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
+      {/* Main Content Area: Responsive Split */}
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 overflow-hidden min-h-0 pb-10">
         
-        <div className="w-full lg:w-1/3 flex flex-col h-full">
+        {/* Left Column: Warehouse List */}
+        <div className="w-full lg:w-1/3 flex flex-col h-full min-h-[300px]">
            <WarehouseList 
              branches={branches}
              warehouses={warehouses}
@@ -104,7 +115,8 @@ export const WarehouseManagement: React.FC<WarehouseManagementProps> = ({
            />
         </div>
 
-        <div className="w-full lg:w-2/3 flex flex-col h-full">
+        {/* Right Column: Location Details */}
+        <div className="w-full lg:w-2/3 flex flex-col h-full min-h-[400px]">
            <LocationGrid 
              selectedWarehouse={selectedWarehouse}
              locations={filteredLocations}

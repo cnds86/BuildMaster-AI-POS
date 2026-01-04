@@ -3,75 +3,51 @@ import { Elysia, t } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { PrismaClient } from '@prisma/client';
 
+// Fix: Declare Bun global to resolve "Cannot find name 'Bun'" compilation errors
+declare const Bun: any;
+
 const db = new PrismaClient();
 
 const app = new Elysia()
-  .use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-  }))
+  .use(cors())
   
-  // --- Products ---
-  .group('/api/products', (app) => app
-    .get('/', async () => {
-      const products = await db.product.findMany({
-        include: { variants: true, inventory: true }
-      });
-      
-      // Transform Prisma models to match frontend Product interface
-      return products.map(p => ({
-        ...p,
-        // Aggregate stock from all warehouses
-        stock: p.inventory.reduce((acc, inv) => acc + inv.quantity, 0),
-        warehouseInventory: p.inventory,
-        // Ensure category is a string ID as expected by the UI
-        category: p.categoryId || 'Uncategorized'
-      }));
+  // --- 1. API Routes (MUST BE FIRST) ---
+  // Note: Using absolute paths inside the group to ensure exact matching without trailing slash issues
+  .group('/api', (app) => app
+    .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
+    
+    // Products
+    .get('/products', async () => {
+      try {
+        const products = await db.product.findMany({
+          include: { variants: true, inventory: true }
+        });
+        return products.map(p => ({
+          ...p,
+          stock: p.inventory.reduce((acc, inv) => acc + inv.quantity, 0),
+          warehouseInventory: p.inventory,
+          category: p.categoryId || 'Uncategorized'
+        }));
+      } catch (e) {
+        console.error("DB Error:", e);
+        return [];
+      }
     })
-    .post('/', async ({ body }) => {
-      const data = body as any;
-      return await db.product.create({
-        data: {
-          name: data.name,
-          sku: data.sku,
-          barcode: data.barcode || '',
-          price: data.price,
-          unit: data.unit,
-          categoryId: data.category,
-          inventory: {
-            create: { warehouseId: 'wh1', quantity: data.stock || 0 }
-          },
-          variants: {
-            create: data.variants || []
-          }
-        },
-        include: { variants: true, inventory: true }
-      });
-    }, {
-      body: t.Object({
-        name: t.String(),
-        category: t.String(),
-        price: t.Number(),
-        unit: t.String(),
-        sku: t.String(),
-        barcode: t.Optional(t.String()),
-        stock: t.Number(),
-        variants: t.Optional(t.Array(t.Any()))
-      })
-    })
-  )
 
-  // --- Sales ---
-  .group('/api/sales', (app) => app
-    .get('/', async () => {
-      return await db.sale.findMany({
-        include: { items: true, customer: true },
-        orderBy: { date: 'desc' },
-        take: 100
-      });
+    // Sales
+    .get('/sales', async () => {
+      try {
+        return await db.sale.findMany({
+          include: { items: true, customer: true },
+          orderBy: { date: 'desc' },
+          take: 50
+        });
+      } catch (e) {
+        console.error("DB Sales Error:", e);
+        return [];
+      }
     })
-    .post('/', async ({ body }: any) => {
+    .post('/sales', async ({ body }: any) => {
       return await db.$transaction(async (tx) => {
         const sale = await tx.sale.create({
           data: {
@@ -96,34 +72,49 @@ const app = new Elysia()
           include: { items: true }
         });
 
-        // Deduct stock from default warehouse
         for (const item of body.items) {
           await tx.inventory.updateMany({
-            where: { 
-              productId: item.id,
-              warehouseId: 'wh1' // Default warehouse
-            },
-            data: { 
-              quantity: { decrement: item.quantity } 
-            }
+            where: { productId: item.id, warehouseId: 'wh1' },
+            data: { quantity: { decrement: item.quantity } }
           });
         }
         return sale;
       });
     })
+
+    // Customers
+    .get('/customers', async () => {
+      try {
+        return await db.customer.findMany({ include: { level: true } });
+      } catch (e) {
+        console.error("DB Customers Error:", e);
+        return [];
+      }
+    })
   )
 
-  // --- Customers ---
-  .get('/api/customers', async () => {
-    return await db.customer.findMany({ 
-      include: { level: true },
-      orderBy: { name: 'asc' }
-    });
+  // --- 2. Static File Serving ---
+  .get('/', () => Bun.file('index.html'))
+  .get('/index.tsx', () => Bun.file('index.tsx'))
+  .get('/index.css', () => Bun.file('index.css'))
+  .get('/sw.js', () => Bun.file('sw.js'))
+  // Greedy route with check to avoid stealing API calls
+  .get('/:file', ({ params: { file } }) => {
+    // Explicitly do not handle /api paths as files
+    if (file.startsWith('api/')) return new Response('Not Found', { status: 404 });
+    const f = Bun.file(file);
+    return f.exists().then(exists => exists ? f : new Response('Not Found', { status: 404 }));
   })
+  .get('/components/*', ({ path }) => Bun.file(path.slice(1)))
+  .get('/context/*', ({ path }) => Bun.file(path.slice(1)))
+  .get('/services/*', ({ path }) => Bun.file(path.slice(1)))
+  .get('/store/*', ({ path }) => Bun.file(path.slice(1)))
+  .get('/lib/*', ({ path }) => Bun.file(path.slice(1)))
+  .get('/types.ts', () => Bun.file('types.ts'))
 
   .listen({
     port: 3001,
-    hostname: '0.0.0.0' // Explicitly bind to all interfaces
+    hostname: '0.0.0.0'
   });
 
-console.log(`🚀 Elysia backend running at http://0.0.0.0:3001`);
+console.log(`🚀 BuildMaster Server running at http://localhost:3001`);

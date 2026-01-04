@@ -1,9 +1,10 @@
 
 import React, { useState } from 'react';
 import { UnitDefinition, UnitCategory } from '../types';
-import { Plus } from 'lucide-react';
-import { UnitList } from './unit/UnitList';
+import { Plus, Scale } from 'lucide-react';
+import { UnitTree } from './unit/UnitTree';
 import { UnitFormModal } from './unit/UnitFormModal';
+import { Button } from './ui/Button';
 
 interface UnitManagementProps {
   units: UnitDefinition[];
@@ -13,17 +14,18 @@ interface UnitManagementProps {
 }
 
 export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit, onUpdateUnit, onDeleteUnit }) => {
-  const [activeCategory, setActiveCategory] = useState<UnitCategory>('Length');
+  const [activeCategory, setActiveCategory] = useState<UnitCategory>('Quantity');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Partial<UnitDefinition>>({
     name: '',
     symbol: '',
-    category: 'Length',
+    category: 'Quantity',
     baseFactor: 1,
-    isBase: false
+    isBase: false,
+    parentId: null
   });
 
-  const handleOpenModal = (unit?: UnitDefinition) => {
+  const handleOpenModal = (unit?: UnitDefinition, parentId?: string | null) => {
     if (unit) {
       setEditingUnit({ ...unit });
     } else {
@@ -32,7 +34,8 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
         symbol: '',
         category: activeCategory,
         baseFactor: 1,
-        isBase: false
+        isBase: false,
+        parentId: parentId || null
       });
     }
     setIsModalOpen(true);
@@ -49,7 +52,6 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
       );
       
       if (existingBase) {
-        // Automatically unmark the previous base unit
         onUpdateUnit({ ...existingBase, isBase: false });
       }
     }
@@ -60,37 +62,64 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
       onAddUnit({
         ...formData,
         id: `u-${Date.now()}`,
-        category: activeCategory // Ensure it stays in current category
+        category: activeCategory
       } as UnitDefinition);
     }
     setIsModalOpen(false);
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col pb-20 md:pb-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 h-full flex flex-col pb-20 md:pb-0 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Unit Management</h2>
-          <p className="text-slate-500">Configure global units and conversion factors.</p>
+          <div className="flex items-center gap-3 mb-2">
+             <div className="p-2 bg-slate-900 text-white rounded-xl">
+                <Scale className="w-5 h-5" />
+             </div>
+             <h2 className="text-4xl font-black text-slate-900 tracking-tight">Unit Management</h2>
+          </div>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] ml-11">
+            Global standard units and conversion tree
+          </p>
         </div>
-        <button 
+
+        <Button 
+          variant="primary" 
+          size="lg" 
           onClick={() => handleOpenModal()}
-          className="flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold shadow-sm whitespace-nowrap"
+          className="rounded-2xl"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Add Unit
-        </button>
+          Add Root Unit
+        </Button>
       </div>
 
-      <UnitList 
-        units={units}
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        onEdit={handleOpenModal}
-        onDelete={onDeleteUnit}
-      />
+      {/* Style A: Category Selector */}
+      <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit shadow-inner">
+        {(['Quantity', 'Weight', 'Length'] as UnitCategory[]).map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              activeCategory === cat 
+                ? 'bg-white text-slate-900 shadow-md scale-105' 
+                : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
-      {/* Modal */}
+      <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col">
+        <UnitTree 
+          units={units.filter(u => u.category === activeCategory)}
+          onAdd={handleOpenModal}
+          onEdit={handleOpenModal}
+          onDelete={onDeleteUnit}
+        />
+      </div>
+
       <UnitFormModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

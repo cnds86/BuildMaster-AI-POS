@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Branch, PosMachine } from '../types';
-import { Plus } from 'lucide-react';
+import { Store, Plus, Building2 } from 'lucide-react';
 import { BranchList } from './branch/BranchList';
 import { PosTerminalList } from './branch/PosTerminalList';
 import { BranchFormModal } from './branch/BranchFormModal';
@@ -28,7 +28,7 @@ export const BranchManagement: React.FC<BranchManagementProps> = ({
   onUpdatePosMachine,
   onDeletePosMachine
 }) => {
-  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(branches[0]?.id || null);
   
   // Modal States
   const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
@@ -51,6 +51,7 @@ export const BranchManagement: React.FC<BranchManagementProps> = ({
     } else {
       onAddBranch({ ...formData, id: `b-${Date.now()}` } as Branch);
     }
+    setIsBranchModalOpen(false);
   };
 
   const handleOpenPosModal = (pos?: PosMachine) => {
@@ -65,27 +66,40 @@ export const BranchManagement: React.FC<BranchManagementProps> = ({
     } else {
       onAddPosMachine({ ...formData, id: `pm-${Date.now()}`, branchId: selectedBranchId } as PosMachine);
     }
+    setIsPosModalOpen(false);
   };
 
   return (
-    <div className="flex flex-col h-full space-y-6 pb-20 md:pb-0">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="flex flex-col h-full space-y-8 animate-fade-in max-w-[1600px] mx-auto w-full px-1">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Branch Management</h2>
-          <p className="text-slate-500">Manage store locations and POS terminals.</p>
+          <div className="flex items-center gap-3 mb-2">
+             <div className="p-2 bg-slate-900 text-white rounded-xl">
+                <Store className="w-5 h-5" />
+             </div>
+             <h2 className="text-4xl font-black text-slate-900 tracking-tight">Branch Management</h2>
+          </div>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] flex items-center ml-11">
+            <Building2 className="w-4 h-4 mr-2 text-construction-orange" />
+            Manage store locations and POS terminals
+          </p>
         </div>
+
         <button 
           onClick={() => handleOpenBranchModal()}
-          className="flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold shadow-sm whitespace-nowrap"
+          className="flex items-center justify-center px-8 py-4 bg-slate-900 text-white rounded-[2rem] hover:bg-slate-800 transition-all font-black text-sm shadow-xl shadow-slate-200 active:scale-95"
         >
           <Plus className="w-5 h-5 mr-2" />
           Add Branch
         </button>
       </div>
 
-      {/* Main Content: Stacks on mobile, Row on Large screens */}
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
-        <div className="w-full lg:w-1/2 flex flex-col h-full">
+      {/* Main Content: Responsive Split */}
+      <div className="flex flex-col lg:flex-row gap-8 flex-1 overflow-hidden min-h-0 pb-10">
+        
+        {/* Left Column: Branch Selection List */}
+        <div className="w-full lg:w-1/3 flex flex-col h-full min-h-[300px]">
            <BranchList 
              branches={branches}
              selectedBranchId={selectedBranchId}
@@ -95,7 +109,8 @@ export const BranchManagement: React.FC<BranchManagementProps> = ({
            />
         </div>
 
-        <div className="w-full lg:w-1/2 flex flex-col h-full">
+        {/* Right Column: Branch & POS Details */}
+        <div className="w-full lg:w-2/3 flex flex-col h-full min-h-[400px]">
            <PosTerminalList 
              activeBranch={activeBranch}
              posMachines={branchPosMachines}
@@ -106,6 +121,7 @@ export const BranchManagement: React.FC<BranchManagementProps> = ({
         </div>
       </div>
 
+      {/* Modals */}
       <BranchFormModal 
         isOpen={isBranchModalOpen}
         onClose={() => setIsBranchModalOpen(false)}

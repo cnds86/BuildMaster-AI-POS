@@ -1,7 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { PosMachine } from '../../types';
-import { XCircle } from 'lucide-react';
+import { X, Check, Monitor, Power, Settings } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
 
 interface PosFormModalProps {
   isOpen: boolean;
@@ -29,42 +31,79 @@ export const PosFormModal: React.FC<PosFormModalProps> = ({ isOpen, onClose, onS
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
-         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
-          <h3 className="text-lg font-bold text-slate-800">
-            {initialData ? 'Edit POS Terminal' : 'Add POS Terminal'}
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <XCircle className="w-6 h-6" />
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
+      <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md flex flex-col overflow-hidden border border-white/20">
+        <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+               <Monitor className="w-5 h-5 text-slate-400" />
+               <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                {initialData ? 'Edit Terminal' : 'New Terminal'}
+              </h3>
+            </div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-7">Point of Sale Hardware</p>
+          </div>
+          <button onClick={onClose} className="p-2 bg-white rounded-full text-slate-400 hover:text-slate-600 shadow-sm border border-slate-100">
+            <X className="w-6 h-6" />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">POS Machine Number / ID</label>
-            <input 
+
+        <form onSubmit={handleSubmit} className="p-10 space-y-8">
+          <div className="space-y-6">
+            <Input 
+              label="Terminal Identifier"
+              icon={<Settings className="w-5 h-5" />}
               required
-              type="text" 
-              value={form.machineNumber} 
-              onChange={e => setForm({...form, machineNumber: e.target.value})}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 font-mono" 
-              placeholder="e.g. POS-05"
+              value={form.machineNumber}
+              onChange={e => setForm({...form, machineNumber: e.target.value.toUpperCase()})}
+              placeholder="e.g. POS-01"
+              className="font-mono text-lg"
             />
+
+            <div className="space-y-1.5">
+               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Terminal Status</label>
+               <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { id: 'active', label: 'Active (Online)', icon: Power, color: 'emerald' },
+                    { id: 'maintenance', label: 'Maintenance', icon: Settings, color: 'amber' },
+                    { id: 'inactive', label: 'Inactive', icon: Power, color: 'slate' }
+                  ].map((status) => (
+                    <button
+                      key={status.id}
+                      type="button"
+                      onClick={() => setForm({...form, status: status.id as any})}
+                      className={`flex items-center p-4 rounded-2xl border-2 transition-all text-left ${
+                        form.status === status.id 
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-lg' 
+                          : 'bg-white text-slate-500 border-slate-100 hover:border-slate-200'
+                      }`}
+                    >
+                      <status.icon className={`w-5 h-5 mr-3 ${form.status === status.id ? 'text-white' : `text-${status.color}-500`}`} />
+                      <span className="font-bold text-sm">{status.label}</span>
+                      {form.status === status.id && <Check className="w-4 h-4 ml-auto" />}
+                    </button>
+                  ))}
+               </div>
+            </div>
           </div>
-          <div>
-             <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-             <select 
-               value={form.status}
-               onChange={e => setForm({...form, status: e.target.value as any})}
-               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
-             >
-               <option value="active">Active</option>
-               <option value="maintenance">Maintenance</option>
-               <option value="inactive">Inactive</option>
-             </select>
-          </div>
-           <div className="flex justify-end pt-4">
-            <button type="submit" className="px-6 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors font-medium">Save Terminal</button>
+
+          <div className="flex items-center justify-end space-x-4 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-8 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+            >
+              Discard
+            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full sm:w-auto min-w-[180px]"
+            >
+              <Check className="w-5 h-5 mr-2" />
+              Confirm Terminal
+            </Button>
           </div>
         </form>
       </div>

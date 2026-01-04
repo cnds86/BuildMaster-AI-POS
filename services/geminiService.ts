@@ -2,7 +2,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { EstimateResultItem, Product, InventoryAnalysisResult, Sale, BusinessInsight } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+// Fix: GoogleGenAI initialization must strictly use { apiKey: process.env.API_KEY } as per guidelines
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getConstructionEstimate = async (
   query: string, 
