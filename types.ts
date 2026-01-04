@@ -19,7 +19,7 @@ export interface UnitDefinition {
   category: UnitCategory;
   baseFactor: number;
   isBase: boolean;
-  parentId?: string | null; // Added for Tree Structure
+  parentId?: string | null;
 }
 
 export interface CategoryItem {
@@ -40,7 +40,6 @@ export interface ProductVariant {
   conversionFactor?: number;
 }
 
-// Added ProductInventory definition
 export interface ProductInventory {
   warehouseId: string;
   quantity: number;
@@ -137,7 +136,6 @@ export interface PosMachine { id: string; branchId: string; machineNumber: strin
 export interface Warehouse { id: string; branchId: string; name: string; code: string; type: 'General' | 'Cold Storage' | 'Hazardous' | 'Showroom'; description?: string; }
 export interface StorageLocation { id: string; warehouseId: string; zone: string; rack: string; shelf: string; bin: string; fullCode: string; type?: 'Pallet' | 'Shelf' | 'Floor'; }
 
-// Added CashTransaction definition
 export interface CashTransaction {
   id: string;
   shiftId: string;
@@ -152,7 +150,6 @@ export interface Shift { id: string; userId: string; branchId: string; posId?: s
 export interface ShiftSchedule { id: string; userId: string; originalUserId?: string; branchId: string; date: string; startTime: string; endTime: string; note?: string; isSwap?: boolean; }
 export interface Promotion { id: string; title: string; imageUrl: string; isActive: boolean; order?: number; startDate?: string; endDate?: string; }
 
-// Added helper types for SystemSettings
 export type Language = 'en' | 'th' | 'lo';
 
 export interface BankAccount {
@@ -213,7 +210,6 @@ export interface SystemSettings {
 
 export type DocumentStatus = 'Draft' | 'Approved' | 'Completed' | 'Cancelled';
 
-// Added StockItem definition
 export interface StockItem {
   productId: string;
   variantId?: string;
@@ -233,8 +229,43 @@ export interface StockReservation { id: string; date: string; expiryDate: string
 export interface StockReceipt { id: string; date: string; warehouseId: string; vendorName: string; vendorInvoiceNo?: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; totalCost: number; }
 export interface StockAdjustment { id: string; date: string; warehouseId: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; reason: string; }
 
-export type UserRole = 'Admin' | 'Manager' | 'Staff' | 'Cashier';
-export interface User { id: string; username: string; password?: string; email?: string; name: string; role: UserRole; avatarUrl?: string; coverUrl?: string; department?: string; branchId?: string; }
+// --- Advanced User & Permission Types ---
+export type UserRole = 'Admin' | 'Manager' | 'Staff' | 'Cashier' | string;
+
+export interface Permission {
+  id: string;
+  label: string;
+  description: string;
+  group: string;
+}
+
+export interface UserRoleDefinition {
+  id: string;
+  name: string;
+  description: string;
+  permissions: string[]; // List of permission IDs
+  isSystem?: boolean;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface User { 
+  id: string; 
+  username: string; 
+  password?: string; 
+  email?: string; 
+  name: string; 
+  role: UserRole; 
+  avatarUrl?: string; 
+  coverUrl?: string; 
+  departmentId?: string; // Changed from department: string
+  branchId?: string; 
+}
+
 export interface BusinessInsight { summary: string; trendDirection: 'up' | 'down' | 'stable'; actionItems: string[]; predictedRevenueNextWeek: number; topPerformingCategory: string; }
 export interface InventoryAnalysisResult { reorders: any[]; newProducts: any[]; bundles: any[]; }
 export interface EstimateResultItem { productName: string; estimatedQuantity: number; unit: string; reasoning: string; matchedProductId?: string; }

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UnitDefinition } from '../../types';
-import { ChevronRight, ChevronDown, Hash, Edit2, Trash2, Plus, ArrowRightLeft } from 'lucide-react';
+import { ChevronRight, ChevronDown, Hash, Edit2, Trash2, Plus, ArrowRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Badge } from '../ui/Badge';
 
@@ -20,6 +20,12 @@ export const UnitTreeNode: React.FC<UnitTreeNodeProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const children = allUnits.filter(u => u.parentId === unit.id);
   const hasChildren = children.length > 0;
+
+  // Find parent unit for ratio display
+  const parentUnit = unit.parentId ? allUnits.find(u => u.id === unit.parentId) : null;
+  // If no immediate parent but not base, show relative to base if possible
+  const baseUnit = allUnits.find(u => u.isBase);
+  const ratioTarget = parentUnit || baseUnit;
 
   return (
     <div className="animate-slide-in-right">
@@ -67,13 +73,12 @@ export const UnitTreeNode: React.FC<UnitTreeNodeProps> = ({
               </span>
            </div>
            
-           <div className="w-32 text-center">
+           <div className="w-48 text-center hidden sm:block">
               {unit.isBase ? (
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Primary</span>
+                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Smallest Reference</span>
               ) : (
-                <div className="flex items-center justify-center text-xs font-bold text-slate-600 bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">
-                   {unit.baseFactor}
-                   <ArrowRightLeft className="w-3 h-3 mx-1 text-orange-300" />
+                <div className="flex items-center justify-center text-xs font-black text-slate-700 bg-orange-50 px-3 py-1.5 rounded-xl border border-orange-100 shadow-sm">
+                   1 {unit.symbol} = {unit.baseFactor} {ratioTarget?.symbol || 'base'}
                 </div>
               )}
            </div>

@@ -97,7 +97,8 @@ function App() {
       {activeTab === 'categories' && <CategoryManagement categories={global.categories} onAddCategory={global.addCategory} onUpdateCategory={global.updateCategory} onDeleteCategory={global.deleteCategory} />}
       {activeTab === 'branches' && <BranchManagement branches={global.branches} posMachines={global.posMachines} onAddBranch={global.addBranch} onUpdateBranch={global.updateBranch} onDeleteBranch={global.deleteBranch} onAddPosMachine={global.addPos} onUpdatePosMachine={global.updatePos} onDeletePosMachine={global.deletePos} />}
       {activeTab === 'warehouses' && <WarehouseManagement branches={global.branches} warehouses={warehouses} locations={global.locations} onAddWarehouse={global.addWarehouse} onUpdateWarehouse={global.updateWarehouse} onDeleteWarehouse={global.deleteWarehouse} onAddLocation={global.addLocation} onUpdateLocation={global.updateLocation} onDeleteLocation={global.deleteLocation} />}
-      {activeTab === 'users' && <UserManagement users={global.users} onAddUser={global.addUser} onUpdateUser={global.updateUser} onDeleteUser={global.deleteUser} />}
+      {/* Fix: UserManagement does not accept props in its definition, and it fetches these from useGlobal context internally */}
+      {activeTab === 'users' && <UserManagement />}
       {activeTab === 'settings' && <Settings settings={settings} onUpdateSettings={global.updateSettings} branches={global.branches} posMachines={global.posMachines} />}
       {activeTab === 'profile' && <UserProfile user={currentUser} shifts={global.shifts} sales={sales} />}
     </Layout>

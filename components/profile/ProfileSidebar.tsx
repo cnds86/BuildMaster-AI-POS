@@ -1,13 +1,15 @@
 
 import React from 'react';
-import { User } from '../../types';
+import { User, Department } from '../../types';
 import { Briefcase, UserCircle, Shield, Mail, Smartphone, Hash } from 'lucide-react';
 
 interface ProfileSidebarProps {
   user: User;
+  // Fix: Added departments to props to lookup name from ID
+  departments: Department[];
 }
 
-export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ user }) => {
+export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ user, departments }) => {
   return (
     <div className="space-y-6">
        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -25,7 +27,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ user }) => {
              </div>
              <div className="flex justify-between items-center py-2 border-b border-slate-50">
                 <span className="text-sm text-slate-500 flex items-center"><Shield className="w-4 h-4 mr-2"/> Department</span>
-                <span className="text-sm font-medium text-slate-700">{user.department || 'General'}</span>
+                {/* Fix: Lookup department name by ID from the User object */}
+                <span className="text-sm font-medium text-slate-700">{departments.find(d => d.id === user.departmentId)?.name || 'General'}</span>
              </div>
           </div>
        </div>

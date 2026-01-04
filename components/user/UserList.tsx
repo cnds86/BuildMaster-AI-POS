@@ -1,17 +1,19 @@
 
 import React from 'react';
-import { User, Branch } from '../../types';
+import { User, Branch, Department } from '../../types';
 import { UserCircle, ShieldCheck, LayoutDashboard, ClipboardList, Store, Building2, Briefcase, Edit2, Trash2 } from 'lucide-react';
 
 interface UserListProps {
   users: User[];
   branches: Branch[];
+  // Fix: Added departments to resolve departmentId to name
+  departments: Department[];
   currentUser: User | null;
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
 }
 
-export const UserList: React.FC<UserListProps> = ({ users, branches, currentUser, onEdit, onDelete }) => {
+export const UserList: React.FC<UserListProps> = ({ users, branches, departments, currentUser, onEdit, onDelete }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
         <div className="overflow-x-auto">
@@ -67,10 +69,11 @@ export const UserList: React.FC<UserListProps> = ({ users, branches, currentUser
                       ) : (
                         <span className="text-xs text-slate-400 italic">No branch assigned</span>
                       )}
-                      {user.department && (
+                      {/* Fix: use departmentId and lookup name in departments list */}
+                      {user.departmentId && (
                         <div className="flex items-center text-xs text-slate-500">
                           <Briefcase className="w-3 h-3 mr-1.5 text-slate-400"/>
-                          {user.department}
+                          {departments.find(d => d.id === user.departmentId)?.name || 'Unknown Dept'}
                         </div>
                       )}
                     </div>

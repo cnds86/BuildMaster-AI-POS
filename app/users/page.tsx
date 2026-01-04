@@ -4,14 +4,8 @@ import { UserManagement } from '../../components/UserManagement';
 import { useGlobal } from '../../context/GlobalContext';
 
 export default function UsersPage() {
-  const { users, addUser, updateUser, deleteUser } = useGlobal();
-
+  // Fix: UserManagement does not accept props in its definition; it uses context internally.
   return (
-    <UserManagement
-      users={users}
-      onAddUser={addUser}
-      onUpdateUser={updateUser}
-      onDeleteUser={deleteUser}
-    />
+    <UserManagement />
   );
 }

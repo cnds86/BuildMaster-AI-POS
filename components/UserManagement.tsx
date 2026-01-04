@@ -1,30 +1,26 @@
 
 import React, { useState } from 'react';
-import { User } from '../types';
-import { Plus } from 'lucide-react';
+import { User, UserRoleDefinition, Department } from '../types';
+import { Plus, Users, ShieldCheck, Briefcase, Lock } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
 import { UserList } from './user/UserList';
 import { UserFormModal } from './user/UserFormModal';
+import { RoleTab } from './user/RoleTab';
+import { DepartmentTab } from './user/DepartmentTab';
 
-interface UserManagementProps {
-  users: User[];
-  onAddUser: (user: User) => void;
-  onUpdateUser: (user: User) => void;
-  onDeleteUser: (id: string) => void;
-}
+export const UserManagement: React.FC = () => {
+  const { 
+    users, addUser, updateUser, deleteUser,
+    roles, addRole, updateRole, deleteRole,
+    departments, addDepartment, updateDepartment, deleteDepartment,
+    branches, currentUser, permissions
+  } = useGlobal();
 
-export const UserManagement: React.FC<UserManagementProps> = ({
-  users,
-  onAddUser,
-  onUpdateUser,
-  onDeleteUser
-}) => {
-  const { branches, currentUser } = useGlobal();
+  const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'departments'>('users');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | undefined>(undefined);
 
   const handleOpenModal = (user?: User) => {
-    // Permission check: Managers cannot edit Admins
     if (user && user.role === 'Admin' && currentUser?.role !== 'Admin') {
       alert("Only Administrators can edit other Administrator accounts.");
       return;
@@ -39,19 +35,18 @@ export const UserManagement: React.FC<UserManagementProps> = ({
       return;
     }
     if (confirm(`Are you sure you want to delete ${user.name}?`)) {
-      onDeleteUser(user.id);
+      deleteUser(user.id);
     }
   };
 
-  const handleSubmit = (formData: any, isEdit: boolean) => {
-    // Prepare Data
+  const handleSubmitUser = (formData: any, isEdit: boolean) => {
     const userData: any = {
       username: formData.username,
       name: formData.name,
       email: formData.email,
       role: formData.role,
       avatarUrl: formData.avatarUrl,
-      department: formData.department,
+      departmentId: formData.departmentId,
       branchId: formData.branchId
     };
 
@@ -60,49 +55,108 @@ export const UserManagement: React.FC<UserManagementProps> = ({
     }
 
     if (isEdit && editingUser) {
-        // If edit and no password provided, preserve old password logic is handled by global hook logic or backend
-        // But for client state update simulation:
         const existing = users.find(u => u.id === editingUser.id);
         if (existing && !userData.password) {
             userData.password = existing.password;
         }
-        onUpdateUser({ ...userData, id: editingUser.id });
+        updateUser({ ...userData, id: editingUser.id });
     } else {
-        onAddUser({ ...userData, id: `u-${Date.now()}` });
+        addUser({ ...userData, id: `u-${Date.now()}` });
     }
     setIsModalOpen(false);
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 h-full flex flex-col pb-20 md:pb-0 animate-fade-in max-w-[1600px] mx-auto w-full px-1">
+      {/* Page Header - Style A */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">User Management</h2>
-          <p className="text-slate-500">Manage system users, roles, and access permissions.</p>
+          <div className="flex items-center gap-3 mb-2">
+             <div className="p-2 bg-slate-900 text-white rounded-xl">
+                <Lock className="w-5 h-5" />
+             </div>
+             <h2 className="text-4xl font-black text-slate-900 tracking-tight">Access Control</h2>
+          </div>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] flex items-center ml-11">
+            <Users className="w-4 h-4 mr-2 text-construction-orange" />
+            Personnel, Roles & Infrastructure
+          </p>
         </div>
-        <button 
-          onClick={() => handleOpenModal()}
-          className="flex items-center px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold shadow-sm whitespace-nowrap"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add User
-        </button>
+        
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit shadow-inner">
+           {[
+             { id: 'users', label: 'Users', icon: Users },
+             { id: 'roles', label: 'Roles', icon: ShieldCheck },
+             { id: 'departments', label: 'Departments', icon: Briefcase },
+           ].map((tab) => (
+             <button
+               key={tab.id}
+               onClick={() => setActiveTab(tab.id as any)}
+               className={`flex items-center px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                 activeTab === tab.id 
+                   ? 'bg-white text-slate-900 shadow-md scale-105' 
+                   : 'text-slate-400 hover:text-slate-600'
+               }`}
+             >
+               <tab.icon className="w-4 h-4 mr-2" />
+               <span className="hidden sm:inline">{tab.label}</span>
+             </button>
+           ))}
+        </div>
       </div>
 
-      <UserList 
-        users={users} 
-        branches={branches} 
-        currentUser={currentUser} 
-        onEdit={handleOpenModal} 
-        onDelete={handleDeleteUser} 
-      />
+      <div className="flex-1 min-h-0 flex flex-col">
+        {activeTab === 'users' && (
+          <div className="flex flex-col gap-6 flex-1 animate-fade-in">
+             <div className="flex justify-end">
+                <button 
+                  onClick={() => handleOpenModal()}
+                  className="flex items-center px-8 py-4 bg-slate-900 text-white rounded-[2rem] hover:bg-slate-800 transition-all font-black text-sm shadow-xl active:scale-95"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Add New User
+                </button>
+             </div>
+             <UserList 
+                users={users} 
+                branches={branches} 
+                // Fix: Added departments prop to UserList
+                departments={departments}
+                currentUser={currentUser} 
+                onEdit={handleOpenModal} 
+                onDelete={handleDeleteUser} 
+             />
+          </div>
+        )}
+
+        {activeTab === 'roles' && (
+          <RoleTab 
+            roles={roles}
+            permissions={permissions}
+            onAdd={addRole}
+            onUpdate={updateRole}
+            onDelete={deleteRole} 
+          />
+        )}
+
+        {activeTab === 'departments' && (
+          <DepartmentTab 
+            departments={departments}
+            onAdd={addDepartment}
+            onUpdate={updateDepartment}
+            onDelete={deleteDepartment} 
+          />
+        )}
+      </div>
 
       <UserFormModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitUser}
         initialData={editingUser}
         branches={branches}
+        departments={departments}
+        roles={roles}
         currentUser={currentUser}
       />
     </div>

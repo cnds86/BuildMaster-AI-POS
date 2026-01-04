@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { UnitDefinition, UnitCategory } from '../../types';
-import { X, ArrowRightLeft, Info, Check } from 'lucide-react';
+import { X, ArrowRightLeft, Info, Check, CornerDownRight, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-// Fix: Added missing imports for cn and Badge
 import { cn } from '../../lib/utils';
 import { Badge } from '../ui/Badge';
 
@@ -23,7 +21,10 @@ export const UnitFormModal: React.FC<UnitFormModalProps> = ({
   const [formData, setFormData] = useState<Partial<UnitDefinition>>(initialData);
   
   const filteredUnits = units.filter(u => u.category === activeCategory);
+  // Find current parent and base for UI logic
+  const parentUnit = formData.parentId ? filteredUnits.find(u => u.id === formData.parentId) : null;
   const baseUnit = filteredUnits.find(u => u.isBase);
+  const displayTargetSymbol = parentUnit?.symbol || baseUnit?.symbol || 'base';
 
   useEffect(() => {
     setFormData(initialData);
@@ -72,13 +73,16 @@ export const UnitFormModal: React.FC<UnitFormModalProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <div className="space-y-1.5">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Relationship</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center">
+                   <CornerDownRight className="w-3 h-3 mr-1" /> Immediate Parent
+                </label>
                 <select 
-                   className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-3.5 px-4 transition-all outline-none font-bold text-slate-800 focus:ring-4 focus:ring-orange-100 focus:border-construction-orange focus:bg-white appearance-none"
+                   className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-3.5 px-4 transition-all outline-none font-bold text-slate-800 focus:ring-4 focus:ring-orange-100 focus:border-construction-orange focus:bg-white appearance-none disabled:opacity-50"
                    value={formData.parentId || ''}
                    onChange={e => setFormData({...formData, parentId: e.target.value || null})}
+                   disabled={formData.isBase}
                 >
-                   <option value="">No Parent (Root)</option>
+                   <option value="">No Parent (Root Level)</option>
                    {filteredUnits.filter(u => u.id !== formData.id).map(u => (
                       <option key={u.id} value={u.id}>{u.name} ({u.symbol})</option>
                    ))}
@@ -94,54 +98,64 @@ export const UnitFormModal: React.FC<UnitFormModalProps> = ({
                          checked={formData.isBase}
                          onChange={e => setFormData({...formData, isBase: e.target.checked, parentId: null, baseFactor: 1})}
                       />
-                      {/* Fix: Added missing import usage for cn */}
                       <div className={cn(
                          "w-12 h-6 rounded-full transition-all",
                          formData.isBase ? "bg-construction-orange" : "bg-slate-200"
                       )}></div>
-                      {/* Fix: Added missing import usage for cn */}
                       <div className={cn(
-                         "absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform",
+                         "absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform shadow-sm",
                          formData.isBase && "translate-x-6"
                       )}></div>
                    </div>
-                   <span className="ml-3 text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-700 transition-colors">Base Unit</span>
+                   <span className="ml-3 text-xs font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-700 transition-colors">Smallest Base Unit</span>
                 </label>
              </div>
           </div>
 
           {!formData.isBase && (
-             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
-                <div className="flex items-center justify-between">
-                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Conversion Rule</h4>
-                   {/* Fix: Added missing component Badge */}
-                   <Badge variant="slate">Logic</Badge>
+             <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-2xl shadow-slate-900/10 space-y-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                   <ArrowRightLeft className="w-32 h-32 text-white" />
                 </div>
                 
-                <div className="flex items-center gap-4">
-                   <div className="flex-1 bg-white p-4 rounded-2xl border border-slate-200 text-center">
-                      <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Source</p>
-                      <p className="font-black text-slate-900">1 {formData.symbol || '?'}</p>
+                <div className="flex items-center justify-between relative z-10">
+                   <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Scale Definition</h4>
+                   <Badge variant="primary" className="bg-orange-500 text-white border-transparent">Active Rule</Badge>
+                </div>
+                
+                <div className="flex items-center gap-4 relative z-10">
+                   <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/10 p-5 rounded-2xl text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase mb-1">THIS UNIT</p>
+                      <p className="font-black text-white text-lg">1 {formData.symbol || '?'}</p>
                    </div>
                    
-                   <div className="p-2 bg-slate-900 text-white rounded-full shadow-lg">
-                      <ArrowRightLeft className="w-4 h-4" />
+                   <div className="p-3 bg-white text-slate-900 rounded-full shadow-lg">
+                      <ArrowRight className="w-5 h-5" />
                    </div>
 
-                   <div className="flex-1 space-y-1">
+                   <div className="flex-1 space-y-2">
+                      <p className="text-center text-[9px] font-black text-slate-400 uppercase">CONVERSION FACTOR</p>
                       <Input 
                         type="number"
                         step="0.001"
                         value={formData.baseFactor}
                         onChange={e => setFormData({...formData, baseFactor: parseFloat(e.target.value) || 0})}
-                        className="text-center text-xl h-14"
+                        className="text-center text-2xl h-16 bg-white border-transparent focus:ring-orange-500 text-slate-900"
+                        placeholder="Qty"
                       />
+                   </div>
+
+                   <div className="flex-1 bg-white/10 backdrop-blur-md border border-white/10 p-5 rounded-2xl text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase mb-1">TARGET UNIT</p>
+                      <p className="font-black text-white text-lg">{displayTargetSymbol}</p>
                    </div>
                 </div>
                 
-                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 px-2 py-1 italic bg-white/50 rounded-lg border border-slate-100">
-                   <Info className="w-3.5 h-3.5 text-blue-500" />
-                   <span>Factor relative to the global <strong>Base Unit</strong>.</span>
+                <div className="flex items-start gap-2 text-[10px] font-bold text-slate-400 px-4 py-3 bg-white/5 rounded-2xl border border-white/5 relative z-10">
+                   <Info className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                   <p className="leading-relaxed">
+                      Entering <strong>{formData.baseFactor || '0'}</strong> defines that one <strong>{formData.name || 'unit'}</strong> consists of {formData.baseFactor || '0'} <strong>{parentUnit?.name || baseUnit?.name || 'base units'}</strong>.
+                   </p>
                 </div>
              </div>
           )}
@@ -150,7 +164,7 @@ export const UnitFormModal: React.FC<UnitFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-8 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600"
+              className="px-8 py-3 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
             >
               Cancel
             </button>
@@ -158,10 +172,10 @@ export const UnitFormModal: React.FC<UnitFormModalProps> = ({
               type="submit"
               variant="primary"
               size="xl"
-              className="min-w-[200px]"
+              className="min-w-[220px]"
             >
               <Check className="w-5 h-5 mr-2" />
-              Save Unit
+              Finalize Unit
             </Button>
           </div>
         </form>

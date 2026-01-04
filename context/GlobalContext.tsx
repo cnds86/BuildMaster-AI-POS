@@ -5,7 +5,8 @@ import {
   Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, 
   StockReceipt, StockAdjustment, SyncLog, Customer, CustomerLevel, Shift, 
   ShiftSchedule, Promotion, SystemSettings, AppNotification, CartItem, 
-  DocumentStatus, CashTransaction, Quotation, AuditLog
+  DocumentStatus, CashTransaction, Quotation, AuditLog, 
+  UserRoleDefinition, Permission, Department
 } from '../types';
 import { useSystemStore } from '../store/useSystemStore';
 import { useInventoryStore } from '../store/useInventoryStore';
@@ -18,6 +19,9 @@ interface GlobalContextType {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   users: User[];
+  roles: UserRoleDefinition[];
+  permissions: Permission[];
+  departments: Department[];
   settings: SystemSettings;
   products: Product[];
   sales: Sale[];
@@ -43,7 +47,7 @@ interface GlobalContextType {
   receipts: StockReceipt[];
   adjustments: StockAdjustment[];
 
-  // Actions (Local Only)
+  // Actions
   processSale: (items: CartItem[], total: number, customerId?: string, discountAmount?: number, subtotal?: number, paymentMethod?: any, amountReceived?: number, change?: number, pointsRedeemed?: number, source?: 'pos' | 'back-office') => Promise<Sale>;
   processReturn: (originalSale: Sale, returnItems: { itemIndex: number, quantity: number }[]) => Promise<void>;
   settleSaleDebt: (saleId: string, amount: number, method: string) => Promise<void>;
@@ -99,10 +103,16 @@ interface GlobalContextType {
   updateLocation: (l: StorageLocation) => void;
   deleteLocation: (id: string) => void;
 
-  // Users
+  // Users, Roles, Departments
   addUser: (u: User) => void;
   updateUser: (u: User) => void;
   deleteUser: (id: string) => void;
+  addRole: (r: UserRoleDefinition) => void;
+  updateRole: (r: UserRoleDefinition) => void;
+  deleteRole: (id: string) => void;
+  addDepartment: (d: Department) => void;
+  updateDepartment: (d: Department) => void;
+  deleteDepartment: (id: string) => void;
 
   // Shifts & Schedules
   startShift: (branchId: string, startCash: number, notes?: string, posId?: string) => void;
@@ -138,7 +148,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const salesStore = useSalesStore();
   const stockStore = useStockStore();
 
-  // Helper for Translation
   const t = (key: string): string => {
     const lang = systemStore.settings.language || 'en';
     const keys = key.split('.');
@@ -147,7 +156,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return value || key;
   };
 
-  // Helper for Pricing
   const formatPrice = (amount: number) => {
     const symbol = systemStore.settings.currencySymbol;
     return new Intl.NumberFormat('en-US', {
@@ -157,12 +165,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }).format(amount).replace('LAK', '₭').replace('THB', '฿');
   };
 
-  // Local Data Refresh (Pure state, no API)
   const refreshData = async () => {
     console.debug("[Local Mode] Data refresh requested");
   };
 
-  // Process Sale Locally
   const processSale = async (
     items: CartItem[], 
     total: number, 
@@ -197,40 +203,30 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       userName: systemStore.currentUser?.name
     };
 
-    // 1. Add to sales history
     salesStore.addSale(newSale);
-
-    // 2. Update Inventory (Deduct stock)
     items.forEach(item => {
        inventoryStore.updateProductStock(item.id, -item.quantity, 'wh1');
     });
 
-    // 3. Update Customer Points
     if (customerId && systemStore.settings.loyaltyProgram.enabled) {
        const earned = Math.floor(total / systemStore.settings.loyaltyProgram.earnRate);
        const updatedCustomer = { ...customer!, loyaltyPoints: (customer?.loyaltyPoints || 0) + earned - (pointsRedeemed || 0) };
        salesStore.updateCustomer(updatedCustomer as Customer);
     }
-
     return newSale;
   };
 
-  // Process Debt Settle
   const settleSaleDebt = async (saleId: string, amount: number, method: string) => {
     const sale = salesStore.sales.find(s => s.id === saleId);
     if (!sale) return;
-
     const newAmountReceived = (sale.amountReceived || 0) + amount;
     const newRemaining = Math.max(0, (sale.remainingAmount || sale.total) - amount);
-    
     salesStore.updateSale({
       ...sale,
       amountReceived: newAmountReceived,
       remainingAmount: newRemaining,
       paymentStatus: newRemaining <= 0.01 ? 'paid' : 'partial'
     });
-
-    // Log the transaction
     systemStore.logAction({
        id: `aud-${Date.now()}`,
        action: 'CASH_IN',
@@ -243,24 +239,18 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  // Process Return/Refund
   const processReturn = async (originalSale: Sale, returnItems: { itemIndex: number, quantity: number }[]) => {
     const returnSaleId = `RET-${Date.now()}`;
     const items: CartItem[] = [];
     let returnTotal = 0;
-
     returnItems.forEach(ret => {
        const originalItem = originalSale.items[ret.itemIndex];
        const returnQty = ret.quantity;
        const lineTotal = originalItem.sellPrice * returnQty;
-       
        returnTotal += lineTotal;
        items.push({ ...originalItem, quantity: returnQty });
-
-       // Restore stock
        inventoryStore.updateProductStock(originalItem.id, returnQty, 'wh1');
     });
-
     const returnSale: Sale = {
       id: returnSaleId,
       items,
@@ -276,9 +266,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       userId: systemStore.currentUser?.id,
       userName: systemStore.currentUser?.name
     };
-
     salesStore.addSale(returnSale);
-    
     systemStore.logAction({
        id: `aud-${Date.now()}`,
        action: 'SALE_RETURN',
@@ -294,16 +282,10 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const handleVoidSale = (id: string) => {
     const sale = salesStore.sales.find(s => s.id === id);
     if (!sale || sale.status === 'voided') return;
-
-    // 1. Mark as voided
     salesStore.updateSale({ ...sale, status: 'voided' });
-
-    // 2. Return items to stock
     sale.items.forEach(item => {
        inventoryStore.updateProductStock(item.id, item.quantity, 'wh1');
     });
-
-    // 3. Log
     systemStore.logAction({
        id: `aud-${Date.now()}`,
        action: 'SALE_VOID',
@@ -316,22 +298,13 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   };
 
-  // Stock Actions
   const handleStockStatusChange = (type: string, id: string, status: DocumentStatus) => {
-    const docMap: any = {
-      transfer: 'transfers',
-      count: 'counts',
-      reservation: 'reservations',
-      receipt: 'receipts',
-      adjustment: 'adjustments'
-    };
+    const docMap: any = { transfer: 'transfers', count: 'counts', reservation: 'reservations', receipt: 'receipts', adjustment: 'adjustments' };
     const listName = docMap[type];
     const list = (stockStore as any)[listName] as any[];
     const doc = list.find(x => x.id === id);
     if (doc) {
       stockStore.updateDocument(listName, { ...doc, status });
-      
-      // If completed, update actual inventory
       if (status === 'Completed' || status === 'Approved') {
          doc.items.forEach((item: any) => {
             const delta = type === 'adjustment' ? item.quantity : type === 'receipt' ? item.quantity : type === 'count' ? (item.countedQuantity - (item.systemQuantity || 0)) : 0;
@@ -346,7 +319,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Shift Actions
   const startShift = (branchId: string, startCash: number, notes?: string, posId?: string) => {
     const newShift: Shift = {
       id: `SHT-${Date.now()}`,
@@ -408,6 +380,9 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       currentUser: systemStore.currentUser,
       setCurrentUser: systemStore.setCurrentUser,
       users: systemStore.users,
+      roles: systemStore.roles,
+      permissions: systemStore.permissions,
+      departments: systemStore.departments,
       settings: systemStore.settings,
       products: inventoryStore.products,
       sales: salesStore.sales,
@@ -426,7 +401,6 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       syncLogs: systemStore.syncLogs,
       auditLogs: systemStore.auditLogs || [],
       
-      // Stock State
       transfers: stockStore.transfers,
       counts: stockStore.counts,
       reservations: stockStore.reservations,
@@ -485,6 +459,12 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       addUser: systemStore.addUser,
       updateUser: systemStore.updateUser,
       deleteUser: systemStore.deleteUser,
+      addRole: systemStore.addRole,
+      updateRole: systemStore.updateRole,
+      deleteRole: systemStore.deleteRole,
+      addDepartment: systemStore.addDepartment,
+      updateDepartment: systemStore.updateDepartment,
+      deleteDepartment: systemStore.deleteDepartment,
 
       startShift,
       endShift,
