@@ -11,33 +11,67 @@ interface ReceiptSettingsProps {
   posMachines: PosMachine[];
 }
 
-const MAX_FILE_SIZE_MB = 1;
-
 export const ReceiptSettings: React.FC<ReceiptSettingsProps> = ({ formData, setFormData, branches, posMachines }) => {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const qrInputRef = useRef<HTMLInputElement>(null);
   const [newBank, setNewBank] = useState<BankAccount>({ id: '', bankName: '', accountName: '', accountNumber: '' });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'receiptLogoUrl' | 'receiptQrCodeUrl') => {
+  // Helper to resize images before storing as base64
+  const resizeImage = (file: File, maxWidth: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Maintain aspect ratio
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+             ctx.drawImage(img, 0, 0, width, height);
+             // Export as JPEG for better compression if it's not PNG with transparency, but usually PNG is safer for logos
+             resolve(canvas.toDataURL(file.type, 0.8));
+          } else {
+             reject(new Error('Canvas context not available'));
+          }
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'receiptLogoUrl' | 'receiptQrCodeUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-      alert(`File size exceeds ${MAX_FILE_SIZE_MB}MB.`);
-      e.target.value = '';
-      return;
-    }
 
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file (JPG, PNG).');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData(prev => ({ ...prev, [field]: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      // Resize to max 300px width for efficient storage and thermal printing
+      const resizedBase64 = await resizeImage(file, 300);
+      setFormData(prev => ({ ...prev, [field]: resizedBase64 }));
+    } catch (error) {
+      console.error("Image upload failed", error);
+      alert("Failed to process image. Please try another file.");
+    }
+
+    // Reset input
+    e.target.value = '';
   };
 
   const handleRemoveImage = (field: 'receiptLogoUrl' | 'receiptQrCodeUrl') => {
@@ -119,7 +153,7 @@ export const ReceiptSettings: React.FC<ReceiptSettingsProps> = ({ formData, setF
                       )}
                       <div className="flex-1">
                          <button type="button" onClick={() => logoInputRef.current?.click()} className="text-sm text-primary-600 hover:text-primary-700 font-medium">Upload Image</button>
-                         <p className="text-xs text-slate-400">Max 1MB (JPG/PNG)</p>
+                         <p className="text-xs text-slate-400">Auto-resized to fit receipt width</p>
                          <input type="file" ref={logoInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'receiptLogoUrl')} />
                       </div>
                     </div>
@@ -185,7 +219,7 @@ export const ReceiptSettings: React.FC<ReceiptSettingsProps> = ({ formData, setF
                      <label className="text-sm font-medium text-slate-700">Show Bank Info on Receipt</label>
                      <label className="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" className="sr-only peer" checked={formData.showBankInfoOnReceipt} onChange={e => setFormData({ ...formData, showBankInfoOnReceipt: e.target.checked })} />
-                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:bg-green-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+                        <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:bg-green-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
                      </label>
                   </div>
                   

@@ -1,20 +1,21 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product, UnitDefinition, CategoryItem, ProductInventory } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_UNITS, INITIAL_CATEGORIES_TREE } from '../services/data';
+import { Product, UnitDefinition, CategoryItem, VariantAttribute } from '../types';
+import { INITIAL_PRODUCTS, INITIAL_UNITS, INITIAL_CATEGORIES_TREE, INITIAL_VARIANT_ATTRIBUTES } from '../services/data';
 
 interface InventoryState {
   products: Product[];
   units: UnitDefinition[];
   categories: CategoryItem[];
+  attributes: VariantAttribute[];
 
   addProduct: (product: Product) => void;
   updateProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
   
-  // Updated to support specific warehouse updates
-  updateProductStock: (productId: string, quantityDelta: number, warehouseId?: string) => void;
+  // Specific inventory actions
+  updateProductStock: (productId: string, quantityDelta: number) => void;
 
   addUnit: (unit: UnitDefinition) => void;
   updateUnit: (unit: UnitDefinition) => void;
@@ -23,6 +24,10 @@ interface InventoryState {
   addCategory: (category: CategoryItem) => void;
   updateCategory: (category: CategoryItem) => void;
   deleteCategory: (id: string) => void;
+
+  addAttribute: (attribute: VariantAttribute) => void;
+  updateAttribute: (attribute: VariantAttribute) => void;
+  deleteAttribute: (id: string) => void;
 
   restoreInventoryData: (data: any) => void;
 }
@@ -33,38 +38,16 @@ export const useInventoryStore = create<InventoryState>()(
       products: INITIAL_PRODUCTS,
       units: INITIAL_UNITS,
       categories: INITIAL_CATEGORIES_TREE,
+      attributes: INITIAL_VARIANT_ATTRIBUTES,
 
       addProduct: (product) => set((state) => ({ products: [...state.products, product] })),
       updateProduct: (product) => set((state) => ({ products: state.products.map(p => p.id === product.id ? product : p) })),
       deleteProduct: (id) => set((state) => ({ products: state.products.filter(p => p.id !== id) })),
 
-      updateProductStock: (productId, quantityDelta, warehouseId) => set((state) => ({
-        products: state.products.map(p => {
-          if (p.id !== productId) return p;
-
-          // 1. Update Global Stock
-          const newGlobalStock = p.stock + quantityDelta;
-
-          // 2. Update Warehouse-Specific Stock if warehouseId is provided
-          let newWarehouseInventory = p.warehouseInventory || [];
-          if (warehouseId) {
-            const existingWhIdx = newWarehouseInventory.findIndex(inv => inv.warehouseId === warehouseId);
-            if (existingWhIdx > -1) {
-              newWarehouseInventory = newWarehouseInventory.map((inv, idx) => 
-                idx === existingWhIdx ? { ...inv, quantity: inv.quantity + quantityDelta } : inv
-              );
-            } else {
-              // Add new record if it didn't exist in that warehouse
-              newWarehouseInventory = [...newWarehouseInventory, { warehouseId, quantity: quantityDelta }];
-            }
-          }
-
-          return { 
-            ...p, 
-            stock: newGlobalStock,
-            warehouseInventory: newWarehouseInventory
-          };
-        })
+      updateProductStock: (productId, quantityDelta) => set((state) => ({
+        products: state.products.map(p => 
+          p.id === productId ? { ...p, stock: p.stock + quantityDelta } : p
+        )
       })),
 
       addUnit: (unit) => set((state) => ({ units: [...state.units, unit] })),
@@ -75,11 +58,16 @@ export const useInventoryStore = create<InventoryState>()(
       updateCategory: (category) => set((state) => ({ categories: state.categories.map(c => c.id === category.id ? category : c) })),
       deleteCategory: (id) => set((state) => ({ categories: state.categories.filter(c => c.id !== id) })),
 
+      addAttribute: (attribute) => set((state) => ({ attributes: [...state.attributes, attribute] })),
+      updateAttribute: (attribute) => set((state) => ({ attributes: state.attributes.map(a => a.id === attribute.id ? attribute : a) })),
+      deleteAttribute: (id) => set((state) => ({ attributes: state.attributes.filter(a => a.id !== id) })),
+
       restoreInventoryData: (data) => set((state) => ({
         ...state,
         products: data.products || state.products,
         units: data.units || state.units,
         categories: data.categories || state.categories,
+        attributes: data.attributes || state.attributes,
       }))
     }),
     {

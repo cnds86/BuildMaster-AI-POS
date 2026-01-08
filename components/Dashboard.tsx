@@ -1,12 +1,10 @@
 
 import React, { useMemo, useState } from 'react';
 import { Sale, Product, BusinessInsight } from '../types';
-import { CalendarRange, Sparkles, LayoutDashboard } from 'lucide-react';
+import { CalendarRange, Sparkles } from 'lucide-react';
 import { INITIAL_CATEGORIES_TREE } from '../services/data';
 import { useGlobal } from '../context/GlobalContext';
 import { generateBusinessInsights } from '../services/geminiService';
-import { Card } from './ui/Card';
-import { Button } from './ui/Button';
 
 // Sub-components
 import { DashboardStats } from './dashboard/DashboardStats';
@@ -22,12 +20,12 @@ interface DashboardProps {
   products: Product[];
 }
 
-const COLORS = ['#0f172a', '#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#f43f5e'];
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
 type TimeRange = '7d' | '30d' | '90d' | 'all';
 
 export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
-  const { t, formatPrice, auditLogs = [], settings } = useGlobal();
+  const { t, formatPrice, auditLogs, settings } = useGlobal();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   
   // AI State
@@ -42,15 +40,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
     if (timeRange === '7d') startDate.setDate(today.getDate() - 7);
     else if (timeRange === '30d') startDate.setDate(today.getDate() - 30);
     else if (timeRange === '90d') startDate.setDate(today.getDate() - 90);
-    else startDate = new Date(0);
+    else startDate = new Date(0); // Beginning of time
 
-    const filteredSales = (sales || []).filter(s => {
+    // Filter sales strictly by date range and non-voided status
+    const filteredSales = sales.filter(s => {
        const saleDate = new Date(s.date);
        return saleDate >= startDate && saleDate <= today && s.status !== 'voided';
     });
 
     const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
     const totalOrders = filteredSales.length;
+    
+    // Average Order Value
     const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     return { filteredSales, totalRevenue, totalOrders, aov, startDate };
@@ -82,8 +83,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
 
     const data = Array.from(dailyMap).map(([name, sales]) => ({ name, sales, projected: 0 }));
 
+    // Inject Projection if available
     if (insight && insight.predictedRevenueNextWeek > 0) {
        const dailyAvg = insight.predictedRevenueNextWeek / 7;
+       // Add 3 days of projection to end of chart
        for (let i = 1; i <= 3; i++) {
           const d = new Date();
           d.setDate(d.getDate() + i);
@@ -140,23 +143,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
       .slice(0, 5);
   }, [dashboardMetrics.filteredSales]);
 
-  const lowStockProducts = (products || []).filter(p => p.stock < (p.minStock || 20)).sort((a, b) => a.stock - b.stock);
+  // Low Stock Logic
+  const lowStockProducts = products.filter(p => p.stock < (p.minStock || 20)).sort((a, b) => a.stock - b.stock);
   
+  // Outstanding Debt
   const totalOutstanding = useMemo(() => {
-     return (sales || [])
+     return sales
         .filter(s => s.status !== 'voided' && (s.paymentStatus === 'unpaid' || s.paymentStatus === 'partial'))
         .reduce((acc, s) => acc + (s.remainingAmount || s.total), 0);
   }, [sales]);
 
-  // FIX: Safety check for auditLogs being an iterable
+  // Recent Logs (Latest 5)
   const recentLogs = useMemo(() => {
-     const safeLogs = Array.isArray(auditLogs) ? auditLogs : [];
-     return [...safeLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
+     return [...auditLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
   }, [auditLogs]);
 
+  // Calculate Target Progress (Monthly)
   const currentMonthRevenue = useMemo(() => {
      const now = new Date();
-     return (sales || []).filter(s => {
+     return sales.filter(s => {
         const d = new Date(s.date);
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && s.status !== 'voided';
      }).reduce((acc, s) => acc + s.total, 0);
@@ -164,9 +169,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
 
   const targetProgress = settings.monthlyTarget ? (currentMonthRevenue / settings.monthlyTarget) * 100 : 0;
 
+  // AI Handler
   const handleGenerateInsight = async () => {
     setLoadingInsight(true);
-    const recentSales = (sales || []).filter(s => {
+    const recentSales = sales.filter(s => {
        const d = new Date(s.date);
        const thirtyDaysAgo = new Date();
        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -178,43 +184,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12 max-w-[1600px] mx-auto">
-      {/* Header & Filter - Style A */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+    <div className="space-y-6 animate-fade-in pb-12">
+      {/* Header & Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-             <div className="p-2 bg-slate-900 text-white rounded-xl">
-                <LayoutDashboard className="w-5 h-5" />
-             </div>
-             <h2 className="text-4xl font-black text-slate-900 tracking-tight">{t('dashboard.title')}</h2>
-          </div>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] flex items-center ml-11">
-            <CalendarRange className="w-4 h-4 mr-2 text-construction-orange" />
-            Performance Metrics & Trends
+          <h2 className="text-2xl font-bold text-slate-900">{t('dashboard.title')}</h2>
+          <p className="text-slate-500 text-sm flex items-center mt-1">
+            <CalendarRange className="w-4 h-4 mr-1" />
+            Performance Overview
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
-           <Button 
-             variant="outline"
-             size="md"
+        <div className="flex items-center gap-3">
+           <button 
              onClick={handleGenerateInsight}
-             isLoading={loadingInsight}
-             className="bg-white border-slate-200 text-slate-900"
+             disabled={loadingInsight}
+             className="flex items-center px-4 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white rounded-xl shadow-md hover:shadow-lg transition-all text-sm font-bold disabled:opacity-70"
            >
-             <Sparkles className={`w-4 h-4 mr-2 ${loadingInsight ? 'animate-spin' : 'text-construction-orange'}`} />
-             AI Analyst
-           </Button>
+             <Sparkles className={`w-4 h-4 mr-2 ${loadingInsight ? 'animate-spin' : ''}`} />
+             {loadingInsight ? 'Analyzing...' : 'AI Analyst'}
+           </button>
 
-           <div className="bg-slate-100 p-1.5 rounded-2xl flex shadow-inner">
+           {/* Style A: Pill Segmented Control */}
+           <div className="bg-slate-100 p-1 rounded-xl flex">
               {(['7d', '30d', '90d', 'all'] as const).map((range) => (
                  <button
                    key={range}
                    onClick={() => setTimeRange(range)}
-                   className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${
                       timeRange === range 
-                      ? 'bg-white text-slate-900 shadow-md scale-105' 
-                      : 'text-slate-400 hover:text-slate-600'
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
                    }`}
                  >
                     {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : range === '90d' ? '3 Months' : 'All Time'}
@@ -243,7 +243,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
       <LowStockAlert products={lowStockProducts} t={t} />
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <SalesTrendChart 
           data={trendData} 
           title={t('dashboard.trend')} 
@@ -251,7 +251,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
           formatPrice={formatPrice} 
         />
 
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
            <CategoryPieChart 
               data={categoryData} 
               title={t('dashboard.byCategory')} 

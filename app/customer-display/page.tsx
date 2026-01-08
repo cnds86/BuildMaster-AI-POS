@@ -30,7 +30,7 @@ export default function CustomerDisplayPage() {
     discount: 0,
     tax: 0,
     total: 0,
-    companyName: 'BuildMaster'
+    companyName: 'MAHAXAY'
   });
 
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);

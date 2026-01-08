@@ -1,7 +1,7 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { SystemSettings } from '../../types';
-import { HardDrive, Download, Upload, RefreshCw } from 'lucide-react';
+import { HardDrive, Download, Upload, AlertCircle } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
 
 interface DatabaseSettingsProps {
@@ -17,11 +17,8 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({ formData, se
     shiftSchedules, promotions, restoreSystemData 
   } = useGlobal();
 
-  const [localDbStatus, setLocalDbStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const importFileRef = useRef<HTMLInputElement>(null);
   
-  const isMasterNode = formData.deviceRole === 'Master';
-
   const handleExportData = () => {
     const exportData = {
       meta: {
@@ -83,21 +80,10 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({ formData, se
     reader.readAsText(file);
   };
 
-  const handleTestLocalDb = () => {
-    setLocalDbStatus('testing');
-    setTimeout(() => {
-      if (formData.localDatabase?.host) {
-        setLocalDbStatus('success');
-      } else {
-        setLocalDbStatus('error');
-      }
-    }, 1500);
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
       <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-6">
-         {isMasterNode ? 'Primary System Database' : 'Local Database & Backup'}
+         Backup & Restoration
       </h3>
       
       <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8">
@@ -105,32 +91,41 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({ formData, se
             <HardDrive className="w-5 h-5 mr-2 text-slate-500" />
             Data Management
          </h4>
+         <p className="text-sm text-slate-500 mb-6 max-w-2xl">
+            Manage your system data securely. Regular backups are recommended to prevent data loss. 
+            Restoring data will replace all current inventory, sales, and settings.
+         </p>
+
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-               <h5 className="font-bold text-slate-700 mb-2">Backup System Data</h5>
-               <p className="text-xs text-slate-500 mb-4">
-                  Export all system data (Products, Sales, Settings, Customers) as a JSON file. Useful for migration or manual backup.
+            <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-colors">
+               <h5 className="font-bold text-slate-800 mb-2 flex items-center">
+                  <Download className="w-4 h-4 mr-2 text-blue-600" /> Backup Data
+               </h5>
+               <p className="text-xs text-slate-500 mb-4 h-10">
+                  Download a full JSON snapshot of your current system state.
                </p>
                <button 
                   type="button"
                   onClick={handleExportData}
-                  className="flex items-center justify-center w-full px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors text-sm font-medium"
+                  className="flex items-center justify-center w-full px-4 py-2.5 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors text-sm font-bold shadow-sm"
                >
-                  <Download className="w-4 h-4 mr-2" /> Export JSON
+                  Export JSON Backup
                </button>
             </div>
 
-            <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-               <h5 className="font-bold text-slate-700 mb-2">Restore System Data</h5>
-               <p className="text-xs text-slate-500 mb-4">
-                  Import a previously exported JSON file. <span className="text-red-500 font-bold">Warning: This will overwrite existing data.</span>
+            <div className="p-5 bg-white rounded-xl border border-slate-200 shadow-sm hover:border-slate-300 transition-colors">
+               <h5 className="font-bold text-slate-800 mb-2 flex items-center">
+                  <Upload className="w-4 h-4 mr-2 text-orange-600" /> Restore Data
+               </h5>
+               <p className="text-xs text-slate-500 mb-4 h-10">
+                  Import a backup file to restore system state. <span className="text-red-500 font-bold">Overwrites current data.</span>
                </p>
                <button 
                   type="button"
                   onClick={() => importFileRef.current?.click()}
-                  className="flex items-center justify-center w-full px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                  className="flex items-center justify-center w-full px-4 py-2.5 bg-white border-2 border-slate-100 text-slate-700 rounded-lg hover:bg-slate-50 hover:border-slate-200 transition-colors text-sm font-bold"
                >
-                  <Upload className="w-4 h-4 mr-2" /> Import JSON
+                  Select File to Restore
                </button>
                <input 
                   type="file" 
@@ -143,75 +138,16 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({ formData, se
          </div>
       </div>
 
-      <div className={`p-4 border rounded-xl flex items-center justify-between mb-6 ${isMasterNode ? 'bg-purple-50 border-purple-100' : 'bg-indigo-50 border-indigo-100'}`}>
-        <div>
-          <h4 className={`font-bold ${isMasterNode ? 'text-purple-900' : 'text-indigo-900'}`}>
-             {isMasterNode ? 'Enable Database Engine' : 'Enable Local Database'}
-          </h4>
-          <p className={`text-xs ${isMasterNode ? 'text-purple-700' : 'text-indigo-700'}`}>
-             {isMasterNode 
-                ? 'Configure the main database connection for this Master Node' 
-                : 'Cache data locally for offline operations'
-             }
-          </p>
-        </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input type="checkbox" className="sr-only peer" checked={formData.localDatabase?.enabled} onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, enabled: e.target.checked } })} />
-          <div className={`w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${isMasterNode ? 'peer-checked:bg-purple-600' : 'peer-checked:bg-indigo-600'}`}></div>
-        </label>
+      <div className="p-4 bg-blue-50 text-blue-800 rounded-xl border border-blue-100 flex items-start">
+         <AlertCircle className="w-5 h-5 mr-3 mt-0.5 flex-shrink-0" />
+         <div>
+            <h4 className="font-bold text-sm">Database Connection Settings</h4>
+            <p className="text-xs mt-1 text-blue-700">
+               To configure the connection to a local SQL database (PostgreSQL, MySQL, SQLite), 
+               please go to the <strong>Device & Network</strong> tab.
+            </p>
+         </div>
       </div>
-
-      {formData.localDatabase?.enabled && (
-        <div className="space-y-4 border-t border-slate-100 pt-6">
-           <h4 className="font-bold text-slate-700 text-sm uppercase tracking-wide">Connection Details</h4>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <div>
-               <label className="block text-sm font-medium text-slate-700 mb-1">Database Type</label>
-               <select
-                 value={formData.localDatabase.type}
-                 onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, type: e.target.value as any } })}
-                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
-               >
-                 <option value="postgresql">PostgreSQL</option>
-                 <option value="mysql">MySQL</option>
-                 <option value="sqlite">SQLite</option>
-               </select>
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-slate-700 mb-1">Host</label>
-               <input type="text" value={formData.localDatabase.host} onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, host: e.target.value } })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="localhost" />
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-slate-700 mb-1">Port</label>
-               <input type="text" value={formData.localDatabase.port} onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, port: e.target.value } })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="5432" />
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-slate-700 mb-1">Database Name</label>
-               <input type="text" value={formData.localDatabase.databaseName} onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, databaseName: e.target.value } })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="buildmaster_pos" />
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
-               <input type="text" value={formData.localDatabase.username} onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, username: e.target.value } })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-             </div>
-             <div>
-               <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-               <input type="password" value={formData.localDatabase.password} onChange={e => setFormData({ ...formData, localDatabase: { ...formData.localDatabase!, password: e.target.value } })} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-             </div>
-             
-             <div className="md:col-span-2 pt-4 border-t border-slate-100 flex justify-end">
-                <button 
-                   type="button"
-                   onClick={handleTestLocalDb}
-                   disabled={localDbStatus === 'testing'}
-                   className={`px-4 py-2 rounded-lg font-medium flex items-center transition-all ${localDbStatus === 'success' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                >
-                   {localDbStatus === 'testing' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <HardDrive className="w-4 h-4 mr-2" />}
-                   {localDbStatus === 'testing' ? 'Connecting...' : localDbStatus === 'success' ? 'Connected Successfully' : 'Test Connection'}
-                </button>
-             </div>
-           </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   StockTransfer, 
   StockCount, 
@@ -18,6 +18,8 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { ApprovalList } from './approval/ApprovalList';
+import { StockDocumentModal } from './stock/StockDocumentModal';
+import { useGlobal } from '../context/GlobalContext';
 
 interface ApprovalManagementProps {
   transfers: StockTransfer[];
@@ -38,7 +40,13 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
   warehouses,
   onStatusChange
 }) => {
+  const { products, updateTransfer, updateCount, updateReservation, updateReceipt, updateAdjustment } = useGlobal();
   
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment'>('transfer');
+
   const getWarehouseName = (id: string) => warehouses.find(w => w.id === id)?.name || id;
 
   // Flatten and normalize data for the list
@@ -114,7 +122,6 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
 
   const handleApprove = (e: React.MouseEvent, item: any) => {
     e.stopPropagation();
-    // Only Approve. Execution happens in Stock Management via 'Complete'.
     if (window.confirm('Are you sure you want to Approve this request?')) {
       onStatusChange(item.type, item.id, 'Approved');
     }
@@ -124,6 +131,39 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
     e.stopPropagation();
     if (window.confirm('Are you sure you want to Reject this request?')) {
       onStatusChange(item.type, item.id, 'Cancelled');
+    }
+  };
+
+  const handleOpenModal = (item: any) => {
+    setSelectedItem(item);
+    setActiveTab(item.type);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSave = (data: any) => {
+    // Support Editing before Approval
+    switch(activeTab) {
+      case 'transfer': updateTransfer(data); break;
+      case 'count': updateCount(data); break;
+      case 'reservation': updateReservation(data); break;
+      case 'receipt': updateReceipt(data); break;
+      case 'adjustment': updateAdjustment(data); break;
+    }
+    // Don't close immediately, user might want to approve next
+    alert("Changes saved.");
+  };
+
+  const handleModalComplete = (data: any) => {
+    // "Complete" in the modal context here effectively means "Approve" for the Draft stage
+    // But StockDocumentModal emits onComplete when the 'Complete' button is clicked (usually for Approved -> Completed)
+    // We can reuse it to trigger Approval if the current status is Draft.
+    
+    if (window.confirm('Approve this document?')) {
+        // First save any changes
+        handleModalSave(data);
+        // Then change status
+        onStatusChange(activeTab, data.id, 'Approved');
+        setIsModalOpen(false);
     }
   };
 
@@ -146,8 +186,21 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
           items={pendingItems}
           onApprove={handleApprove}
           onReject={handleReject}
+          onView={handleOpenModal}
         />
       </div>
+
+      <StockDocumentModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        activeTab={activeTab}
+        editingId={selectedItem?.id}
+        initialData={selectedItem}
+        warehouses={warehouses}
+        products={products}
+        onSave={handleModalSave}
+        onComplete={handleModalComplete}
+      />
     </div>
   );
 };

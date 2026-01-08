@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Product, ProductVariant, UnitDefinition, CategoryItem } from '../../types';
-import { Box, Scale, DollarSign, Layers, X, Check } from 'lucide-react';
+import { Product, ProductVariant, UnitDefinition, CategoryItem, VariantAttribute, CustomerLevel, ProductInventory, Branch } from '../../types';
+import { Box, Scale, DollarSign, Layers, X, Check, Store } from 'lucide-react';
 import { GeneralTab } from './product-form/GeneralTab';
 import { PhysicalTab } from './product-form/PhysicalTab';
 import { PricingTab } from './product-form/PricingTab';
 import { VariantsTab } from './product-form/VariantsTab';
+import { BranchPricingTab } from './product-form/BranchPricingTab';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -14,34 +15,47 @@ interface ProductFormModalProps {
   initialData?: Product;
   categories: CategoryItem[];
   units: UnitDefinition[];
+  attributes: VariantAttribute[];
   currencySymbol: string;
+  customerLevels: CustomerLevel[];
+  branches: Branch[];
 }
 
 const MAX_FILE_SIZE_MB = 5;
 
 export const ProductFormModal: React.FC<ProductFormModalProps> = ({
-  isOpen, onClose, onSubmit, initialData, categories, units, currencySymbol
+  isOpen, onClose, onSubmit, initialData, categories, units, attributes, currencySymbol, customerLevels, branches
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'physical' | 'pricing' | 'variants'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'physical' | 'pricing' | 'branch-pricing' | 'variants'>('general');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '', sku: '', barcode: '', category: '', price: 0, costPrice: 0,
     stock: 0, minStock: 20, unit: '', physical: { weight: 0, width: 0, height: 0, depth: 0 },
-    branchPrices: [], imageUrl: ''
+    branchPrices: [], imageUrl: '', tierPrices: {}
   });
   
   const [variants, setVariants] = useState<Partial<ProductVariant>[]>([]);
 
   useEffect(() => {
     if (initialData) {
-      setFormData({ ...initialData });
-      setVariants(initialData.variants ? initialData.variants.map(v => ({...v})) : []);
+      setFormData({ ...initialData, tierPrices: initialData.tierPrices || {}, branchPrices: initialData.branchPrices || [] });
+      
+      // Map existing warehouse inventory to the variant 'stock' property for the UI
+      const mappedVariants = initialData.variants ? initialData.variants.map(v => {
+         const variantStock = initialData.warehouseInventory?.filter(i => i.variantId === v.id)
+            .reduce((acc, inv) => acc + inv.quantity, 0);
+         return {
+            ...v,
+            stock: variantStock !== undefined ? variantStock : 0
+         };
+      }) : [];
+      setVariants(mappedVariants);
     } else {
       setFormData({
         name: '', sku: '', barcode: '', category: categories[0]?.id || '', price: 0, costPrice: 0,
         stock: 0, minStock: 20, unit: units[0]?.symbol || 'pc',
-        physical: { weight: 0, width: 0, height: 0, depth: 0 }, branchPrices: [], imageUrl: ''
+        physical: { weight: 0, width: 0, height: 0, depth: 0 }, branchPrices: [], imageUrl: '', tierPrices: {}
       });
       setVariants([]);
     }
@@ -50,7 +64,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Flatten categories for dropdown
   const categoryOptions: { id: string; name: string; level: number }[] = [];
   const buildCatOptions = (parentId: string | null, level: number) => {
     categories.filter(c => c.parentId === parentId).forEach(c => {
@@ -60,11 +73,26 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   };
   buildCatOptions(null, 0);
 
+  const unitsByCategory = units.reduce((acc, unit) => {
+    if (!acc[unit.category]) acc[unit.category] = [];
+    acc[unit.category].push(unit);
+    return acc;
+  }, {} as Record<string, UnitDefinition[]>);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     const isNum = ['price', 'costPrice', 'stock', 'minStock'].includes(name);
     
     setFormData(prev => ({ ...prev, [name]: isNum ? (parseFloat(value) || 0) : value }));
+
+    if (name === 'price') {
+      const newMainPrice = parseFloat(value) || 0;
+      // Recalculate variant prices based on their factor
+      setVariants(prev => prev.map(v => {
+         const factor = v.conversionFactor || 1;
+         return { ...v, price: factor !== 0 ? newMainPrice * factor : 0 };
+      }));
+    }
   };
 
   const handlePhysicalChange = (field: string, value: string) => {
@@ -89,34 +117,86 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleAddVariant = () => {
     const suffix = (variants.length + 1).toString().padStart(3, '0');
     setVariants(prev => [...prev, {
-      id: `v-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      name: '', 
-      code: `${formData.sku || 'SKU'}-${suffix}`, 
-      barcode: '',
-      price: formData.price, 
-      costPrice: formData.costPrice,
-      stock: 0
+      id: `v-${Date.now()}`,
+      name: '', code: `${formData.sku || 'SKU'}-${suffix}`, barcode: formData.barcode ? `${formData.barcode}${suffix}` : '',
+      conversionFactor: 1, price: formData.price, stock: 0, costPrice: formData.costPrice,
+      attributes: {}, tierPrices: {}
     }]);
+  };
+
+  const handleVariantChange = (index: number, field: keyof ProductVariant | 'attributes', value: any, attributeName?: string) => {
+    setVariants(prev => {
+      const newVars = [...prev];
+      
+      if (field === 'attributes' && attributeName) {
+         const currentAttrs = newVars[index].attributes || {};
+         newVars[index] = { 
+            ...newVars[index], 
+            attributes: { ...currentAttrs, [attributeName]: value } 
+         };
+      } else {
+         newVars[index] = { 
+            ...newVars[index], 
+            [field]: field === 'name' ? value : (['price', 'costPrice', 'conversionFactor', 'stock'].includes(field as string) ? parseFloat(value) || 0 : value) 
+         };
+         
+         // Auto-calculate conversion factor and price when Unit changes
+         if (field === 'name') {
+            const main = units.find(u => u.symbol === formData.unit);
+            const sub = units.find(u => u.symbol === value);
+            if (main && sub && main.category === sub.category) {
+               // Calculate ratio
+               const factor = sub.baseFactor / main.baseFactor;
+               newVars[index].conversionFactor = factor;
+               
+               // Suggest price based on factor
+               newVars[index].price = (formData.price || 0) * factor;
+            }
+         }
+         
+         // Auto-update price when conversion factor is manually changed
+         if (field === 'conversionFactor') {
+             const factor = parseFloat(value) || 0;
+             newVars[index].price = (formData.price || 0) * factor;
+         }
+      }
+      return newVars;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.unit) {
       
-      // Calculate total stock if variants exist
-      let finalStock = formData.stock || 0;
-      if (variants.length > 0) {
-         finalStock = variants.reduce((acc, v) => acc + (v.stock || 0), 0);
-      }
+      // Construct Inventory: Base Stock + Variant Stock
+      // Note: This simplified logic uses 'wh1' as default warehouse. 
+      // In a real scenario, we'd handle multiple warehouses.
+      const defaultWarehouse = 'wh1';
+      
+      const newInventory: ProductInventory[] = [
+         { warehouseId: defaultWarehouse, quantity: formData.stock || 0 } // Base product stock
+      ];
+
+      variants.forEach(v => {
+         if (v.stock !== undefined && v.stock > 0) {
+            newInventory.push({ 
+               warehouseId: defaultWarehouse, 
+               quantity: v.stock,
+               variantId: v.id 
+            });
+         }
+      });
 
       const productData: Product = {
         ...initialData,
         ...formData as Product,
-        stock: finalStock,
         id: initialData?.id || `P-${Date.now()}`,
         variants: variants.length > 0 ? variants as ProductVariant[] : undefined,
-        warehouseInventory: initialData?.warehouseInventory || [{ warehouseId: 'wh1', quantity: finalStock }],
+        warehouseInventory: newInventory,
+        // Update aggregated stock for display
+        stock: (formData.stock || 0) + variants.reduce((acc, v) => acc + (v.stock || 0), 0)
       };
+      
       onSubmit(productData);
       onClose();
     }
@@ -134,7 +214,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
            {[
              { id: 'general', label: 'General Info', icon: Box },
              { id: 'physical', label: 'Physical Attributes', icon: Scale },
-             { id: 'pricing', label: 'Pricing', icon: DollarSign },
+             { id: 'pricing', label: 'Base Pricing', icon: DollarSign },
+             { id: 'branch-pricing', label: 'Branch Pricing', icon: Store },
              { id: 'variants', label: 'Variants', icon: Layers },
            ].map(tab => (
              <button
@@ -168,7 +249,22 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
           )}
 
           {activeTab === 'pricing' && (
-            <PricingTab formData={formData} handleInputChange={handleInputChange} currencySymbol={currencySymbol} />
+            <PricingTab 
+              formData={formData} 
+              setFormData={setFormData}
+              handleInputChange={handleInputChange} 
+              currencySymbol={currencySymbol} 
+              customerLevels={customerLevels} 
+            />
+          )}
+
+          {activeTab === 'branch-pricing' && (
+            <BranchPricingTab 
+              formData={formData} 
+              setFormData={setFormData} 
+              branches={branches}
+              currencySymbol={currencySymbol}
+            />
           )}
 
           {activeTab === 'variants' && (
@@ -176,7 +272,10 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               variants={variants} 
               setVariants={setVariants} 
               handleAddVariant={handleAddVariant} 
-              currencySymbol={currencySymbol}
+              handleVariantChange={handleVariantChange} 
+              unitsByCategory={unitsByCategory}
+              availableAttributes={attributes}
+              baseCostPrice={formData.costPrice || 0}
             />
           )}
         </form>

@@ -2,7 +2,7 @@
 export const translations = {
   en: {
     app: {
-      name: "BuildMaster",
+      name: "MAHAXAY",
       subtitle: "Next-Gen Construction POS"
     },
     nav: {
@@ -96,7 +96,7 @@ export const translations = {
   },
   th: {
     app: {
-      name: "บิลด์มาสเตอร์",
+      name: "MAHAXAY",
       subtitle: "ระบบขายหน้าร้านวัสดุก่อสร้าง"
     },
     nav: {
@@ -190,7 +190,7 @@ export const translations = {
   },
   lo: {
     app: {
-      name: "BuildMaster",
+      name: "MAHAXAY",
       subtitle: "ລະບົບຂາຍເຄື່ອງກໍ່ສ້າງ"
     },
     nav: {

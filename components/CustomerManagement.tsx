@@ -106,17 +106,6 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
           <h2 className="text-2xl font-bold text-slate-900">Customer Management</h2>
           <p className="text-slate-500">Manage customer profiles and membership tiers.</p>
         </div>
-        
-        {/* Style A: Primary Button */}
-        {activeTab === 'customers' && (
-           <button 
-             onClick={() => handleOpenCustomerModal()}
-             className="flex items-center px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all font-bold shadow-sm whitespace-nowrap"
-           >
-             <Plus className="w-5 h-5 mr-2" />
-             Add Customer
-           </button>
-        )}
       </div>
 
       {/* Style A: Pill Tabs */}

@@ -25,8 +25,7 @@ interface UserProfileProps {
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ user, shifts, sales }) => {
-  // Fix: Added departments to destructured context values
-  const { updateUser, branches, departments, formatPrice } = useGlobal();
+  const { updateUser, branches, formatPrice } = useGlobal();
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'security' | 'settings'>('overview');
 
   // Stats Logic
@@ -104,8 +103,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ user, shifts, sales })
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column */}
-        {/* Fix: Pass departments to ProfileSidebar */}
-        <ProfileSidebar user={user} departments={departments} />
+        <ProfileSidebar user={user} />
 
         {/* Right Content */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col min-h-[500px]">

@@ -5,8 +5,7 @@ import {
   Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, 
   StockReceipt, StockAdjustment, SyncLog, Customer, CustomerLevel, Shift, 
   ShiftSchedule, Promotion, SystemSettings, AppNotification, CartItem, 
-  DocumentStatus, CashTransaction, Quotation, AuditLog, 
-  UserRoleDefinition, Permission, Department
+  DocumentStatus, CashTransaction, Department, SystemRole, VariantAttribute
 } from '../types';
 import { useSystemStore } from '../store/useSystemStore';
 import { useInventoryStore } from '../store/useInventoryStore';
@@ -15,132 +14,142 @@ import { useStockStore } from '../store/useStockStore';
 import { translations } from '../services/translations';
 
 interface GlobalContextType {
-  // State
+  // System
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   users: User[];
-  roles: UserRoleDefinition[];
-  permissions: Permission[];
+  addUser: (user: User) => void;
+  updateUser: (user: User) => void;
+  deleteUser: (id: string) => void;
+  
   departments: Department[];
+  addDepartment: (dept: Department) => void;
+  updateDepartment: (dept: Department) => void;
+  deleteDepartment: (id: string) => void;
+
+  systemRoles: SystemRole[];
+  addSystemRole: (role: SystemRole) => void;
+  updateSystemRole: (role: SystemRole) => void;
+  deleteSystemRole: (id: string) => void;
+
   settings: SystemSettings;
-  products: Product[];
-  sales: Sale[];
-  customers: Customer[];
-  customerLevels: CustomerLevel[];
-  units: UnitDefinition[];
-  categories: CategoryItem[];
-  branches: Branch[];
-  posMachines: PosMachine[];
-  warehouses: Warehouse[];
-  locations: StorageLocation[];
-  shifts: Shift[];
-  shiftSchedules: ShiftSchedule[];
-  promotions: Promotion[];
+  updateSettings: (settings: SystemSettings) => void;
   notifications: AppNotification[];
+  markNotificationRead: (id: string) => void;
+  clearAllNotifications: () => void;
+  auditLogs: any[];
   syncLogs: SyncLog[];
-  auditLogs: AuditLog[];
   
-  // Stock State
-  transfers: StockTransfer[];
-  counts: StockCount[];
-  reservations: StockReservation[];
-  receipts: StockReceipt[];
-  adjustments: StockAdjustment[];
-
-  // Actions
-  processSale: (items: CartItem[], total: number, customerId?: string, discountAmount?: number, subtotal?: number, paymentMethod?: any, amountReceived?: number, change?: number, pointsRedeemed?: number, source?: 'pos' | 'back-office') => Promise<Sale>;
-  processReturn: (originalSale: Sale, returnItems: { itemIndex: number, quantity: number }[]) => Promise<void>;
-  settleSaleDebt: (saleId: string, amount: number, method: string) => Promise<void>;
-  handleVoidSale: (id: string) => void;
-  
-  // Product & Inventory
-  addProduct: (p: Product) => void;
-  updateProduct: (p: Product) => void;
+  // Inventory
+  products: Product[];
+  addProduct: (product: Product) => void;
+  updateProduct: (product: Product) => void;
   deleteProduct: (id: string) => void;
-  
-  // Units & Categories
-  addUnit: (u: UnitDefinition) => void;
-  updateUnit: (u: UnitDefinition) => void;
+  units: UnitDefinition[];
+  addUnit: (unit: UnitDefinition) => void;
+  updateUnit: (unit: UnitDefinition) => void;
   deleteUnit: (id: string) => void;
-  addCategory: (c: CategoryItem) => void;
-  updateCategory: (c: CategoryItem) => void;
+  categories: CategoryItem[];
+  addCategory: (category: CategoryItem) => void;
+  updateCategory: (category: CategoryItem) => void;
   deleteCategory: (id: string) => void;
+  attributes: VariantAttribute[];
+  addAttribute: (attr: VariantAttribute) => void;
+  updateAttribute: (attr: VariantAttribute) => void;
+  deleteAttribute: (id: string) => void;
 
-  // Customers & Levels
-  addCustomer: (c: Customer) => void;
-  updateCustomer: (c: Customer) => void;
+  // Sales
+  sales: Sale[];
+  processSale: (
+    items: CartItem[], 
+    total: number, 
+    customerId?: string, 
+    discountAmount?: number, 
+    subtotal?: number,
+    paymentMethod?: 'cash' | 'card' | 'transfer' | 'qr' | 'credit',
+    amountReceived?: number,
+    change?: number,
+    pointsRedeemed?: number,
+    source?: 'pos' | 'back-office'
+  ) => Promise<Sale>;
+  handleVoidSale: (id: string) => void;
+  settleSaleDebt: (id: string, amount: number, method: string) => Promise<void>;
+  processReturn: (originalSale: Sale, itemsToReturn: { itemIndex: number, quantity: number }[], refundMethod: string) => Promise<void>;
+  customers: Customer[];
+  addCustomer: (customer: Customer) => void;
+  updateCustomer: (customer: Customer) => void;
   deleteCustomer: (id: string) => void;
-  addCustomerLevel: (l: CustomerLevel) => void;
-  updateCustomerLevel: (l: CustomerLevel) => void;
+  customerLevels: CustomerLevel[];
+  addCustomerLevel: (level: CustomerLevel) => void;
+  updateCustomerLevel: (level: CustomerLevel) => void;
   deleteCustomerLevel: (id: string) => void;
+  promotions: Promotion[];
+  addPromotion: (promo: Promotion) => void;
+  updatePromotion: (promo: Promotion) => void;
+  deletePromotion: (id: string) => void;
 
-  // Stock Management
-  updateTransfer: (t: StockTransfer) => void;
-  deleteTransfer: (id: string) => void;
-  updateCount: (c: StockCount) => void;
-  deleteCount: (id: string) => void;
-  updateReservation: (r: StockReservation) => void;
-  deleteReservation: (id: string) => void;
-  updateReceipt: (r: StockReceipt) => void;
-  deleteReceipt: (id: string) => void;
-  updateAdjustment: (a: StockAdjustment) => void;
-  deleteAdjustment: (id: string) => void;
-  handleStockStatusChange: (type: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment', id: string, status: DocumentStatus) => void;
+  // Shifts
+  shifts: Shift[];
+  startShift: (branchId: string, startCash: number, notes?: string, posId?: string) => void;
+  endShift: (shiftId: string, endCash: number, notes?: string) => void;
+  addCashTransaction: (type: 'in' | 'out', amount: number, reason: string) => void;
+  shiftSchedules: ShiftSchedule[];
+  addShiftSchedule: (schedule: ShiftSchedule) => void;
+  updateShiftSchedule: (schedule: ShiftSchedule) => void;
+  deleteShiftSchedule: (id: string) => void;
 
-  // Branches & POS
-  addBranch: (b: Branch) => void;
-  updateBranch: (b: Branch) => void;
+  // Locations & Stock
+  branches: Branch[];
+  addBranch: (branch: Branch) => void;
+  updateBranch: (branch: Branch) => void;
   deleteBranch: (id: string) => void;
-  addPos: (p: PosMachine) => void;
-  updatePos: (p: PosMachine) => void;
+  posMachines: PosMachine[];
+  addPos: (pos: PosMachine) => void;
+  updatePos: (pos: PosMachine) => void;
   deletePos: (id: string) => void;
-
-  // Warehouses & Locations
+  warehouses: Warehouse[];
   addWarehouse: (w: Warehouse) => void;
   updateWarehouse: (w: Warehouse) => void;
   deleteWarehouse: (id: string) => void;
+  locations: StorageLocation[];
   addLocation: (l: StorageLocation) => void;
   updateLocation: (l: StorageLocation) => void;
   deleteLocation: (id: string) => void;
-
-  // Users, Roles, Departments
-  addUser: (u: User) => void;
-  updateUser: (u: User) => void;
-  deleteUser: (id: string) => void;
-  addRole: (r: UserRoleDefinition) => void;
-  updateRole: (r: UserRoleDefinition) => void;
-  deleteRole: (id: string) => void;
-  addDepartment: (d: Department) => void;
-  updateDepartment: (d: Department) => void;
-  deleteDepartment: (id: string) => void;
-
-  // Shifts & Schedules
-  startShift: (branchId: string, startCash: number, notes?: string, posId?: string) => void;
-  endShift: (shiftId: string, endCash: number, notes?: string) => void;
-  addShiftSchedule: (s: ShiftSchedule) => void;
-  updateShiftSchedule: (s: ShiftSchedule) => void;
-  deleteShiftSchedule: (id: string) => void;
-  addCashTransaction: (type: 'in' | 'out', amount: number, reason: string) => void;
-
-  // Promotions
-  addPromotion: (p: Promotion) => void;
-  updatePromotion: (p: Promotion) => void;
-  deletePromotion: (id: string) => void;
-
-  // System
-  updateSettings: (s: SystemSettings) => void;
-  handleSyncOperation: (type: 'Auto' | 'Manual' | 'Push' | 'Pull') => void;
-  markNotificationRead: (id: string) => void;
-  clearAllNotifications: () => void;
-  refreshData: () => Promise<void>;
-  restoreSystemData: (data: any) => void;
   
-  // Helpers
+  transfers: StockTransfer[];
+  updateTransfer: (t: StockTransfer) => void;
+  deleteTransfer: (id: string) => void;
+  counts: StockCount[];
+  updateCount: (c: StockCount) => void;
+  deleteCount: (id: string) => void;
+  reservations: StockReservation[];
+  updateReservation: (r: StockReservation) => void;
+  deleteReservation: (id: string) => void;
+  receipts: StockReceipt[];
+  updateReceipt: (r: StockReceipt) => void;
+  deleteReceipt: (id: string) => void;
+  adjustments: StockAdjustment[];
+  updateAdjustment: (a: StockAdjustment) => void;
+  deleteAdjustment: (id: string) => void;
+  
+  handleStockStatusChange: (type: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment', id: string, status: DocumentStatus) => void;
+  handleSyncOperation: (type: 'Auto' | 'Manual' | 'Push' | 'Pull', targetBranchIds?: string[]) => void;
+  restoreSystemData: (data: any) => void;
+
+  // Utilities
   t: (key: string) => string;
   formatPrice: (amount: number) => string;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
+
+export const useGlobal = () => {
+  const context = useContext(GlobalContext);
+  if (!context) {
+    throw new Error('useGlobal must be used within a GlobalProvider');
+  }
+  return context;
+};
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const systemStore = useSystemStore();
@@ -148,351 +157,442 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const salesStore = useSalesStore();
   const stockStore = useStockStore();
 
+  // Translation helper
   const t = (key: string): string => {
     const lang = systemStore.settings.language || 'en';
     const keys = key.split('.');
     let value: any = (translations as any)[lang];
-    for (const k of keys) { value = value?.[k]; }
+    for (const k of keys) {
+      value = value?.[k];
+    }
     return value || key;
   };
 
   const formatPrice = (amount: number) => {
-    const symbol = systemStore.settings.currencySymbol;
-    return new Intl.NumberFormat('en-US', {
+    const lang = systemStore.settings.language;
+    let locale = 'en-US';
+    if (lang === 'th') locale = 'th-TH';
+    else if (lang === 'lo') locale = 'lo-LA';
+
+    let currencyCode = 'USD';
+    if (systemStore.settings.currencySymbol === '฿') currencyCode = 'THB';
+    else if (systemStore.settings.currencySymbol === '₭') currencyCode = 'LAK';
+    else if (systemStore.settings.currencySymbol === '$') currencyCode = 'USD';
+
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
-      currency: symbol === '₭' ? 'LAK' : symbol === '฿' ? 'THB' : 'USD',
-      minimumFractionDigits: symbol === '₭' ? 0 : 2,
-    }).format(amount).replace('LAK', '₭').replace('THB', '฿');
+      currency: currencyCode,
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: currencyCode === 'LAK' ? 0 : 2,
+      maximumFractionDigits: currencyCode === 'LAK' ? 0 : 2,
+    }).format(amount);
   };
 
-  const refreshData = async () => {
-    console.debug("[Local Mode] Data refresh requested");
-  };
-
+  // Complex Actions
   const processSale = async (
     items: CartItem[], 
     total: number, 
     customerId?: string, 
     discountAmount?: number, 
-    subtotal?: number, 
-    paymentMethod: any = 'cash', 
-    amountReceived?: number, 
-    change?: number, 
-    pointsRedeemed?: number
+    subtotal?: number,
+    paymentMethod: 'cash' | 'card' | 'transfer' | 'qr' | 'credit' = 'cash',
+    amountReceived?: number,
+    change?: number,
+    pointsRedeemed?: number,
+    source: 'pos' | 'back-office' = 'pos'
   ): Promise<Sale> => {
-    const saleId = `S-${Date.now()}`;
-    const customer = salesStore.customers.find(c => c.id === customerId);
     
+    // Client-side Inventory Check for Back Office Sales
+    if (source === 'back-office') {
+      for (const item of items) {
+        const product = inventoryStore.products.find(p => p.id === item.id);
+        // Simple stock check. 
+        if (!product || product.stock < item.quantity) {
+          throw new Error(`Insufficient stock for "${item.name}". Back-office sales cannot result in negative inventory.`);
+        }
+      }
+    }
+
+    // Create Sale Object
     const newSale: Sale = {
-      id: saleId,
-      items,
-      total,
+      id: `S-${Date.now()}`,
+      items: items,
+      total: total,
       subtotal: subtotal || total,
       discountAmount: discountAmount || 0,
       date: new Date().toISOString(),
-      paymentMethod,
+      paymentMethod: paymentMethod,
       paymentStatus: paymentMethod === 'credit' ? 'unpaid' : 'paid',
-      amountReceived,
-      change,
-      remainingAmount: paymentMethod === 'credit' ? total : 0,
+      remainingAmount: paymentMethod === 'credit' ? total - (amountReceived || 0) : 0,
+      amountReceived: amountReceived,
+      change: change,
       status: 'completed',
-      syncStatus: 'synced',
-      customerId,
-      customerName: customer?.name,
+      syncStatus: 'pending',
+      customerId: customerId,
+      customerName: customerId ? salesStore.customers.find(c => c.id === customerId)?.name : undefined,
       userId: systemStore.currentUser?.id,
-      userName: systemStore.currentUser?.name
+      userName: systemStore.currentUser?.name,
+      pointsRedeemed: pointsRedeemed
     };
 
     salesStore.addSale(newSale);
+
+    // Update Inventory
     items.forEach(item => {
-       inventoryStore.updateProductStock(item.id, -item.quantity, 'wh1');
+      // Logic for variant deduction could be complex if tracking separately.
+      // Assuming variants share base stock in this simplified model or simple deduction
+      inventoryStore.updateProductStock(item.id, -item.quantity);
     });
 
-    if (customerId && systemStore.settings.loyaltyProgram.enabled) {
-       const earned = Math.floor(total / systemStore.settings.loyaltyProgram.earnRate);
-       const updatedCustomer = { ...customer!, loyaltyPoints: (customer?.loyaltyPoints || 0) + earned - (pointsRedeemed || 0) };
-       salesStore.updateCustomer(updatedCustomer as Customer);
+    // Update Customer Loyalty/Stats if applicable
+    if (customerId) {
+       const customer = salesStore.customers.find(c => c.id === customerId);
+       if (customer) {
+          // Add points (e.g., 1 point per 10000 Kip based on config)
+          const earnRate = systemStore.settings.loyaltyProgram?.earnRate || 10000;
+          const pointsEarned = Math.floor(total / earnRate);
+          const newPoints = (customer.loyaltyPoints || 0) - (pointsRedeemed || 0) + pointsEarned;
+          
+          salesStore.updateCustomer({
+             ...customer,
+             loyaltyPoints: newPoints
+          });
+       }
     }
+
     return newSale;
-  };
-
-  const settleSaleDebt = async (saleId: string, amount: number, method: string) => {
-    const sale = salesStore.sales.find(s => s.id === saleId);
-    if (!sale) return;
-    const newAmountReceived = (sale.amountReceived || 0) + amount;
-    const newRemaining = Math.max(0, (sale.remainingAmount || sale.total) - amount);
-    salesStore.updateSale({
-      ...sale,
-      amountReceived: newAmountReceived,
-      remainingAmount: newRemaining,
-      paymentStatus: newRemaining <= 0.01 ? 'paid' : 'partial'
-    });
-    systemStore.logAction({
-       id: `aud-${Date.now()}`,
-       action: 'CASH_IN',
-       userId: systemStore.currentUser?.id || 'sys',
-       userName: systemStore.currentUser?.name || 'System',
-       details: `Settled debt for Sale ${saleId}: ${amount}`,
-       timestamp: new Date().toISOString(),
-       severity: 'low',
-       resourceId: saleId
-    });
-  };
-
-  const processReturn = async (originalSale: Sale, returnItems: { itemIndex: number, quantity: number }[]) => {
-    const returnSaleId = `RET-${Date.now()}`;
-    const items: CartItem[] = [];
-    let returnTotal = 0;
-    returnItems.forEach(ret => {
-       const originalItem = originalSale.items[ret.itemIndex];
-       const returnQty = ret.quantity;
-       const lineTotal = originalItem.sellPrice * returnQty;
-       returnTotal += lineTotal;
-       items.push({ ...originalItem, quantity: returnQty });
-       inventoryStore.updateProductStock(originalItem.id, returnQty, 'wh1');
-    });
-    const returnSale: Sale = {
-      id: returnSaleId,
-      items,
-      total: -returnTotal,
-      date: new Date().toISOString(),
-      paymentMethod: originalSale.paymentMethod,
-      paymentStatus: 'paid',
-      status: 'completed',
-      type: 'return',
-      originalSaleId: originalSale.id,
-      customerId: originalSale.customerId,
-      customerName: originalSale.customerName,
-      userId: systemStore.currentUser?.id,
-      userName: systemStore.currentUser?.name
-    };
-    salesStore.addSale(returnSale);
-    systemStore.logAction({
-       id: `aud-${Date.now()}`,
-       action: 'SALE_RETURN',
-       userId: systemStore.currentUser?.id || 'sys',
-       userName: systemStore.currentUser?.name || 'System',
-       details: `Processed return for Sale ${originalSale.id}`,
-       timestamp: new Date().toISOString(),
-       severity: 'medium',
-       resourceId: originalSale.id
-    });
   };
 
   const handleVoidSale = (id: string) => {
     const sale = salesStore.sales.find(s => s.id === id);
-    if (!sale || sale.status === 'voided') return;
-    salesStore.updateSale({ ...sale, status: 'voided' });
-    sale.items.forEach(item => {
-       inventoryStore.updateProductStock(item.id, item.quantity, 'wh1');
-    });
-    systemStore.logAction({
-       id: `aud-${Date.now()}`,
-       action: 'SALE_VOID',
-       userId: systemStore.currentUser?.id || 'sys',
-       userName: systemStore.currentUser?.name || 'System',
-       details: `Voided Sale ${id}`,
-       timestamp: new Date().toISOString(),
-       severity: 'high',
-       resourceId: id
-    });
-  };
+    if (sale && sale.status !== 'voided') {
+      salesStore.updateSale({ ...sale, status: 'voided' });
+      
+      // Restore Inventory
+      sale.items.forEach(item => {
+        inventoryStore.updateProductStock(item.id, item.quantity);
+      });
 
-  const handleStockStatusChange = (type: string, id: string, status: DocumentStatus) => {
-    const docMap: any = { transfer: 'transfers', count: 'counts', reservation: 'reservations', receipt: 'receipts', adjustment: 'adjustments' };
-    const listName = docMap[type];
-    const list = (stockStore as any)[listName] as any[];
-    const doc = list.find(x => x.id === id);
-    if (doc) {
-      stockStore.updateDocument(listName, { ...doc, status });
-      if (status === 'Completed' || status === 'Approved') {
-         doc.items.forEach((item: any) => {
-            const delta = type === 'adjustment' ? item.quantity : type === 'receipt' ? item.quantity : type === 'count' ? (item.countedQuantity - (item.systemQuantity || 0)) : 0;
-            if (type === 'transfer') {
-               inventoryStore.updateProductStock(item.productId, -item.quantity, doc.sourceWarehouseId);
-               inventoryStore.updateProductStock(item.productId, item.quantity, doc.targetWarehouseId);
-            } else if (delta !== 0) {
-               inventoryStore.updateProductStock(item.productId, delta, doc.warehouseId);
-            }
+      // Log Audit
+      if (systemStore.currentUser) {
+         systemStore.logAction({
+            id: `aud-${Date.now()}`,
+            action: 'SALE_VOID',
+            userId: systemStore.currentUser.id,
+            userName: systemStore.currentUser.name,
+            details: `Voided Sale #${id}`,
+            timestamp: new Date().toISOString(),
+            severity: 'high',
+            resourceId: id
          });
       }
     }
   };
 
+  const settleSaleDebt = async (id: string, amount: number, method: string) => {
+     const sale = salesStore.sales.find(s => s.id === id);
+     if (sale) {
+        const newPaid = (sale.amountReceived || 0) + amount;
+        const newRemaining = Math.max(0, (sale.remainingAmount || sale.total) - amount);
+        
+        salesStore.updateSale({
+           ...sale,
+           amountReceived: newPaid,
+           remainingAmount: newRemaining,
+           paymentStatus: newRemaining <= 0.01 ? 'paid' : 'partial'
+        });
+
+        // Add cash transaction if settled via cash (Debt payments ARE Cash In events not tracked by sales creation)
+        if (method === 'cash') {
+           const shift = salesStore.shifts.find(s => s.userId === systemStore.currentUser?.id && s.status === 'Open');
+           if (shift) {
+              salesStore.addCashTransaction({
+                 id: `ctx-${Date.now()}`,
+                 shiftId: shift.id,
+                 userId: shift.userId,
+                 type: 'in',
+                 amount: amount,
+                 reason: `Debt Settle #${sale.id.slice(-6)}`,
+                 timestamp: new Date().toISOString()
+              });
+           }
+        }
+     }
+  };
+
+  const processReturn = async (originalSale: Sale, itemsToReturn: { itemIndex: number, quantity: number }[], refundMethod: string) => {
+     // Create a return record (negative sale)
+     const returnItems: CartItem[] = [];
+     let refundTotal = 0;
+
+     itemsToReturn.forEach(({ itemIndex, quantity }) => {
+        const originalItem = originalSale.items[itemIndex];
+        if (originalItem) {
+           returnItems.push({
+              ...originalItem,
+              quantity: quantity
+           });
+           refundTotal += originalItem.sellPrice * quantity;
+           
+           // Restore Stock
+           inventoryStore.updateProductStock(originalItem.id, quantity);
+        }
+     });
+
+     const returnSale: Sale = {
+        id: `R-${Date.now()}`,
+        type: 'return',
+        originalSaleId: originalSale.id,
+        items: returnItems,
+        total: -refundTotal,
+        date: new Date().toISOString(),
+        paymentMethod: refundMethod as any,
+        paymentStatus: 'paid', // Refunded immediately
+        status: 'completed',
+        syncStatus: 'pending',
+        customerId: originalSale.customerId,
+        customerName: originalSale.customerName,
+        userId: systemStore.currentUser?.id,
+        userName: systemStore.currentUser?.name,
+     };
+
+     salesStore.addSale(returnSale);
+  };
+
+  const handleStockStatusChange = (type: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment', id: string, status: DocumentStatus) => {
+    // 1. Update Document Status
+    const docList = stockStore[type === 'transfer' ? 'transfers' : type === 'count' ? 'counts' : type === 'reservation' ? 'reservations' : type === 'receipt' ? 'receipts' : 'adjustments'];
+    const doc = docList.find((d: any) => d.id === id);
+    if (!doc) return;
+
+    stockStore.updateDocument(type === 'transfer' ? 'transfers' : type === 'count' ? 'counts' : type === 'reservation' ? 'reservations' : type === 'receipt' ? 'receipts' : 'adjustments', { ...doc, status });
+
+    // 2. Effectuate Stock Changes if approved/completed
+    if (status === 'Completed' || status === 'Approved') {
+       if (type === 'transfer') {
+          const t = doc as StockTransfer;
+       }
+       else if (type === 'receipt') {
+          const r = doc as StockReceipt;
+          r.items.forEach(item => {
+             inventoryStore.updateProductStock(item.productId, item.quantity);
+          });
+       }
+       else if (type === 'adjustment') {
+          const a = doc as StockAdjustment;
+          a.items.forEach(item => {
+             inventoryStore.updateProductStock(item.productId, item.quantity); // Quantity can be negative
+          });
+       }
+       else if (type === 'count') {
+          const c = doc as StockCount;
+          c.items.forEach(item => {
+             // For count, we usually replace stock or adjust by diff.
+             // item.diff = counted - system. 
+             if (item.diff) {
+                inventoryStore.updateProductStock(item.productId, item.diff);
+             }
+          });
+       }
+    }
+  };
+
   const startShift = (branchId: string, startCash: number, notes?: string, posId?: string) => {
-    const newShift: Shift = {
-      id: `SHT-${Date.now()}`,
-      userId: systemStore.currentUser?.id || 'anon',
+    if (!systemStore.currentUser) return;
+    salesStore.startShift({
+      id: `sh-${Date.now()}`,
+      userId: systemStore.currentUser.id,
       branchId,
       posId,
       startTime: new Date().toISOString(),
       startCash,
+      notes,
       status: 'Open',
-      userName: systemStore.currentUser?.name,
       cashTransactions: []
-    };
-    salesStore.addShift(newShift);
+    });
   };
 
   const endShift = (shiftId: string, endCash: number, notes?: string) => {
-    const shift = salesStore.shifts.find(s => s.id === shiftId);
-    if (shift) {
-      salesStore.updateShift({
-        ...shift,
-        endCash,
-        notes: notes || shift.notes,
-        endTime: new Date().toISOString(),
-        status: 'Closed'
-      });
-    }
+    salesStore.endShift(shiftId, {
+      endTime: new Date().toISOString(),
+      endCash,
+      notes,
+      status: 'Closed'
+    });
   };
 
   const addCashTransaction = (type: 'in' | 'out', amount: number, reason: string) => {
-     const activeShift = salesStore.shifts.find(s => s.userId === systemStore.currentUser?.id && s.status === 'Open');
-     if (activeShift) {
-        const txn: CashTransaction = {
-           id: `TXN-${Date.now()}`,
-           shiftId: activeShift.id,
-           userId: activeShift.userId,
+     const shift = salesStore.shifts.find(s => s.userId === systemStore.currentUser?.id && s.status === 'Open');
+     if (shift) {
+        salesStore.addCashTransaction({
+           id: `ctx-${Date.now()}`,
+           shiftId: shift.id,
+           userId: shift.userId,
            type,
            amount,
            reason,
            timestamp: new Date().toISOString()
-        };
-        salesStore.addCashTransaction(activeShift.id, txn);
+        });
      }
   };
 
-  const handleSyncOperation = (type: 'Auto' | 'Manual' | 'Push' | 'Pull') => {
-     const log: SyncLog = {
-        id: `LOG-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        type,
-        status: 'Success',
-        details: 'Local synchronization simulation completed.',
-        durationMs: Math.floor(Math.random() * 500) + 100
-     };
-     systemStore.addSyncLog(log);
+  const handleSyncOperation = (type: 'Auto' | 'Manual' | 'Push' | 'Pull', targetBranchIds: string[] = []) => {
+     // Mock Sync Logic
+     console.log(`Syncing (${type})... Targets:`, targetBranchIds.length > 0 ? targetBranchIds : 'All');
+     const start = Date.now();
+     
+     // Simulate network
+     setTimeout(() => {
+        const duration = Date.now() - start;
+        let details = `Synced successfully (${salesStore.sales.length} records checked)`;
+        
+        if (targetBranchIds.length > 0) {
+           const targetNames = systemStore.branches.filter(b => targetBranchIds.includes(b.id)).map(b => b.name).join(', ');
+           details = `Synced with: ${targetNames}`;
+        }
+
+        systemStore.addSyncLog({
+           id: `log-${Date.now()}`,
+           timestamp: new Date().toISOString(),
+           type,
+           status: 'Success',
+           details: details,
+           durationMs: duration
+        });
+        
+        // Update sync status on sales
+        salesStore.sales.forEach(s => {
+           if (s.syncStatus === 'pending') {
+              salesStore.updateSale({ ...s, syncStatus: 'synced' });
+           }
+        });
+     }, 1000);
+  };
+
+  const restoreSystemData = (data: any) => {
+     systemStore.restoreSystemData(data);
+     inventoryStore.restoreInventoryData(data);
+     salesStore.restoreSalesData(data);
+     stockStore.restoreStockData(data);
   };
 
   return (
     <GlobalContext.Provider value={{
+      // System
       currentUser: systemStore.currentUser,
       setCurrentUser: systemStore.setCurrentUser,
       users: systemStore.users,
-      roles: systemStore.roles,
-      permissions: systemStore.permissions,
-      departments: systemStore.departments,
-      settings: systemStore.settings,
-      products: inventoryStore.products,
-      sales: salesStore.sales,
-      customers: salesStore.customers,
-      customerLevels: salesStore.customerLevels,
-      units: inventoryStore.units,
-      categories: inventoryStore.categories,
-      branches: systemStore.branches,
-      posMachines: systemStore.posMachines,
-      warehouses: stockStore.warehouses,
-      locations: stockStore.locations,
-      shifts: salesStore.shifts,
-      shiftSchedules: salesStore.shiftSchedules,
-      promotions: salesStore.promotions,
-      notifications: systemStore.notifications,
-      syncLogs: systemStore.syncLogs,
-      auditLogs: systemStore.auditLogs || [],
-      
-      transfers: stockStore.transfers,
-      counts: stockStore.counts,
-      reservations: stockStore.reservations,
-      receipts: stockStore.receipts,
-      adjustments: stockStore.adjustments,
-
-      processSale,
-      processReturn,
-      settleSaleDebt,
-      handleVoidSale,
-      
-      addProduct: inventoryStore.addProduct,
-      updateProduct: inventoryStore.updateProduct,
-      deleteProduct: inventoryStore.deleteProduct,
-      
-      addUnit: inventoryStore.addUnit,
-      updateUnit: inventoryStore.updateUnit,
-      deleteUnit: inventoryStore.deleteUnit,
-      addCategory: inventoryStore.addCategory,
-      updateCategory: inventoryStore.updateCategory,
-      deleteCategory: inventoryStore.deleteCategory,
-
-      addCustomer: salesStore.addCustomer,
-      updateCustomer: salesStore.updateCustomer,
-      deleteCustomer: (id) => {}, 
-      addCustomerLevel: salesStore.addCustomerLevel,
-      updateCustomerLevel: salesStore.updateCustomerLevel,
-      deleteCustomerLevel: salesStore.deleteCustomerLevel,
-
-      updateTransfer: (t) => stockStore.updateDocument('transfers', t),
-      deleteTransfer: (id) => stockStore.deleteDocument('transfers', id),
-      updateCount: (c) => stockStore.updateDocument('counts', c),
-      deleteCount: (id) => stockStore.deleteDocument('counts', id),
-      updateReservation: (r) => stockStore.updateDocument('reservations', r),
-      deleteReservation: (id) => stockStore.deleteDocument('reservations', id),
-      updateReceipt: (r) => stockStore.updateDocument('receipts', r),
-      deleteReceipt: (id) => stockStore.deleteDocument('receipts', id),
-      updateAdjustment: (a) => stockStore.updateDocument('adjustments', a),
-      deleteAdjustment: (id) => stockStore.deleteDocument('adjustments', id),
-      handleStockStatusChange,
-
-      addBranch: systemStore.addBranch,
-      updateBranch: systemStore.updateBranch,
-      deleteBranch: systemStore.deleteBranch,
-      addPos: systemStore.addPos,
-      updatePos: systemStore.updatePos,
-      deletePos: systemStore.deletePos,
-
-      addWarehouse: stockStore.addWarehouse,
-      updateWarehouse: stockStore.updateWarehouse,
-      deleteWarehouse: stockStore.deleteWarehouse,
-      addLocation: stockStore.addLocation,
-      updateLocation: stockStore.updateLocation,
-      deleteLocation: stockStore.deleteLocation,
-
       addUser: systemStore.addUser,
       updateUser: systemStore.updateUser,
       deleteUser: systemStore.deleteUser,
-      addRole: systemStore.addRole,
-      updateRole: systemStore.updateRole,
-      deleteRole: systemStore.deleteRole,
+      
+      departments: systemStore.departments,
       addDepartment: systemStore.addDepartment,
       updateDepartment: systemStore.updateDepartment,
       deleteDepartment: systemStore.deleteDepartment,
 
-      startShift,
-      endShift,
-      addShiftSchedule: salesStore.addShiftSchedule,
-      updateShiftSchedule: salesStore.updateShiftSchedule,
-      deleteShiftSchedule: salesStore.deleteShiftSchedule,
-      addCashTransaction,
+      systemRoles: systemStore.systemRoles,
+      addSystemRole: systemStore.addSystemRole,
+      updateSystemRole: systemStore.updateSystemRole,
+      deleteSystemRole: systemStore.deleteSystemRole,
 
+      settings: systemStore.settings,
+      updateSettings: systemStore.updateSettings,
+      notifications: systemStore.notifications,
+      markNotificationRead: systemStore.markNotificationRead,
+      clearAllNotifications: systemStore.clearAllNotifications,
+      auditLogs: systemStore.auditLogs,
+      syncLogs: systemStore.syncLogs,
+
+      // Inventory
+      products: inventoryStore.products,
+      addProduct: inventoryStore.addProduct,
+      updateProduct: inventoryStore.updateProduct,
+      deleteProduct: inventoryStore.deleteProduct,
+      units: inventoryStore.units,
+      addUnit: inventoryStore.addUnit,
+      updateUnit: inventoryStore.updateUnit,
+      deleteUnit: inventoryStore.deleteUnit,
+      categories: inventoryStore.categories,
+      addCategory: inventoryStore.addCategory,
+      updateCategory: inventoryStore.updateCategory,
+      deleteCategory: inventoryStore.deleteCategory,
+      attributes: inventoryStore.attributes,
+      addAttribute: inventoryStore.addAttribute,
+      updateAttribute: inventoryStore.updateAttribute,
+      deleteAttribute: inventoryStore.deleteAttribute,
+
+      // Sales
+      sales: salesStore.sales,
+      processSale,
+      handleVoidSale,
+      settleSaleDebt,
+      processReturn,
+      customers: salesStore.customers,
+      addCustomer: salesStore.addCustomer,
+      updateCustomer: salesStore.updateCustomer,
+      deleteCustomer: salesStore.deleteCustomer,
+      customerLevels: salesStore.customerLevels,
+      addCustomerLevel: salesStore.addCustomerLevel,
+      updateCustomerLevel: salesStore.updateCustomerLevel,
+      deleteCustomerLevel: salesStore.deleteCustomerLevel,
+      promotions: salesStore.promotions,
       addPromotion: salesStore.addPromotion,
       updatePromotion: salesStore.updatePromotion,
       deletePromotion: salesStore.deletePromotion,
 
-      updateSettings: systemStore.updateSettings,
+      // Shifts
+      shifts: salesStore.shifts,
+      startShift,
+      endShift,
+      addCashTransaction,
+      shiftSchedules: salesStore.shiftSchedules,
+      addShiftSchedule: salesStore.addShiftSchedule,
+      updateShiftSchedule: salesStore.updateShiftSchedule,
+      deleteShiftSchedule: salesStore.deleteShiftSchedule,
+
+      // Locations & Stock
+      branches: systemStore.branches,
+      addBranch: systemStore.addBranch,
+      updateBranch: systemStore.updateBranch,
+      deleteBranch: systemStore.deleteBranch,
+      posMachines: systemStore.posMachines,
+      addPos: systemStore.addPos,
+      updatePos: systemStore.updatePos,
+      deletePos: systemStore.deletePos,
+      warehouses: stockStore.warehouses,
+      addWarehouse: stockStore.addWarehouse,
+      updateWarehouse: stockStore.updateWarehouse,
+      deleteWarehouse: stockStore.deleteWarehouse,
+      locations: stockStore.locations,
+      addLocation: stockStore.addLocation,
+      updateLocation: stockStore.updateLocation,
+      deleteLocation: stockStore.deleteLocation,
+      
+      transfers: stockStore.transfers,
+      updateTransfer: (t) => stockStore.updateDocument('transfers', t),
+      deleteTransfer: (id) => stockStore.deleteDocument('transfers', id),
+      counts: stockStore.counts,
+      updateCount: (c) => stockStore.updateDocument('counts', c),
+      deleteCount: (id) => stockStore.deleteDocument('counts', id),
+      reservations: stockStore.reservations,
+      updateReservation: (r) => stockStore.updateDocument('reservations', r),
+      deleteReservation: (id) => stockStore.deleteDocument('reservations', id),
+      receipts: stockStore.receipts,
+      updateReceipt: (r) => stockStore.updateDocument('receipts', r),
+      deleteReceipt: (id) => stockStore.deleteDocument('receipts', id),
+      adjustments: stockStore.adjustments,
+      updateAdjustment: (a) => stockStore.updateDocument('adjustments', a),
+      deleteAdjustment: (id) => stockStore.deleteDocument('adjustments', id),
+      
+      handleStockStatusChange,
       handleSyncOperation,
-      markNotificationRead: systemStore.markNotificationRead,
-      clearAllNotifications: systemStore.clearAllNotifications,
-      refreshData,
-      restoreSystemData: systemStore.restoreSystemData,
+      restoreSystemData,
+
       t,
       formatPrice
     }}>
       {children}
     </GlobalContext.Provider>
   );
-};
-
-export const useGlobal = () => {
-  const context = useContext(GlobalContext);
-  if (!context) throw new Error('useGlobal must be used within a GlobalProvider');
-  return context;
 };

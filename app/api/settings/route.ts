@@ -15,7 +15,7 @@ export async function GET() {
     if (!settings) {
       // Return default defaults if not found
       return NextResponse.json({
-        companyName: 'New Company',
+        companyName: 'MAHAXAY',
         language: 'en',
         tax: { enabled: true, rate: 7, calculationMode: 'excluded', displayOnReceipt: true }
         // ... incomplete mock

@@ -1,14 +1,13 @@
 
 import React from 'react';
-import { ArrowRightLeft, Truck, SlidersHorizontal, CheckSquare, CalendarClock, FileCheck } from 'lucide-react';
+import { ArrowRightLeft, Truck, SlidersHorizontal, CheckSquare, CalendarClock } from 'lucide-react';
 
 interface StockNavigationProps {
-  activeTab: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment' | 'approvals';
-  setActiveTab: (tab: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment' | 'approvals') => void;
-  showApprovals?: boolean;
+  activeTab: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment';
+  setActiveTab: (tab: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment') => void;
 }
 
-export const StockNavigation: React.FC<StockNavigationProps> = ({ activeTab, setActiveTab, showApprovals }) => {
+export const StockNavigation: React.FC<StockNavigationProps> = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'transfer', label: 'Transfer', icon: ArrowRightLeft },
     { id: 'receipt', label: 'Receipt (In)', icon: Truck },
@@ -18,7 +17,7 @@ export const StockNavigation: React.FC<StockNavigationProps> = ({ activeTab, set
   ] as const;
 
   return (
-    <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:pb-0 scrollbar-hide">
+    <div className="overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0 scrollbar-hide">
       <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg w-fit min-w-max">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -35,18 +34,6 @@ export const StockNavigation: React.FC<StockNavigationProps> = ({ activeTab, set
             </button>
           );
         })}
-        
-        {showApprovals && (
-           <button
-              onClick={() => setActiveTab('approvals')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                activeTab === 'approvals' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <FileCheck className="w-4 h-4 mr-2" />
-              Approvals
-            </button>
-        )}
       </div>
     </div>
   );

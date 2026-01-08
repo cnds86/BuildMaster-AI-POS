@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Product, CategoryItem } from '../../types';
-import { AlertTriangle, Box, Edit2, Tag, Trash2, Layers } from 'lucide-react';
+import { AlertTriangle, Box, Edit2, Tag, Trash2, Store } from 'lucide-react';
 
 interface InventoryListProps {
   products: Product[];
@@ -55,8 +55,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             <tbody className="divide-y divide-slate-100">
               {products.map((product) => {
                 const isLowStock = product.stock < (product.minStock || 20);
-                const hasVariants = product.variants && product.variants.length > 0;
-
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 transition-colors group ${isLowStock ? 'bg-red-50/30' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap pl-8">
@@ -80,12 +78,12 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                            <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 mr-2 border border-slate-200">{product.sku}</span>
                          </div>
                       </div>
-                      {hasVariants && (
-                        <div className="flex items-center text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded w-fit mt-1">
-                           <Layers className="w-3 h-3 mr-1" />
-                           {product.variants!.length} Variants
+                      {product.variants?.slice(0, 2).map((v) => (
+                        <div key={v.id} className="text-[10px] text-slate-500 ml-1 truncate max-w-[150px]">
+                           • {v.name}
                         </div>
-                      )}
+                      ))}
+                      {product.variants && product.variants.length > 2 && <div className="text-[10px] text-slate-400 ml-1">+{product.variants.length - 2} more</div>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2.5 py-1 text-xs font-bold bg-slate-100 text-slate-600 rounded-full">
@@ -93,11 +91,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
-                       {hasVariants ? (
-                          <div className="text-sm text-slate-500 italic">Var. Prices</div>
-                       ) : (
-                          <div className="text-sm font-bold text-slate-900">{formatPrice(product.price)}</div>
-                       )}
+                       <div className="text-sm font-bold text-slate-900">{formatPrice(product.price)}</div>
                        <div className="text-[10px] text-slate-400 uppercase">{product.unit}</div>
                     </td>
                     <td className="px-6 py-4 text-right whitespace-nowrap">
@@ -148,8 +142,6 @@ export const InventoryList: React.FC<InventoryListProps> = ({
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
              {products.map((product) => {
                 const isLowStock = product.stock < (product.minStock || 20);
-                const hasVariants = product.variants && product.variants.length > 0;
-
                 return (
                    <div 
                       key={product.id}
@@ -178,17 +170,11 @@ export const InventoryList: React.FC<InventoryListProps> = ({
 
                       <div className="px-4 pb-3 flex justify-between items-end mt-auto">
                          <div>
-                            {hasVariants ? (
-                               <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                                  {product.variants!.length} Options
-                               </span>
-                            ) : (
-                               <span className="text-lg font-bold text-slate-900">{formatPrice(product.price)}</span>
-                            )}
+                            <span className="text-lg font-bold text-slate-900">{formatPrice(product.price)}</span>
                             <span className="text-xs text-slate-400 ml-1">/{product.unit}</span>
                          </div>
                          <div className={`text-sm font-bold ${isLowStock ? 'text-red-600' : 'text-slate-600'}`}>
-                            {product.stock} left
+                            {product.stock} available
                          </div>
                       </div>
 

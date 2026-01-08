@@ -59,8 +59,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   // Keyboard shortcut for search focus
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Removed F4 to avoid conflict with POS
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if (e.key === 'F4' || ((e.ctrlKey || e.metaKey) && e.key === 'k')) {
         e.preventDefault();
         searchInputRef.current?.focus();
       }

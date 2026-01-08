@@ -19,9 +19,10 @@ interface ApprovalListProps {
   items: ApprovalItem[];
   onApprove: (e: React.MouseEvent, item: ApprovalItem) => void;
   onReject: (e: React.MouseEvent, item: ApprovalItem) => void;
+  onView?: (item: ApprovalItem) => void;
 }
 
-export const ApprovalList: React.FC<ApprovalListProps> = ({ items, onApprove, onReject }) => {
+export const ApprovalList: React.FC<ApprovalListProps> = ({ items, onApprove, onReject, onView }) => {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center flex-1 text-slate-400 p-8">
@@ -40,7 +41,11 @@ export const ApprovalList: React.FC<ApprovalListProps> = ({ items, onApprove, on
         {items.map((item) => {
           const Icon = item.icon;
           return (
-            <div key={item.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-5 relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div 
+                key={item.id} 
+                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-5 relative overflow-hidden group hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => onView && onView(item)}
+            >
               {/* Left Border Status Indicator */}
               <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.color.split(' ')[0].replace('text-', 'bg-')}`}></div>
               

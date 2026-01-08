@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { SystemSettings, Branch, PosMachine } from '../../types';
+import { MhxIcon } from '../shared/MhxLogo';
 
 interface ReceiptPreviewProps {
   settings: SystemSettings;
@@ -19,11 +20,15 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ settings, branch
         style={{ transform: settings.receiptPaperSize === 'A4' ? 'scale(0.8)' : 'none' }}
       >
          {/* Logo */}
-         {settings.receiptLogoUrl && (
+         {settings.receiptLogoUrl ? (
             <img src={settings.receiptLogoUrl} alt="Logo" className="h-12 w-auto mb-2 object-contain" />
+         ) : (
+            <div className="mb-2 text-slate-800">
+               <MhxIcon className="w-12 h-12" />
+            </div>
          )}
 
-         <h3 className="font-bold text-center text-sm mb-1">{settings.companyName || 'Company Name'}</h3>
+         <h3 className="font-bold text-center text-sm mb-1">{settings.companyName || 'MAHAXAY'}</h3>
          <p className="text-center text-[10px] leading-tight text-slate-600 mb-1">{settings.address}</p>
          <p className="text-center text-[10px] leading-tight text-slate-600">Tel: {settings.phone}</p>
          {settings.receiptShowTaxId && settings.taxId && <p className="text-center text-[10px] text-slate-600 mt-1">Tax ID: {settings.taxId}</p>}
@@ -51,7 +56,7 @@ export const ReceiptPreview: React.FC<ReceiptPreviewProps> = ({ settings, branch
 
          {/* Mock Items */}
          <div className="w-full space-y-1 mb-2">
-            <div className="flex justify-between"><span>Cement Bag x2</span><span>{settings.currencySymbol}130,000</span></div>
+            <div className="flex justify-between"><span>Portland Cement x2</span><span>{settings.currencySymbol}130,000</span></div>
             <div className="flex justify-between"><span>Red Brick x100</span><span>{settings.currencySymbol}150,000</span></div>
             <div className="flex justify-between"><span>Rebar 12mm x5</span><span>{settings.currencySymbol}600,000</span></div>
          </div>

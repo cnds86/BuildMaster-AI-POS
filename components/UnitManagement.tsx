@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
-import { UnitDefinition, UnitCategory } from '../types';
-import { Plus, Scale } from 'lucide-react';
-import { UnitTree } from './unit/UnitTree';
+import { UnitDefinition, UnitCategory, VariantAttribute } from '../types';
+import { Plus, Ruler, Tag } from 'lucide-react';
+import { UnitList } from './unit/UnitList';
 import { UnitFormModal } from './unit/UnitFormModal';
-import { Button } from './ui/Button';
+import { AttributeList } from './unit/AttributeList';
+import { AttributeFormModal } from './unit/AttributeFormModal';
+import { useGlobal } from '../context/GlobalContext';
 
 interface UnitManagementProps {
   units: UnitDefinition[];
@@ -14,18 +16,35 @@ interface UnitManagementProps {
 }
 
 export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit, onUpdateUnit, onDeleteUnit }) => {
-  const [activeCategory, setActiveCategory] = useState<UnitCategory>('Quantity');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { 
+    attributes, 
+    addAttribute, 
+    updateAttribute, 
+    deleteAttribute 
+  } = useGlobal();
+
+  const [mainTab, setMainTab] = useState<'units' | 'attributes'>('units');
+  const [activeCategory, setActiveCategory] = useState<UnitCategory>('Length');
+  
+  // Unit Modal State
+  const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Partial<UnitDefinition>>({
     name: '',
     symbol: '',
-    category: 'Quantity',
+    category: 'Length',
     baseFactor: 1,
-    isBase: false,
-    parentId: null
+    isBase: false
   });
 
-  const handleOpenModal = (unit?: UnitDefinition, parentId?: string | null) => {
+  // Attribute Modal State
+  const [isAttrModalOpen, setIsAttrModalOpen] = useState(false);
+  const [editingAttr, setEditingAttr] = useState<Partial<VariantAttribute>>({
+    name: '',
+    values: []
+  });
+
+  // --- Unit Handlers ---
+  const handleOpenUnitModal = (unit?: UnitDefinition) => {
     if (unit) {
       setEditingUnit({ ...unit });
     } else {
@@ -34,15 +53,13 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
         symbol: '',
         category: activeCategory,
         baseFactor: 1,
-        isBase: false,
-        parentId: parentId || null
+        isBase: false
       });
     }
-    setIsModalOpen(true);
+    setIsUnitModalOpen(true);
   };
 
-  const handleSubmit = (formData: Partial<UnitDefinition>) => {
-    // Enforce Single Base Unit Rule
+  const handleUnitSubmit = (formData: Partial<UnitDefinition>) => {
     if (formData.isBase) {
       const categoryToCheck = formData.id ? formData.category : activeCategory;
       const existingBase = units.find(u => 
@@ -50,7 +67,6 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
         u.isBase && 
         u.id !== formData.id
       );
-      
       if (existingBase) {
         onUpdateUnit({ ...existingBase, isBase: false });
       }
@@ -65,68 +81,105 @@ export const UnitManagement: React.FC<UnitManagementProps> = ({ units, onAddUnit
         category: activeCategory
       } as UnitDefinition);
     }
-    setIsModalOpen(false);
+    setIsUnitModalOpen(false);
+  };
+
+  // --- Attribute Handlers ---
+  const handleOpenAttrModal = (attr?: VariantAttribute) => {
+    if (attr) {
+      setEditingAttr({ ...attr });
+    } else {
+      setEditingAttr({ name: '', values: [] });
+    }
+    setIsAttrModalOpen(true);
+  };
+
+  const handleAttrSubmit = (formData: Partial<VariantAttribute>) => {
+    if (formData.id) {
+      updateAttribute(formData as VariantAttribute);
+    } else {
+      addAttribute({
+        ...formData,
+        id: `va-${Date.now()}`
+      } as VariantAttribute);
+    }
+    setIsAttrModalOpen(false);
   };
 
   return (
-    <div className="space-y-8 h-full flex flex-col pb-20 md:pb-0 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="space-y-6 h-full flex flex-col pb-20 md:pb-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-2">
-             <div className="p-2 bg-slate-900 text-white rounded-xl">
-                <Scale className="w-5 h-5" />
-             </div>
-             <h2 className="text-4xl font-black text-slate-900 tracking-tight">Unit Management</h2>
-          </div>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] ml-11">
-            Global standard units and conversion tree
-          </p>
+          <h2 className="text-2xl font-bold text-slate-900">Unit & Attribute Management</h2>
+          <p className="text-slate-500">Configure global units, dimensions, and product variant options.</p>
         </div>
-
-        <Button 
-          variant="primary" 
-          size="lg" 
-          onClick={() => handleOpenModal()}
-          className="rounded-2xl"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Add Root Unit
-        </Button>
+        <div className="flex gap-2">
+           <button 
+             onClick={() => mainTab === 'units' ? handleOpenUnitModal() : handleOpenAttrModal()}
+             className="flex items-center justify-center px-6 py-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold shadow-sm whitespace-nowrap"
+           >
+             <Plus className="w-5 h-5 mr-2" />
+             {mainTab === 'units' ? 'Add Unit' : 'Add Attribute'}
+           </button>
+        </div>
       </div>
 
-      {/* Style A: Category Selector */}
-      <div className="flex bg-slate-100 p-1.5 rounded-2xl w-fit shadow-inner">
-        {(['Quantity', 'Weight', 'Length'] as UnitCategory[]).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat)}
-            className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              activeCategory === cat 
-                ? 'bg-white text-slate-900 shadow-md scale-105' 
-                : 'text-slate-400 hover:text-slate-600'
+      {/* Main Tabs */}
+      <div className="flex space-x-1 bg-slate-100 p-1 rounded-xl w-fit">
+         <button
+            onClick={() => setMainTab('units')}
+            className={`flex items-center px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+               mainTab === 'units' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
             }`}
-          >
-            {cat}
-          </button>
-        ))}
+         >
+            <Ruler className="w-4 h-4 mr-2" /> Units of Measure
+         </button>
+         <button
+            onClick={() => setMainTab('attributes')}
+            className={`flex items-center px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
+               mainTab === 'attributes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+         >
+            <Tag className="w-4 h-4 mr-2" /> Variant Attributes
+         </button>
       </div>
 
-      <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col">
-        <UnitTree 
-          units={units.filter(u => u.category === activeCategory)}
-          onAdd={handleOpenModal}
-          onEdit={handleOpenModal}
-          onDelete={onDeleteUnit}
-        />
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-2xl shadow-sm border border-slate-200">
+         {mainTab === 'units' ? (
+            <div className="p-4 flex flex-col h-full">
+               <UnitList 
+                  units={units}
+                  activeCategory={activeCategory}
+                  onCategoryChange={setActiveCategory}
+                  onEdit={handleOpenUnitModal}
+                  onDelete={onDeleteUnit}
+               />
+            </div>
+         ) : (
+            <AttributeList 
+               attributes={attributes}
+               onEdit={handleOpenAttrModal}
+               onDelete={deleteAttribute}
+            />
+         )}
       </div>
 
+      {/* Modals */}
       <UnitFormModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmit}
+        isOpen={isUnitModalOpen}
+        onClose={() => setIsUnitModalOpen(false)}
+        onSubmit={handleUnitSubmit}
         initialData={editingUnit}
         activeCategory={activeCategory}
         units={units}
+      />
+
+      <AttributeFormModal 
+        isOpen={isAttrModalOpen}
+        onClose={() => setIsAttrModalOpen(false)}
+        onSubmit={handleAttrSubmit}
+        initialData={editingAttr}
       />
     </div>
   );

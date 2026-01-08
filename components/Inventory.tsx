@@ -25,12 +25,13 @@ interface InventoryProps {
 }
 
 export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
-  const { settings, t, formatPrice } = useGlobal();
+  const { settings, t, formatPrice, customerLevels, branches } = useGlobal(); // Access branches here
   
   // Store Access
   const products = useInventoryStore((state) => state.products);
   const units = useInventoryStore((state) => state.units);
   const categories = useInventoryStore((state) => state.categories);
+  const attributes = useInventoryStore((state) => state.attributes);
   const addProduct = useInventoryStore((state) => state.addProduct);
   const updateProduct = useInventoryStore((state) => state.updateProduct);
   const deleteProduct = useInventoryStore((state) => state.deleteProduct);
@@ -38,7 +39,7 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   // State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // View Mode State
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   
   // Modal States
@@ -88,7 +89,6 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
 
   const handleImport = (importedProducts: Partial<Product>[], action: 'Create' | 'Update') => {
     importedProducts.forEach(p => {
-       // Simple mapping logic
        const newProduct = {
           ...p,
           id: p.id || `P-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -139,7 +139,6 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
           <button onClick={() => setIsAiOpen(true)} className="flex items-center px-4 py-2 bg-violet-50 text-violet-700 border border-violet-100 rounded-xl hover:bg-violet-100 font-bold text-sm transition-colors whitespace-nowrap">
             <Sparkles className="w-4 h-4 mr-2" /> {t('inventory.aiInsights')}
           </button>
-          {/* Style A: Black Primary Button */}
           <button onClick={handleAdd} className="hidden md:flex items-center px-6 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-bold text-sm shadow-md whitespace-nowrap transition-colors">
             <Plus className="w-4 h-4 mr-2" /> {t('inventory.addProduct')}
           </button>
@@ -225,7 +224,10 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
         initialData={editingProduct} 
         categories={categories} 
         units={units}
+        attributes={attributes}
         currencySymbol={settings.currencySymbol}
+        customerLevels={customerLevels || []} 
+        branches={branches}
       />
 
       <ImportModal 

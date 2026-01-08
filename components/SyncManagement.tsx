@@ -1,39 +1,48 @@
 
 import React, { useState } from 'react';
-import { SyncLog, Sale, SystemSettings } from '../types';
+import { SyncLog, Sale, SystemSettings, Branch } from '../types';
 import { Wifi, WifiOff } from 'lucide-react';
 import { SyncStatusCards } from './sync/SyncStatusCards';
 import { SyncActions } from './sync/SyncActions';
 import { SyncLogTable } from './sync/SyncLogTable';
+import { MasterSyncControl } from './sync/MasterSyncControl';
 
 interface SyncManagementProps {
   settings: SystemSettings;
   logs: SyncLog[];
   sales: Sale[];
-  onSync: (type: 'Auto' | 'Manual' | 'Push' | 'Pull') => void;
+  branches?: Branch[];
+  onSync: (type: 'Auto' | 'Manual' | 'Push' | 'Pull', targetBranchIds?: string[]) => void;
 }
 
-export const SyncManagement: React.FC<SyncManagementProps> = ({ settings, logs, sales, onSync }) => {
+export const SyncManagement: React.FC<SyncManagementProps> = ({ settings, logs, sales, branches = [], onSync }) => {
   const [syncingType, setSyncingType] = useState<'Auto' | 'Manual' | 'Push' | 'Pull' | null>(null);
 
   // Calculate stats
   const pendingSales = sales.filter(s => s.syncStatus === 'pending');
   const lastSuccess = logs.find(l => l.status === 'Success');
   
-  // Mock Connection Check (In reality, this would be a real ping)
-  const isConnected = !!settings.masterApiUrl; 
+  // Mock Connection Check
+  const isConnected = !!settings.masterApiUrl || settings.deviceRole === 'Master'; 
 
   const handleSyncAction = (type: 'Auto' | 'Manual' | 'Push' | 'Pull') => {
     setSyncingType(type);
-    // Simulate shorter delay before passing to parent
     setTimeout(() => {
       onSync(type);
       setSyncingType(null);
-    }, 500);
+    }, 1500);
+  };
+
+  const handleMasterSync = (type: 'Push' | 'Pull', targetIds: string[]) => {
+    setSyncingType(type);
+    setTimeout(() => {
+      onSync(type, targetIds);
+      setSyncingType(null);
+    }, 2000); // Slightly longer simulation for multi-branch
   };
 
   return (
-    <div className="space-y-6 h-full flex flex-col">
+    <div className="space-y-6 h-full flex flex-col pb-20 md:pb-0">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Data Synchronization</h2>
@@ -53,11 +62,19 @@ export const SyncManagement: React.FC<SyncManagementProps> = ({ settings, logs, 
         lastSuccessLog={lastSuccess}
       />
 
-      <SyncActions 
-        onSyncAction={handleSyncAction}
-        syncingType={syncingType}
-        masterApiUrl={settings.masterApiUrl}
-      />
+      {settings.deviceRole === 'Master' ? (
+        <MasterSyncControl 
+          branches={branches} 
+          onSync={handleMasterSync} 
+          isSyncing={!!syncingType} 
+        />
+      ) : (
+        <SyncActions 
+          onSyncAction={handleSyncAction}
+          syncingType={syncingType}
+          masterApiUrl={settings.masterApiUrl}
+        />
+      )}
 
       <SyncLogTable logs={logs} />
     </div>

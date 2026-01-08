@@ -151,51 +151,53 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-white relative">
-          <form onSubmit={handleSave} className="max-w-4xl mx-auto pb-20">
+          <form onSubmit={handleSave} className="max-w-4xl mx-auto pb-8 h-full flex flex-col">
             
-            {activeTab === 'company' && <CompanySettings formData={formData} setFormData={setFormData} />}
-            
-            {activeTab === 'receipt' && <ReceiptSettings formData={formData} setFormData={setFormData} branches={branches} posMachines={posMachines} />}
-            
-            {activeTab === 'financials' && <FinancialSettings formData={formData} setFormData={setFormData} />}
-            
-            {activeTab === 'device' && (
-              <DeviceSettings 
-                formData={formData} 
-                setFormData={setFormData} 
-                branches={branches} 
-                posMachines={posMachines}
-                posCheckStatus={posCheckStatus}
-                setPosCheckStatus={setPosCheckStatus}
-              />
-            )}
-            
-            {activeTab === 'database' && <DatabaseSettings formData={formData} setFormData={setFormData} />}
-            
-            {activeTab === 'localization' && <LocalizationSettings formData={formData} setFormData={setFormData} />}
-            
-            {activeTab === 'customer_display' && <CustomerDisplaySettings formData={formData} setFormData={setFormData} />}
+            <div className="flex-1">
+              {activeTab === 'company' && <CompanySettings formData={formData} setFormData={setFormData} />}
+              
+              {activeTab === 'receipt' && <ReceiptSettings formData={formData} setFormData={setFormData} branches={branches} posMachines={posMachines} />}
+              
+              {activeTab === 'financials' && <FinancialSettings formData={formData} setFormData={setFormData} />}
+              
+              {activeTab === 'device' && (
+                <DeviceSettings 
+                  formData={formData} 
+                  setFormData={setFormData} 
+                  branches={branches} 
+                  posMachines={posMachines}
+                  posCheckStatus={posCheckStatus}
+                  setPosCheckStatus={setPosCheckStatus}
+                />
+              )}
+              
+              {activeTab === 'database' && <DatabaseSettings formData={formData} setFormData={setFormData} />}
+              
+              {activeTab === 'localization' && <LocalizationSettings formData={formData} setFormData={setFormData} />}
+              
+              {activeTab === 'customer_display' && <CustomerDisplaySettings formData={formData} setFormData={setFormData} />}
 
-            {activeTab === 'interface' && (
-               <div className="space-y-6 animate-fade-in">
-                  <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-6">Interface & Display</h3>
-                  <div>
-                     <label className="block text-sm font-medium text-slate-700 mb-2">Default Items Per Page</label>
-                     <select value={formData.defaultItemsPerPage} onChange={e => setFormData({ ...formData, defaultItemsPerPage: parseInt(e.target.value) })} className="w-full md:w-64 px-4 py-2 border border-slate-300 rounded-lg">
-                        <option value={10}>10 items</option>
-                        <option value={20}>20 items</option>
-                        <option value={50}>50 items</option>
-                     </select>
-                  </div>
-               </div>
-            )}
+              {activeTab === 'interface' && (
+                <div className="space-y-6 animate-fade-in">
+                    <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-6">Interface & Display</h3>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Default Items Per Page</label>
+                      <select value={formData.defaultItemsPerPage} onChange={e => setFormData({ ...formData, defaultItemsPerPage: parseInt(e.target.value) })} className="w-full md:w-64 px-4 py-2 border border-slate-300 rounded-lg">
+                          <option value={10}>10 items</option>
+                          <option value={20}>20 items</option>
+                          <option value={50}>50 items</option>
+                      </select>
+                    </div>
+                </div>
+              )}
+            </div>
 
-            {/* Floating Save Button - Style A: Black */}
-            <div className="fixed bottom-6 right-6 md:absolute md:bottom-0 md:right-0 md:p-8 md:bg-transparent pointer-events-none">
+            {/* Static Save Button - Bottom of form */}
+            <div className="mt-8 flex justify-end pt-4 border-t border-slate-100">
                 <button
                   type="submit"
                   disabled={isSaveDisabled}
-                  className={`pointer-events-auto px-8 py-3.5 font-bold rounded-full md:rounded-xl shadow-xl flex items-center transform transition-all ${
+                  className={`px-8 py-3.5 font-bold rounded-xl shadow-xl flex items-center transform transition-all ${
                     isSaveDisabled 
                       ? 'bg-slate-300 text-slate-500 cursor-not-allowed' 
                       : 'bg-slate-900 text-white hover:bg-slate-800 hover:scale-105 active:scale-95'

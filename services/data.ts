@@ -1,12 +1,26 @@
 
-
-import { Product, Category, Sale, UnitDefinition, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion, AuditLog } from '../types';
+import { Product, Category, Sale, UnitDefinition, VariantAttribute, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion, AuditLog, Department, SystemRole } from '../types';
 
 export const INITIAL_USERS: User[] = [
-  { id: 'u1', username: 'admin', password: '123', name: 'Owner Admin', role: 'Admin', email: 'admin@buildmaster.com', branchId: 'b1' },
-  { id: 'u2', username: 'manager', password: '123', name: 'Manager Somchai', role: 'Manager', email: 'manager@buildmaster.com', branchId: 'b1' },
-  { id: 'u3', username: 'staff', password: '123', name: 'Staff Somsri', role: 'Staff', branchId: 'b1' },
-  { id: 'u4', username: 'cashier', password: '123', name: 'Cashier Noi', role: 'Cashier', branchId: 'b1' },
+  { id: 'u1', username: 'admin', password: '123', name: 'Owner Admin', role: 'Admin', email: 'admin@buildmaster.com', branchId: 'b1', department: 'Management' },
+  { id: 'u2', username: 'manager', password: '123', name: 'Manager Somchai', role: 'Manager', email: 'manager@buildmaster.com', branchId: 'b1', department: 'Operations' },
+  { id: 'u3', username: 'staff', password: '123', name: 'Staff Somsri', role: 'Staff', branchId: 'b1', department: 'Warehouse' },
+  { id: 'u4', username: 'cashier', password: '123', name: 'Cashier Noi', role: 'Cashier', branchId: 'b1', department: 'Sales' },
+];
+
+export const INITIAL_DEPARTMENTS: Department[] = [
+  { id: 'dept-1', name: 'Management', description: 'Executive and strategic decision making', managerId: 'u1' },
+  { id: 'dept-2', name: 'Operations', description: 'Day-to-day store operations', managerId: 'u2' },
+  { id: 'dept-3', name: 'Sales', description: 'Front-of-house sales team' },
+  { id: 'dept-4', name: 'Warehouse', description: 'Inventory and logistics' },
+  { id: 'dept-5', name: 'Accounting', description: 'Financial and bookkeeping' }
+];
+
+export const INITIAL_ROLES: SystemRole[] = [
+  { id: 'role-1', name: 'Admin', description: 'Full system access', isSystem: true, permissions: ['all'] },
+  { id: 'role-2', name: 'Manager', description: 'Store operations, approvals, and reports', isSystem: true, permissions: ['dashboard.view', 'pos.operate', 'inventory.view', 'inventory.manage', 'stock.view', 'stock.manage', 'approvals.manage', 'reports.view', 'customers.view', 'users.view'] },
+  { id: 'role-3', name: 'Staff', description: 'General staff, inventory and basic sales', isSystem: true, permissions: ['pos.operate', 'inventory.view', 'inventory.manage', 'stock.view', 'customers.view'] },
+  { id: 'role-4', name: 'Cashier', description: 'POS and sales processing only', isSystem: true, permissions: ['pos.operate', 'customers.view', 'shifts.view'] },
 ];
 
 export const INITIAL_CUSTOMER_LEVELS: CustomerLevel[] = [
@@ -32,7 +46,7 @@ export const INITIAL_PROMOTIONS: Promotion[] = [
 ];
 
 export const INITIAL_SETTINGS: SystemSettings = {
-  companyName: 'BuildMaster Construction Supply',
+  companyName: 'MAHAXAY Construction Supply',
   taxId: '1234567890123',
   address: '123 Lane Xang Avenue, Vientiane, Laos',
   phone: '021-123-4567',
@@ -53,7 +67,7 @@ export const INITIAL_SETTINGS: SystemSettings = {
   // Customer Display
   customerDisplay: {
     enabled: true,
-    welcomeMessage: 'ສະບາຍດີ! ຍິນດີຕ້ອນຮັບສູ່ BuildMaster',
+    welcomeMessage: 'ສະບາຍດີ! ຍິນດີຕ້ອນຮັບສູ່ MAHAXAY',
     promotionInterval: 5
   },
 
@@ -81,7 +95,7 @@ export const INITIAL_SETTINGS: SystemSettings = {
     {
       id: 'ba-1',
       bankName: 'BCEL',
-      accountName: 'BuildMaster Co., Ltd.',
+      accountName: 'MAHAXAY Co., Ltd.',
       accountNumber: '123-12-3456789-0'
     }
   ],
@@ -97,7 +111,7 @@ export const INITIAL_SETTINGS: SystemSettings = {
     type: 'postgresql',
     host: 'localhost',
     port: '5432',
-    databaseName: 'buildmaster_pos',
+    databaseName: 'mahaxay_pos',
     username: 'postgres',
     password: ''
   },
@@ -119,6 +133,17 @@ export const INITIAL_UNITS: UnitDefinition[] = [
   { id: 'u8', name: 'Dozen', symbol: 'doz', category: 'Quantity', baseFactor: 12, isBase: false },
   { id: 'u9', name: 'Pack', symbol: 'pk', category: 'Quantity', baseFactor: 1, isBase: false },
   { id: 'u10', name: 'Box', symbol: 'box', category: 'Quantity', baseFactor: 1, isBase: false },
+  { id: 'u11', name: 'Gallon', symbol: 'gal', category: 'Quantity', baseFactor: 1, isBase: true },
+  { id: 'u12', name: 'Bucket', symbol: 'bkt', category: 'Quantity', baseFactor: 1, isBase: false },
+  { id: 'u13', name: 'Can', symbol: 'can', category: 'Quantity', baseFactor: 1, isBase: false },
+];
+
+export const INITIAL_VARIANT_ATTRIBUTES: VariantAttribute[] = [
+  { id: 'va-1', name: 'Color', values: ['White', 'Black', 'Red', 'Blue', 'Green', 'Grey', 'Cream', 'Yellow'] },
+  { id: 'va-2', name: 'Size', values: ['Small', 'Medium', 'Large', 'XL', '1L', '5L', '15L', '10mm', '12mm', '16mm'] },
+  { id: 'va-3', name: 'Material', values: ['Steel', 'Wood', 'Plastic', 'Concrete', 'Aluminum', 'PVC'] },
+  { id: 'va-4', name: 'Grade', values: ['A', 'B', 'Standard', 'Premium', 'Industrial'] },
+  { id: 'va-5', name: 'Finish', values: ['Matte', 'Gloss', 'Satin', 'Polished', 'Rough'] },
 ];
 
 export const INITIAL_CATEGORIES_TREE: CategoryItem[] = [
@@ -136,60 +161,56 @@ export const INITIAL_CATEGORIES_TREE: CategoryItem[] = [
   { id: 'c2-2', name: 'Structural Steel', parentId: 'c2' },
   { id: 'c3-1', name: 'Plywood', parentId: 'c3' },
   { id: 'c3-2', name: 'Dimensional Lumber', parentId: 'c3' },
+  { id: 'c4-1', name: 'Interior Paint', parentId: 'c4' },
+  { id: 'c4-2', name: 'Exterior Paint', parentId: 'c4' },
 ];
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: 'p1',
     name: 'Portland Cement Type 1',
-    category: 'c1-1', // Bagged Cement
+    category: 'c1-1',
     price: 65000,
     costPrice: 52000,
-    branchPrices: [
-      { branchId: 'b2', price: 68000 } 
-    ],
     stock: 450,
     minStock: 50,
     unit: 'bag',
-    physical: {
-      weight: 50, // kg
-      width: 40, height: 10, depth: 60
-    },
+    physical: { weight: 50, width: 40, height: 10, depth: 60 },
     sku: 'CEM-001',
     barcode: '885000001',
-    warehouseInventory: [
-      { warehouseId: 'wh1', quantity: 400 },
-      { warehouseId: 'wh2', quantity: 50 }
-    ],
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 400 }, { warehouseId: 'wh2', quantity: 50 }],
     imageUrl: 'https://images.unsplash.com/photo-1590059598858-a57758372658?auto=format&fit=crop&q=80&w=300'
   },
   {
     id: 'p2',
     name: 'Red Brick',
-    category: 'c1', // Cement & Concrete (General)
+    category: 'c1',
     price: 1500,
     costPrice: 800,
     stock: 12500,
     minStock: 2000,
     unit: 'pc',
-    physical: {
-      weight: 1.5,
-      width: 6, height: 4, depth: 14
-    },
     sku: 'BRK-002',
     barcode: '885000002',
-    warehouseInventory: [
-      { warehouseId: 'wh1', quantity: 12500 }
-    ],
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 12500 }],
     imageUrl: 'https://images.unsplash.com/photo-1590059598858-a57758372658?auto=format&fit=crop&q=80&w=300',
     variants: [
-      { id: 'v2-1', name: 'Pallet', code: 'BRK-002-PAL', barcode: '885000002P', conversionFactor: 500, price: 700000, costPrice: 350000 }
+      { 
+        id: 'v2-1', 
+        name: 'Pallet', 
+        code: 'BRK-002-PAL', 
+        barcode: '885000002P', 
+        conversionFactor: 500, 
+        price: 700000, 
+        costPrice: 350000,
+        attributes: { 'Grade': 'Standard' }
+      }
     ]
   },
   {
     id: 'p3',
-    name: 'Steel Rebar 12mm',
-    category: 'c2-1', // Rebar
+    name: 'Steel Rebar',
+    category: 'c2-1',
     price: 120000,
     costPrice: 95000,
     stock: 280,
@@ -197,59 +218,81 @@ export const INITIAL_PRODUCTS: Product[] = [
     unit: 'bar',
     sku: 'STL-003',
     barcode: '885000003',
-    warehouseInventory: [
-      { warehouseId: 'wh1', quantity: 280 }
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 280 }],
+    variants: [
+      { id: 'v3-1', name: '10mm', code: 'STL-003-10', barcode: '885000003-10', conversionFactor: 1, price: 95000, costPrice: 75000, attributes: { 'Size': '10mm', 'Material': 'Steel' } },
+      { id: 'v3-2', name: '12mm', code: 'STL-003-12', barcode: '885000003-12', conversionFactor: 1, price: 120000, costPrice: 95000, attributes: { 'Size': '12mm', 'Material': 'Steel' } },
+      { id: 'v3-3', name: '16mm', code: 'STL-003-16', barcode: '885000003-16', conversionFactor: 1, price: 180000, costPrice: 145000, attributes: { 'Size': '16mm', 'Material': 'Steel' } }
     ]
   },
   {
     id: 'p4',
-    name: 'Interior Paint White',
-    category: 'c4', // Paints
+    name: 'Premium Interior Paint',
+    category: 'c4-1',
     price: 450000,
     costPrice: 350000,
-    stock: 15, // Low stock demo
+    stock: 45,
     minStock: 30,
     unit: 'can',
-    sku: 'PNT-004',
+    sku: 'PNT-INT',
     barcode: '885000004',
-    warehouseInventory: [
-      { warehouseId: 'wh1', quantity: 15 }
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 45 }],
+    imageUrl: 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=300',
+    variants: [
+      { id: 'v4-1', name: 'White 1L', code: 'PNT-INT-W-1', barcode: '885000004-W1', conversionFactor: 1, price: 150000, costPrice: 100000, attributes: { 'Color': 'White', 'Size': '1L' } },
+      { id: 'v4-2', name: 'White 5L', code: 'PNT-INT-W-5', barcode: '885000004-W5', conversionFactor: 1, price: 650000, costPrice: 480000, attributes: { 'Color': 'White', 'Size': '5L' } },
+      { id: 'v4-3', name: 'Blue 1L', code: 'PNT-INT-B-1', barcode: '885000004-B1', conversionFactor: 1, price: 160000, costPrice: 110000, attributes: { 'Color': 'Blue', 'Size': '1L' } },
+      { id: 'v4-4', name: 'Grey 1L', code: 'PNT-INT-G-1', barcode: '885000004-G1', conversionFactor: 1, price: 160000, costPrice: 110000, attributes: { 'Color': 'Grey', 'Size': '1L' } }
     ]
   },
   {
     id: 'p5',
     name: 'Ceramic Floor Tile 60x60',
-    category: 'c8', // Consumables (Example)
-    price: 55000, // Per Tile
+    category: 'c8',
+    price: 55000,
     costPrice: 40000,
     stock: 1000,
     minStock: 100,
     unit: 'tile',
     sku: 'TIL-005',
     barcode: '885000005',
-    warehouseInventory: [
-      { warehouseId: 'wh1', quantity: 1000 }
-    ],
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 1000 }],
     variants: [
-      { id: 'v5-1', name: 'Box', code: 'TIL-005-BOX', barcode: '885000005B', conversionFactor: 12, price: 650000, costPrice: 450000 }
+      { id: 'v5-1', name: 'Box (Cream)', code: 'TIL-005-BOX-C', barcode: '885000005B', conversionFactor: 12, price: 650000, costPrice: 450000, attributes: { 'Color': 'Cream', 'Finish': 'Gloss' } },
+      { id: 'v5-2', name: 'Box (Grey)', code: 'TIL-005-BOX-G', barcode: '885000005BG', conversionFactor: 12, price: 650000, costPrice: 450000, attributes: { 'Color': 'Grey', 'Finish': 'Matte' } }
     ]
   },
   {
     id: 'p6',
     name: 'Drinking Water',
     category: 'c8',
-    price: 5000, // Per Bottle
+    price: 5000,
     costPrice: 2000,
     stock: 500,
     minStock: 50,
     unit: 'bottle',
     sku: 'WTR-006',
     barcode: '885000006',
-    warehouseInventory: [
-      { warehouseId: 'wh1', quantity: 500 }
-    ],
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 500 }],
     variants: [
       { id: 'v6-1', name: 'Pack', code: 'WTR-006-PK', barcode: '885000006P', conversionFactor: 12, price: 50000, costPrice: 20000 }
+    ]
+  },
+  {
+    id: 'p7',
+    name: 'PVC Pipe',
+    category: 'c6',
+    price: 35000,
+    costPrice: 20000,
+    stock: 200,
+    minStock: 40,
+    unit: 'pc',
+    sku: 'PVC-007',
+    barcode: '885000007',
+    warehouseInventory: [{ warehouseId: 'wh1', quantity: 200 }],
+    variants: [
+        { id: 'v7-1', name: '1/2 inch', code: 'PVC-05', barcode: '885000007-05', conversionFactor: 1, price: 35000, costPrice: 20000, attributes: { 'Size': '10mm', 'Material': 'PVC' } },
+        { id: 'v7-2', name: '3/4 inch', code: 'PVC-075', barcode: '885000007-075', conversionFactor: 1, price: 45000, costPrice: 28000, attributes: { 'Size': '16mm', 'Material': 'PVC' } }
     ]
   }
 ];
@@ -344,10 +387,10 @@ const generateHistoricalSales = (count: number): Sale[] => {
       let variantId = undefined;
 
       if (product.variants && Math.random() > 0.7) {
-        const v = product.variants[0];
+        const v = product.variants[Math.floor(Math.random() * product.variants.length)];
         sellPrice = v.price;
         sellUnit = v.name;
-        conversion = v.conversionFactor || 1;
+        conversion = v.conversionFactor;
         variantId = v.id;
       }
 

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Warehouse, Product } from '../../types';
-import { Edit2, Plus, X, AlertCircle, CheckCircle, PlayCircle } from 'lucide-react';
+import { Edit2, Plus, X, AlertCircle, CheckCircle, PlayCircle, ThumbsUp } from 'lucide-react';
 import { StockHeaderFields } from './document-form/StockHeaderFields';
 import { StockItemsTable } from './document-form/StockItemsTable';
 
@@ -30,6 +30,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Allow editing if Draft. If Approved or Completed, read only.
   const isReadOnly = formData.status !== 'Draft';
 
   const validateForm = () => {
@@ -69,7 +70,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
             {editingId ? <Edit2 className="w-5 h-5 mr-2 text-blue-500" /> : <Plus className="w-5 h-5 mr-2 text-green-500" />}
             {editingId ? 'Edit' : 'New'} {activeTab}
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -79,7 +80,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
             
             {error && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
                 {error}
               </div>
             )}
@@ -98,7 +99,6 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
               products={products}
               isReadOnly={isReadOnly}
               activeTab={activeTab}
-              sourceWarehouseId={formData.sourceWarehouseId || formData.warehouseId}
             />
           </div>
         </div>
@@ -113,13 +113,28 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
           </button>
           
           {formData.status === 'Draft' && (
-             <button
-                type="button"
-                onClick={handleSaveClick}
-                className="px-6 py-2.5 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
-             >
-                Save Draft
-             </button>
+             <>
+                <button
+                    type="button"
+                    onClick={handleSaveClick}
+                    className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                    Save Changes
+                </button>
+                {/* 
+                   Special case: If accessed via Approval page, onComplete is passed to trigger Approve.
+                   Check context or button label if needed. Assuming context is handled by parent.
+                   Usually 'Complete' moves to Approved or Completed depending on logic.
+                */}
+                <button
+                    type="button"
+                    onClick={() => onComplete(formData)}
+                    className="flex items-center px-6 py-2.5 bg-construction-orange text-white font-bold rounded-lg hover:bg-orange-600 transition-colors shadow-sm"
+                >
+                    <ThumbsUp className="w-4 h-4 mr-2" />
+                    Approve / Submit
+                </button>
+             </>
           )}
 
           {formData.status === 'Approved' && (
@@ -129,7 +144,7 @@ export const StockDocumentModal: React.FC<StockDocumentModalProps> = ({
                 className="flex items-center px-6 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors shadow-sm"
              >
                 <PlayCircle className="w-4 h-4 mr-2" />
-                Complete
+                Complete & Execute
              </button>
           )}
 

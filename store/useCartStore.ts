@@ -35,13 +35,14 @@ export const useCartStore = create<CartState>()(
           // Logic to find price/unit based on variant
           let sellPrice = product.price;
           let sellUnit = product.unit;
-          let variantNameSuffix = '';
-          
+          let conversion = 1;
+
           if (variantId && product.variants) {
             const variant = product.variants.find((v) => v.id === variantId);
             if (variant) {
               sellPrice = variant.price;
-              variantNameSuffix = ` (${variant.name})`;
+              sellUnit = variant.name;
+              conversion = variant.conversionFactor;
             }
           }
 
@@ -60,15 +61,13 @@ export const useCartStore = create<CartState>()(
           } else {
             // Ensure even if qty passed is small (e.g. from generic scanner), we respect MOQ if it's a new line item
             const finalQty = Math.max(quantityToAdd, minQty);
-            
             const newItem: CartItem = {
               ...product,
-              name: product.name + variantNameSuffix, // Visually append variant name for simplicity in some views
               quantity: finalQty,
               selectedVariantId: variantId,
               sellPrice,
               sellUnit,
-              sellConversionFactor: 1, // Simplified for now
+              sellConversionFactor: conversion,
             };
             newCart = [...state.cart, newItem];
           }

@@ -9,6 +9,7 @@ import { CategoryManagement } from './components/CategoryManagement';
 import { BranchManagement } from './components/BranchManagement';
 import { WarehouseManagement } from './components/WarehouseManagement';
 import { StockManagement } from './components/StockManagement';
+import { ApprovalManagement } from './components/ApprovalManagement';
 import { UserManagement } from './components/UserManagement';
 import { Settings } from './components/Settings';
 import { SyncManagement } from './components/SyncManagement';
@@ -18,18 +19,19 @@ import { PromotionsManagement } from './components/PromotionsManagement';
 import { ReportsManagement } from './components/ReportsManagement';
 import { UserProfile } from './components/UserProfile';
 import { SalesHistory } from './components/SalesHistory';
-import { QuotationsManagement } from './components/QuotationsManagement';
+import { QuotationsManagement } from './components/QuotationsManagement'; // Added
 import { LoginPage } from './components/LoginPage';
 import { useGlobal } from './context/GlobalContext';
 import { UserRole } from './types';
 
+// Define Permissions Map
 const PERMISSIONS: Record<string, UserRole[]> = {
   'dashboard': ['Admin', 'Manager'],
   'reports': ['Admin', 'Manager'],
   'pos': ['Admin', 'Manager', 'Staff', 'Cashier'],
   'shifts': ['Admin', 'Manager', 'Staff', 'Cashier'],
   'sales': ['Admin', 'Manager', 'Cashier'],
-  'quotations': ['Admin', 'Manager', 'Cashier'],
+  'quotations': ['Admin', 'Manager', 'Cashier'], // Added
   'inventory': ['Admin', 'Manager', 'Staff'],
   'stock': ['Admin', 'Manager', 'Staff'],
   'customers': ['Admin', 'Manager', 'Cashier', 'Staff'],
@@ -46,8 +48,24 @@ const PERMISSIONS: Record<string, UserRole[]> = {
 };
 
 function App() {
-  const global = useGlobal();
-  const { currentUser, setCurrentUser, products, sales, warehouses, settings } = global;
+  const {
+    currentUser, setCurrentUser,
+    users, products, sales, units, categories, branches, posMachines, warehouses, locations,
+    transfers, counts, reservations, receipts, adjustments, syncLogs, customers, shifts, shiftSchedules, promotions,
+    processSale, addProduct, updateProduct, deleteProduct,
+    addUnit, updateUnit, deleteUnit, addCategory, updateCategory, deleteCategory,
+    addBranch, updateBranch, deleteBranch, addPos, updatePos, deletePos,
+    addWarehouse, updateWarehouse, deleteWarehouse, addLocation, updateLocation, deleteLocation,
+    addUser, updateUser, deleteUser, addCustomer, updateCustomer, deleteCustomer,
+    updateTransfer, deleteTransfer, updateCount, deleteCount, updateReservation, deleteReservation,
+    updateReceipt, deleteReceipt, updateAdjustment, deleteAdjustment,
+    handleStockStatusChange, handleSyncOperation,
+    startShift, endShift,
+    addPromotion, updatePromotion, deletePromotion,
+    settings, updateSettings,
+    t, handleVoidSale, settleSaleDebt
+  } = useGlobal();
+
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
@@ -69,11 +87,13 @@ function App() {
     if (currentUser && PERMISSIONS[tabId]?.includes(currentUser.role)) {
       setActiveTab(tabId);
     } else {
-      alert("Access Denied");
+      alert("Access Denied: You do not have permission to view this module.");
     }
   };
 
-  if (!currentUser) return <LoginPage />;
+  if (!currentUser) {
+    return <LoginPage />;
+  }
 
   return (
     <Layout 
@@ -84,23 +104,23 @@ function App() {
     >
       {activeTab === 'dashboard' && <Dashboard sales={sales} products={products} />}
       {activeTab === 'reports' && <ReportsManagement sales={sales} products={products} />}
-      {activeTab === 'pos' && <PosTerminal products={products} onProcessSale={global.processSale} settings={settings} />}
-      {activeTab === 'shifts' && <ShiftManagement shifts={global.shifts} branches={global.branches} users={global.users} currentUser={currentUser} onStartShift={global.startShift} onEndShift={global.endShift} />}
-      {activeTab === 'sales' && <SalesHistory sales={sales} onVoidSale={global.handleVoidSale} />}
+      {activeTab === 'pos' && <PosTerminal products={products} onProcessSale={processSale} settings={settings} />}
+      {activeTab === 'shifts' && <ShiftManagement shifts={shifts} branches={branches} users={users} currentUser={currentUser} onStartShift={startShift} onEndShift={endShift} />}
+      {activeTab === 'sales' && <SalesHistory sales={sales} onVoidSale={handleVoidSale} />}
       {activeTab === 'quotations' && <QuotationsManagement />} 
-      {activeTab === 'inventory' && <Inventory products={products} units={global.units} categories={global.categories} warehouses={warehouses} sales={sales} onAddProduct={global.addProduct} onUpdateProduct={global.updateProduct} onDeleteProduct={global.deleteProduct} />}
-      {activeTab === 'stock' && <StockManagement warehouses={warehouses} products={products} transfers={global.transfers} counts={global.counts} reservations={global.reservations} receipts={global.receipts} adjustments={global.adjustments} defaultItemsPerPage={settings.defaultItemsPerPage} onUpdateTransfer={global.updateTransfer} onUpdateCount={global.updateCount} onUpdateReservation={global.updateReservation} onUpdateReceipt={global.updateReceipt} onUpdateAdjustment={global.updateAdjustment} onDeleteTransfer={global.deleteTransfer} onDeleteCount={global.deleteCount} onDeleteReservation={global.deleteReservation} onDeleteReceipt={global.deleteReceipt} onDeleteAdjustment={global.deleteAdjustment} onStatusChange={global.handleStockStatusChange} />}
-      {activeTab === 'promotions' && <PromotionsManagement promotions={global.promotions} onAddPromotion={global.addPromotion} onUpdatePromotion={global.updatePromotion} onDeletePromotion={global.deletePromotion} />}
-      {activeTab === 'customers' && <CustomerManagement customers={global.customers} sales={sales} onAddCustomer={global.addCustomer} onUpdateCustomer={global.updateCustomer} onDeleteCustomer={global.deleteCustomer} />}
-      {activeTab === 'sync' && <SyncManagement settings={settings} logs={global.syncLogs} sales={sales} onSync={global.handleSyncOperation} />}
-      {activeTab === 'units' && <UnitManagement units={global.units} onAddUnit={global.addUnit} onUpdateUnit={global.updateUnit} onDeleteUnit={global.deleteUnit} />}
-      {activeTab === 'categories' && <CategoryManagement categories={global.categories} onAddCategory={global.addCategory} onUpdateCategory={global.updateCategory} onDeleteCategory={global.deleteCategory} />}
-      {activeTab === 'branches' && <BranchManagement branches={global.branches} posMachines={global.posMachines} onAddBranch={global.addBranch} onUpdateBranch={global.updateBranch} onDeleteBranch={global.deleteBranch} onAddPosMachine={global.addPos} onUpdatePosMachine={global.updatePos} onDeletePosMachine={global.deletePos} />}
-      {activeTab === 'warehouses' && <WarehouseManagement branches={global.branches} warehouses={warehouses} locations={global.locations} onAddWarehouse={global.addWarehouse} onUpdateWarehouse={global.updateWarehouse} onDeleteWarehouse={global.deleteWarehouse} onAddLocation={global.addLocation} onUpdateLocation={global.updateLocation} onDeleteLocation={global.deleteLocation} />}
-      {/* Fix: UserManagement does not accept props in its definition, and it fetches these from useGlobal context internally */}
-      {activeTab === 'users' && <UserManagement />}
-      {activeTab === 'settings' && <Settings settings={settings} onUpdateSettings={global.updateSettings} branches={global.branches} posMachines={global.posMachines} />}
-      {activeTab === 'profile' && <UserProfile user={currentUser} shifts={global.shifts} sales={sales} />}
+      {activeTab === 'inventory' && <Inventory products={products} units={units} categories={categories} warehouses={warehouses} sales={sales} onAddProduct={addProduct} onUpdateProduct={updateProduct} onDeleteProduct={deleteProduct} />}
+      {activeTab === 'stock' && <StockManagement warehouses={warehouses} products={products} transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} defaultItemsPerPage={settings.defaultItemsPerPage} onUpdateTransfer={updateTransfer} onUpdateCount={updateCount} onUpdateReservation={updateReservation} onUpdateReceipt={updateReceipt} onUpdateAdjustment={updateAdjustment} onDeleteTransfer={deleteTransfer} onDeleteCount={deleteCount} onDeleteReservation={deleteReservation} onDeleteReceipt={deleteReceipt} onDeleteAdjustment={deleteAdjustment} onStatusChange={handleStockStatusChange} />}
+      {activeTab === 'approvals' && <ApprovalManagement transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} warehouses={warehouses} onStatusChange={handleStockStatusChange} />}
+      {activeTab === 'promotions' && <PromotionsManagement promotions={promotions} onAddPromotion={addPromotion} onUpdatePromotion={updatePromotion} onDeletePromotion={deletePromotion} />}
+      {activeTab === 'customers' && <CustomerManagement customers={customers} sales={sales} onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer} />}
+      {activeTab === 'sync' && <SyncManagement settings={settings} logs={syncLogs} sales={sales} onSync={handleSyncOperation} />}
+      {activeTab === 'units' && <UnitManagement units={units} onAddUnit={addUnit} onUpdateUnit={updateUnit} onDeleteUnit={deleteUnit} />}
+      {activeTab === 'categories' && <CategoryManagement categories={categories} onAddCategory={addCategory} onUpdateCategory={updateCategory} onDeleteCategory={deleteCategory} />}
+      {activeTab === 'branches' && <BranchManagement branches={branches} posMachines={posMachines} onAddBranch={addBranch} onUpdateBranch={updateBranch} onDeleteBranch={deleteBranch} onAddPosMachine={addPos} onUpdatePosMachine={updatePos} onDeletePosMachine={deletePos} />}
+      {activeTab === 'warehouses' && <WarehouseManagement branches={branches} warehouses={warehouses} locations={locations} onAddWarehouse={addWarehouse} onUpdateWarehouse={updateWarehouse} onDeleteWarehouse={deleteWarehouse} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />}
+      {activeTab === 'users' && <UserManagement users={users} onAddUser={addUser} onUpdateUser={updateUser} onDeleteUser={deleteUser} />}
+      {activeTab === 'settings' && <Settings settings={settings} onUpdateSettings={updateSettings} branches={branches} posMachines={posMachines} />}
+      {activeTab === 'profile' && <UserProfile user={currentUser} shifts={shifts} sales={sales} />}
     </Layout>
   );
 }
