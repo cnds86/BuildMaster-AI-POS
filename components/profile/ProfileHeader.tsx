@@ -2,6 +2,7 @@
 import React, { useRef } from 'react';
 import { User } from '../../types';
 import { Camera, MapPin, UserCircle } from 'lucide-react';
+import { processAndResizeImage } from '../../lib/utils';
 
 interface ProfileHeaderProps {
   user: User;
@@ -30,9 +31,37 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, callback: (file: File) => void) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, callback: (file: any) => void, maxWidth: number) => {
     const file = e.target.files?.[0];
-    if (file) callback(file);
+    if (!file) return;
+
+    try {
+       // Resize locally before passing back to parent handler which expects a file/url
+       // Note: The parent handler (in UserProfile.tsx) currently expects a File object to read it again.
+       // However, we can optimize by changing the parent to accept a dataURL string directly or creating a new File.
+       // For simplicity and performance, let's create a new File object from the resized blob, 
+       // OR simpler: since the parent reads the file to a DataURL anyway, let's skip the parent's reader if we can.
+       // But to avoid breaking the interface `(file: File) => void` too much without changing UserProfile.tsx:
+       // We will pass the original file but modify UserProfile to use the resized one?
+       // Actually, the prompt asked to add resizing. The `onUpdateAvatar` in `UserProfile` reads the file. 
+       // It's better to move the reading logic here or update `UserProfile` too.
+       // Given I can only edit this file in this block, I will create a Blob from the resized dataURL and pass it as a File.
+       
+       const resizedDataUrl = await processAndResizeImage(file, maxWidth, 0.8);
+       
+       // Convert Base64 back to File to satisfy the interface check
+       const res = await fetch(resizedDataUrl);
+       const blob = await res.blob();
+       const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+       
+       callback(resizedFile);
+    } catch (err) {
+       console.error("Resize failed", err);
+       alert("Failed to process image");
+    }
+    
+    // Reset
+    e.target.value = '';
   };
 
   return (
@@ -57,7 +86,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             ref={coverInputRef} 
             className="hidden" 
             accept="image/*" 
-            onChange={(e) => handleFileChange(e, onUpdateCover)} 
+            onChange={(e) => handleFileChange(e, onUpdateCover, 1200)} 
          />
       </div>
 
@@ -100,7 +129,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               ref={fileInputRef} 
               className="hidden" 
               accept="image/*" 
-              onChange={(e) => handleFileChange(e, onUpdateAvatar)} 
+              onChange={(e) => handleFileChange(e, onUpdateAvatar, 300)} 
             />
             <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 border-2 border-white rounded-full" title="Active"></div>
          </div>

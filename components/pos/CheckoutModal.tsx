@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Customer, SystemSettings } from '../../types';
-import { X, Banknote, QrCode, CreditCard, FileText, ChevronLeft, CheckCircle } from 'lucide-react';
+import { X, Banknote, QrCode, CreditCard, FileText, ChevronLeft, CheckCircle, Loader2, RefreshCw, Smartphone, ShieldCheck } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
 import { PaymentMethodList } from './checkout/PaymentMethodList';
 import { PaymentNumpad } from './checkout/PaymentNumpad';
@@ -29,6 +29,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'qr' | 'credit'>('cash');
   const [receivedAmountStr, setReceivedAmountStr] = useState('');
   const [checkoutStep, setCheckoutStep] = useState<'method' | 'detail'>('method');
+  
+  // OnePay State
+  const [qrStatus, setQrStatus] = useState<'generating' | 'waiting' | 'verifying' | 'success'>('generating');
 
   // Keyboard support for immediate confirm
   const receivedAmount = parseFloat(receivedAmountStr) || 0;
@@ -55,12 +58,41 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
          if (isProcessing) return;
          if (paymentMethod === 'cash' && receivedAmount < total) return;
          if (paymentMethod === 'credit' && receivedAmount > total) return;
+         
+         // Don't auto-submit QR on enter unless success
+         if (paymentMethod === 'qr' && qrStatus !== 'success') return;
+
          handleProcess();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, paymentMethod, receivedAmount, total, isProcessing]);
+  }, [isOpen, paymentMethod, receivedAmount, total, isProcessing, qrStatus]);
+
+  // QR Logic: Manual Verification Mode (Type 2)
+  useEffect(() => {
+    if (isOpen && paymentMethod === 'qr') {
+      setQrStatus('generating');
+      
+      // Simulate generating the Dynamic QR code (short delay)
+      const timer = setTimeout(() => {
+        setQrStatus('waiting');
+        // NOTE: No auto-interval here. We wait for manual confirmation.
+      }, 800);
+
+      return () => clearTimeout(timer);
+    } else {
+      setQrStatus('generating');
+    }
+  }, [isOpen, paymentMethod]);
+
+  const handleManualVerify = () => {
+    setQrStatus('verifying');
+    // Fake a short verification loading state
+    setTimeout(() => {
+       setQrStatus('success');
+    }, 500);
+  };
 
   if (!isOpen) return null;
 
@@ -92,6 +124,13 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
        if (receivedAmount > total) return `Amount exceeds total`;
        if (receivedAmount > 0) return `Pay Deposit ${formatPrice(receivedAmount)} (Debt: ${formatPrice(debt)})`;
        return `Confirm Full Credit (Debt: ${formatPrice(total)})`;
+    }
+
+    if (paymentMethod === 'qr') {
+       if (qrStatus === 'waiting') return 'Waiting for Verification...';
+       if (qrStatus === 'verifying') return 'Verifying...';
+       if (qrStatus === 'success') return 'Payment Verified - Finish';
+       return 'Generating QR...';
     }
   
     return `Confirm Payment ${formatPrice(total)}`;
@@ -126,8 +165,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
            <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
               <div className="text-center mb-6">
                  <h3 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
-                    {paymentMethod === 'cash' ? <Banknote className="text-blue-600"/> : paymentMethod === 'qr' ? <QrCode className="text-blue-600"/> : paymentMethod === 'credit' ? <FileText className="text-orange-500"/> : <CreditCard className="text-blue-600"/>}
-                    {paymentMethod === 'cash' ? 'Cash Payment' : paymentMethod === 'qr' ? 'Scan to Pay' : paymentMethod === 'credit' ? 'Credit / Debt Sale' : 'Digital Payment'}
+                    {paymentMethod === 'cash' ? <Banknote className="text-blue-600"/> : paymentMethod === 'qr' ? <QrCode className="text-red-600"/> : paymentMethod === 'credit' ? <FileText className="text-orange-500"/> : <CreditCard className="text-blue-600"/>}
+                    {paymentMethod === 'cash' ? 'Cash Payment' : paymentMethod === 'qr' ? 'OnePay (BCEL One)' : paymentMethod === 'credit' ? 'Credit / Debt Sale' : 'Digital Payment'}
                  </h3>
               </div>
 
@@ -141,23 +180,78 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     handleQuickCash={handleQuickCash}
                  />
               ) : paymentMethod === 'qr' ? (
-                 <div className="flex-1 flex flex-col items-center justify-center">
-                    <div className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-lg mb-6">
-                       {/* Priority: Uploaded QR -> Generated QR -> Placeholder */}
-                       {settings?.receiptQrCodeUrl ? (
-                          <img src={settings.receiptQrCodeUrl} className="w-56 h-56 md:w-64 md:h-64 object-contain rounded-lg" alt="Shop QR" />
+                 <div className="flex-1 flex flex-col items-center justify-center relative">
+                    
+                    {/* QR Display Container */}
+                    <div className={`bg-white p-6 rounded-3xl border-2 shadow-lg mb-6 transition-all duration-500 relative flex flex-col items-center ${qrStatus === 'success' ? 'border-green-500 ring-4 ring-green-100 scale-105' : 'border-slate-200'}`}>
+                       
+                       {qrStatus === 'success' && (
+                          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/95 rounded-3xl backdrop-blur-sm animate-fade-in">
+                             <CheckCircle className="w-20 h-20 text-green-500 mb-2 drop-shadow-lg" />
+                             <p className="text-xl font-bold text-green-700">Payment Verified</p>
+                             <p className="text-sm text-slate-500">Ready to complete sale</p>
+                          </div>
+                       )}
+
+                       {/* Priority: Generated OnePay QR logic here */}
+                       {qrStatus === 'generating' ? (
+                          <div className="w-56 h-56 flex flex-col items-center justify-center bg-slate-50 rounded-xl">
+                             <Loader2 className="w-12 h-12 text-slate-300 animate-spin mb-3" />
+                             <p className="text-xs text-slate-400 font-medium">Generating Code...</p>
+                          </div>
                        ) : (
-                          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=Payment_Total_${total}`} className="w-56 h-56 md:w-64 md:h-64 object-contain rounded-lg" alt="Generated QR" />
+                          // Mock OnePay URL
+                          <div className="relative">
+                             <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=OnePay_ManualVerify_${total}_${Date.now()}`} 
+                                className="w-56 h-56 md:w-64 md:h-64 object-contain rounded-lg" 
+                                alt="OnePay QR" 
+                             />
+                             {/* Central Logo Overlay */}
+                             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-1.5 rounded-lg shadow-md">
+                                <QrCode className="w-8 h-8 text-red-600" />
+                             </div>
+                          </div>
                        )}
                     </div>
-                    {settings?.receiptQrCodeUrl ? (
-                       <p className="text-lg font-bold text-slate-700">Scan Store QR to Pay</p>
-                    ) : (
-                       <p className="text-lg font-bold text-slate-700">Scan to pay {formatPrice(total)}</p>
-                    )}
-                    <p className="text-sm text-slate-400 mt-2">
-                        {settings?.receiptQrCodeUrl ? 'Confirm amount on your banking app' : 'Dynamic QR Code'}
-                    </p>
+
+                    <div className="text-center space-y-4 w-full max-w-xs">
+                       {qrStatus === 'waiting' && (
+                          <>
+                             <div className="flex flex-col gap-1 items-center justify-center text-slate-700 animate-pulse">
+                                <div className="flex items-center">
+                                   <Smartphone className="w-5 h-5 mr-2" />
+                                   <span className="font-bold text-lg">Waiting for scan...</span>
+                                </div>
+                                <p className="text-xs text-slate-500">Please check <span className="font-bold">OnePay Shop App</span> for notification.</p>
+                             </div>
+                             
+                             <div className="border-t border-slate-100 pt-4 w-full">
+                                <button 
+                                   onClick={handleManualVerify}
+                                   className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md flex items-center justify-center transition-all active:scale-95"
+                                >
+                                   <ShieldCheck className="w-5 h-5 mr-2" />
+                                   Payment Received (Manual)
+                                </button>
+                                <p className="text-[10px] text-slate-400 mt-2">
+                                   * Click above only after confirming money receipt.
+                                </p>
+                             </div>
+                          </>
+                       )}
+                       
+                       {qrStatus === 'verifying' && (
+                          <div className="flex flex-col items-center text-blue-600">
+                             <RefreshCw className="w-6 h-6 animate-spin mb-2" />
+                             <span className="font-bold">Updating Status...</span>
+                          </div>
+                       )}
+
+                       {qrStatus === 'success' && (
+                          <p className="text-lg font-bold text-green-600">Manual Verification Successful</p>
+                       )}
+                    </div>
                  </div>
               ) : (
                  <div className="flex-1 flex flex-col items-center justify-center text-center">
@@ -174,10 +268,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
            <div className="p-4 border-t border-slate-100 bg-white pb-safe">
               <button 
                  onClick={handleProcess}
-                 disabled={isProcessing || (paymentMethod === 'cash' && receivedAmount < total) || (paymentMethod === 'credit' && receivedAmount > total)}
-                 className={`w-full py-4 rounded-xl font-bold text-xl text-white shadow-lg flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${paymentMethod === 'credit' ? 'bg-orange-600' : 'bg-slate-900 hover:bg-slate-800'}`}
+                 disabled={
+                    isProcessing || 
+                    (paymentMethod === 'cash' && receivedAmount < total) || 
+                    (paymentMethod === 'credit' && receivedAmount > total) ||
+                    (paymentMethod === 'qr' && qrStatus !== 'success')
+                 }
+                 className={`w-full py-4 rounded-xl font-bold text-xl text-white shadow-lg flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${paymentMethod === 'credit' ? 'bg-orange-600' : paymentMethod === 'qr' && qrStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-900 hover:bg-slate-800'}`}
               >
-                 {isProcessing ? 'Processing...' : (
+                 {isProcessing ? (
+                    <>
+                       <RefreshCw className="w-6 h-6 mr-2 animate-spin" />
+                       Processing...
+                    </>
+                 ) : (
                     <>
                        <CheckCircle className="w-6 h-6 mr-2" /> 
                        {getConfirmButtonText()}

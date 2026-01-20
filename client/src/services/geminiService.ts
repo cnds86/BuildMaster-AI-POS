@@ -12,8 +12,31 @@ export const getConstructionEstimate = async (
   inventory: Product[]
 ): Promise<EstimateResultItem[]> => {
   if (!ai) {
-    console.warn("Gemini API Key is missing.");
-    return [];
+    console.warn("Gemini API Key is missing. Using mock estimate.");
+    // Mock response for demo
+    return [
+      {
+        productName: "Portland Cement Type 1",
+        estimatedQuantity: 5,
+        unit: "bag",
+        reasoning: "Estimated for 10m2 wall area based on standard consumption.",
+        matchedProductId: inventory.find(p => p.name.includes('Cement'))?.id
+      },
+      {
+        productName: "Red Brick",
+        estimatedQuantity: 500,
+        unit: "pc",
+        reasoning: "Standard brick wall calculation (50 bricks/m2).",
+        matchedProductId: inventory.find(p => p.name.includes('Brick'))?.id
+      },
+      {
+        productName: "Construction Sand",
+        estimatedQuantity: 1,
+        unit: "m3",
+        reasoning: "Required for mortar mix (1:3 ratio).",
+        matchedProductId: null // Not in mock inventory
+      }
+    ];
   }
 
   // Optimize inventory context to save tokens, but include Price for value estimation
@@ -45,7 +68,7 @@ export const getConstructionEstimate = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.5-flash',
       contents: query,
       config: {
         systemInstruction: systemInstruction,
@@ -80,8 +103,52 @@ export const getConstructionEstimate = async (
 
 export const analyzeInventory = async (products: Product[], sales: Sale[]): Promise<InventoryAnalysisResult | null> => {
   if (!ai) {
-    console.warn("Gemini API Key is missing.");
-    return null;
+    console.warn("Gemini API Key is missing. Returning mock inventory analysis.");
+    return {
+      reorders: [
+        {
+          productId: products.find(p => p.name.includes('Cement'))?.id || 'p1',
+          productName: 'Portland Cement Type 1',
+          currentStock: 45,
+          suggestedReorderQty: 200,
+          priority: 'High',
+          reasoning: 'Stock level is nearing minimum threshold and sales velocity is trending up.'
+        },
+        {
+          productId: products.find(p => p.name.includes('Paint'))?.id || 'p4',
+          productName: 'Premium Interior Paint',
+          currentStock: 12,
+          suggestedReorderQty: 50,
+          priority: 'Medium',
+          reasoning: 'Seasonal demand expected to increase next month.'
+        }
+      ],
+      newProducts: [
+        {
+          name: 'Safety Helmet (Hard Hat)',
+          categoryName: 'Tools & Hardware',
+          estimatedPrice: 85000,
+          suggestedUnit: 'pc',
+          reasoning: 'Essential safety gear frequently requested by contractors but missing from inventory.'
+        },
+        {
+          name: 'Work Gloves (Leather)',
+          categoryName: 'General Consumables',
+          estimatedPrice: 35000,
+          suggestedUnit: 'pair',
+          reasoning: 'High volume accessory with good margins, often bought with cement/bricks.'
+        }
+      ],
+      bundles: [
+        {
+          bundleName: 'Masonry Starter Kit',
+          components: ['Portland Cement', 'Red Brick', 'Trowel (Suggested)'],
+          estimatedPrice: 1250000,
+          reasoning: 'Analysis shows 80% of brick purchases also include cement. Bundling encourages larger average order value.',
+          targetAudience: 'Small Contractors & DIY'
+        }
+      ]
+    };
   }
 
   // Create a condensed view of inventory
@@ -95,7 +162,8 @@ export const analyzeInventory = async (products: Product[], sales: Sale[]): Prom
   }));
 
   // Create a summary of sales transactions (condensed to save tokens)
-  const recentSales = sales.slice(0, 50).map(s => ({
+  // We only send the last 20 transactions to analyze recent trends
+  const recentSales = sales.slice(0, 20).map(s => ({
     items: s.items.map(i => i.name)
   }));
 
@@ -116,7 +184,7 @@ export const analyzeInventory = async (products: Product[], sales: Sale[]): Prom
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview', // Use Pro for complex reasoning on large datasets
+      model: 'gemini-2.5-flash',
       contents: JSON.stringify({ inventory: productSummary, sales: recentSales }),
       config: {
         systemInstruction: systemInstruction,
@@ -182,7 +250,14 @@ export const analyzeInventory = async (products: Product[], sales: Sale[]): Prom
 
 export const generateBusinessInsights = async (sales: Sale[], products: Product[]): Promise<BusinessInsight | null> => {
   if (!ai) {
-    return null;
+    // Return dummy data if no key, ensuring UI works
+    return {
+      summary: "Mock Insight: Revenue is trending positively. Consider restocking fast-moving items like Cement.",
+      trendDirection: "up",
+      actionItems: ["Restock Cement", "Review pricing for Red Brick", "Promote slow-moving Tiles"],
+      predictedRevenueNextWeek: 12500000,
+      topPerformingCategory: "Cement & Concrete"
+    };
   }
 
   // Summarize daily sales for the last 30 days
@@ -194,6 +269,8 @@ export const generateBusinessInsights = async (sales: Sale[], products: Product[
     dailyRevenue[date] = (dailyRevenue[date] || 0) + s.total;
     
     s.items.forEach(item => {
+       // Simplified category tracking using item name keywords or ID if available
+       // In production, map ID to Category Name properly
        const cat = item.category || 'General'; 
        categoryRevenue[cat] = (categoryRevenue[cat] || 0) + (item.sellPrice * item.quantity);
     });
@@ -224,7 +301,7 @@ export const generateBusinessInsights = async (sales: Sale[], products: Product[
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview', // Pro for financial analysis
+      model: 'gemini-2.5-flash',
       contents: JSON.stringify(context),
       config: {
         systemInstruction: systemInstruction,
@@ -249,77 +326,6 @@ export const generateBusinessInsights = async (sales: Sale[], products: Product[
     return null;
   } catch (error) {
     console.error("Gemini Business Insight Error:", error);
-    return null;
-  }
-};
-
-/**
- * Identifies a product from an image (Base64) and suggests details.
- */
-export const identifyProductFromImage = async (base64Image: string): Promise<Partial<Product> | null> => {
-  if (!ai) return null;
-
-  try {
-    // Correct way to pass image data to gemini-2.5-flash-image or newer models via generateContent
-    // The previous code had a slight issue with data format for the new SDK
-    const imagePart = {
-      inlineData: {
-        mimeType: 'image/jpeg', // Assuming jpeg from capture
-        data: base64Image.split(',')[1] // Remove data:image/jpeg;base64, prefix
-      }
-    };
-
-    const prompt = `
-      Analyze this product image for a POS system.
-      Identify the product and return a JSON object with:
-      - name: A concise product name (e.g., "Coca Cola 325ml", "Hammer 16oz").
-      - estimatedPrice: An estimated retail price in local currency number (LAK/THB/USD mix context, just give a number).
-      - category: A suggested general category name.
-      - unit: Suggested unit (e.g., "pc", "can", "bottle", "kg").
-      - description: Short description.
-    `;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image', // Specialized image model
-      contents: { parts: [imagePart, { text: prompt }] },
-      config: {
-        // Nano banana models do NOT support responseMimeType/responseSchema as of current version
-        // We must parse the text manually or use a standard text model with image capabilities if schema is required.
-        // However, gemini-3-flash-preview DOES support images + schema. Let's switch to that for reliability.
-      }
-    });
-    
-    // Better Approach: Use Gemini 3 Flash for Multimodal + Schema
-    const robustResponse = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: { parts: [imagePart, { text: prompt }] },
-        config: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    estimatedPrice: { type: Type.NUMBER },
-                    category: { type: Type.STRING },
-                    unit: { type: Type.STRING },
-                    description: { type: Type.STRING }
-                },
-                required: ['name', 'estimatedPrice', 'unit']
-            }
-        }
-    });
-
-    if (robustResponse.text) {
-      const data = JSON.parse(robustResponse.text);
-      return {
-        name: data.name,
-        price: data.estimatedPrice,
-        unit: data.unit,
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error("Gemini Image Analysis Error:", error);
     return null;
   }
 };

@@ -3,6 +3,7 @@ import React, { useRef, useState } from 'react';
 import { SystemSettings, BankAccount, Branch, PosMachine } from '../../types';
 import { LayoutList, ImageIcon, Upload, Trash2, Landmark, PlusCircle } from 'lucide-react';
 import { ReceiptPreview } from './ReceiptPreview';
+import { processAndResizeImage } from '../../lib/utils';
 
 interface ReceiptSettingsProps {
   formData: SystemSettings;
@@ -16,42 +17,6 @@ export const ReceiptSettings: React.FC<ReceiptSettingsProps> = ({ formData, setF
   const qrInputRef = useRef<HTMLInputElement>(null);
   const [newBank, setNewBank] = useState<BankAccount>({ id: '', bankName: '', accountName: '', accountNumber: '' });
 
-  // Helper to resize images before storing as base64
-  const resizeImage = (file: File, maxWidth: number): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // Maintain aspect ratio
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-             ctx.drawImage(img, 0, 0, width, height);
-             // Export as JPEG for better compression if it's not PNG with transparency, but usually PNG is safer for logos
-             resolve(canvas.toDataURL(file.type, 0.8));
-          } else {
-             reject(new Error('Canvas context not available'));
-          }
-        };
-        img.onerror = (error) => reject(error);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'receiptLogoUrl' | 'receiptQrCodeUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -62,8 +27,8 @@ export const ReceiptSettings: React.FC<ReceiptSettingsProps> = ({ formData, setF
     }
 
     try {
-      // Resize to max 300px width for efficient storage and thermal printing
-      const resizedBase64 = await resizeImage(file, 300);
+      // Resize to max 300px width for receipts
+      const resizedBase64 = await processAndResizeImage(file, 300, 0.8);
       setFormData(prev => ({ ...prev, [field]: resizedBase64 }));
     } catch (error) {
       console.error("Image upload failed", error);

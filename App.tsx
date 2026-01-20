@@ -19,7 +19,7 @@ import { PromotionsManagement } from './components/PromotionsManagement';
 import { ReportsManagement } from './components/ReportsManagement';
 import { UserProfile } from './components/UserProfile';
 import { SalesHistory } from './components/SalesHistory';
-import { QuotationsManagement } from './components/QuotationsManagement'; // Added
+import { QuotationsManagement } from './components/QuotationsManagement';
 import { LoginPage } from './components/LoginPage';
 import { useGlobal } from './context/GlobalContext';
 import { UserRole } from './types';
@@ -31,7 +31,7 @@ const PERMISSIONS: Record<string, UserRole[]> = {
   'pos': ['Admin', 'Manager', 'Staff', 'Cashier'],
   'shifts': ['Admin', 'Manager', 'Staff', 'Cashier'],
   'sales': ['Admin', 'Manager', 'Cashier'],
-  'quotations': ['Admin', 'Manager', 'Cashier'], // Added
+  'quotations': ['Admin', 'Manager', 'Cashier'],
   'inventory': ['Admin', 'Manager', 'Staff'],
   'stock': ['Admin', 'Manager', 'Staff'],
   'customers': ['Admin', 'Manager', 'Cashier', 'Staff'],

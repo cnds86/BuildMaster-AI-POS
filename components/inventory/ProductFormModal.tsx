@@ -7,6 +7,7 @@ import { PhysicalTab } from './product-form/PhysicalTab';
 import { PricingTab } from './product-form/PricingTab';
 import { VariantsTab } from './product-form/VariantsTab';
 import { BranchPricingTab } from './product-form/BranchPricingTab';
+import { identifyProductFromImage } from '../../services/geminiService';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -36,12 +37,12 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   });
   
   const [variants, setVariants] = useState<Partial<ProductVariant>[]>([]);
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
 
   useEffect(() => {
     if (initialData) {
       setFormData({ ...initialData, tierPrices: initialData.tierPrices || {}, branchPrices: initialData.branchPrices || [] });
       
-      // Map existing warehouse inventory to the variant 'stock' property for the UI
       const mappedVariants = initialData.variants ? initialData.variants.map(v => {
          const variantStock = initialData.warehouseInventory?.filter(i => i.variantId === v.id)
             .reduce((acc, inv) => acc + inv.quantity, 0);
@@ -52,11 +53,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
       }) : [];
       setVariants(mappedVariants);
     } else {
-      setFormData({
+      // Reset or use passed partial data (like barcode from scan)
+      setFormData(prev => ({
         name: '', sku: '', barcode: '', category: categories[0]?.id || '', price: 0, costPrice: 0,
         stock: 0, minStock: 20, unit: units[0]?.symbol || 'pc',
-        physical: { weight: 0, width: 0, height: 0, depth: 0 }, branchPrices: [], imageUrl: '', tierPrices: {}
-      });
+        physical: { weight: 0, width: 0, height: 0, depth: 0 }, branchPrices: [], imageUrl: '', tierPrices: {},
+        ...prev // Maintain passed barcode/sku if any
+      }));
       setVariants([]);
     }
     setActiveTab('general');
@@ -87,7 +90,6 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     if (name === 'price') {
       const newMainPrice = parseFloat(value) || 0;
-      // Recalculate variant prices based on their factor
       setVariants(prev => prev.map(v => {
          const factor = v.conversionFactor || 1;
          return { ...v, price: factor !== 0 ? newMainPrice * factor : 0 };
@@ -113,6 +115,31 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     reader.readAsDataURL(file);
   };
 
+  // AI Analysis Logic
+  const handleAnalyzeImage = async () => {
+    if (!formData.imageUrl) return;
+    setIsAiAnalyzing(true);
+    try {
+      const result = await identifyProductFromImage(formData.imageUrl);
+      if (result) {
+        setFormData(prev => ({
+          ...prev,
+          name: result.name || prev.name,
+          price: result.price || prev.price,
+          unit: result.unit || prev.unit,
+          // Try to match category vaguely? Or leave for user
+        }));
+        alert(`AI Identified: ${result.name}`);
+      } else {
+        alert("Could not identify product details.");
+      }
+    } catch (e) {
+      alert("AI analysis failed.");
+    } finally {
+      setIsAiAnalyzing(false);
+    }
+  };
+
   // Variant Logic
   const handleAddVariant = () => {
     const suffix = (variants.length + 1).toString().padStart(3, '0');
@@ -127,34 +154,23 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleVariantChange = (index: number, field: keyof ProductVariant | 'attributes', value: any, attributeName?: string) => {
     setVariants(prev => {
       const newVars = [...prev];
-      
       if (field === 'attributes' && attributeName) {
          const currentAttrs = newVars[index].attributes || {};
-         newVars[index] = { 
-            ...newVars[index], 
-            attributes: { ...currentAttrs, [attributeName]: value } 
-         };
+         newVars[index] = { ...newVars[index], attributes: { ...currentAttrs, [attributeName]: value } };
       } else {
          newVars[index] = { 
             ...newVars[index], 
             [field]: field === 'name' ? value : (['price', 'costPrice', 'conversionFactor', 'stock'].includes(field as string) ? parseFloat(value) || 0 : value) 
          };
-         
-         // Auto-calculate conversion factor and price when Unit changes
          if (field === 'name') {
             const main = units.find(u => u.symbol === formData.unit);
             const sub = units.find(u => u.symbol === value);
             if (main && sub && main.category === sub.category) {
-               // Calculate ratio
                const factor = sub.baseFactor / main.baseFactor;
                newVars[index].conversionFactor = factor;
-               
-               // Suggest price based on factor
                newVars[index].price = (formData.price || 0) * factor;
             }
          }
-         
-         // Auto-update price when conversion factor is manually changed
          if (field === 'conversionFactor') {
              const factor = parseFloat(value) || 0;
              newVars[index].price = (formData.price || 0) * factor;
@@ -167,23 +183,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.unit) {
-      
-      // Construct Inventory: Base Stock + Variant Stock
-      // Note: This simplified logic uses 'wh1' as default warehouse. 
-      // In a real scenario, we'd handle multiple warehouses.
       const defaultWarehouse = 'wh1';
-      
       const newInventory: ProductInventory[] = [
-         { warehouseId: defaultWarehouse, quantity: formData.stock || 0 } // Base product stock
+         { warehouseId: defaultWarehouse, quantity: formData.stock || 0 }
       ];
-
       variants.forEach(v => {
          if (v.stock !== undefined && v.stock > 0) {
-            newInventory.push({ 
-               warehouseId: defaultWarehouse, 
-               quantity: v.stock,
-               variantId: v.id 
-            });
+            newInventory.push({ warehouseId: defaultWarehouse, quantity: v.stock, variantId: v.id });
          }
       });
 
@@ -193,10 +199,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
         id: initialData?.id || `P-${Date.now()}`,
         variants: variants.length > 0 ? variants as ProductVariant[] : undefined,
         warehouseInventory: newInventory,
-        // Update aggregated stock for display
         stock: (formData.stock || 0) + variants.reduce((acc, v) => acc + (v.stock || 0), 0)
       };
-      
       onSubmit(productData);
       onClose();
     }
@@ -241,6 +245,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               units={units}
               fileInputRef={fileInputRef}
               handleImageUpload={handleImageUpload}
+              onAnalyzeImage={handleAnalyzeImage}
+              isAiAnalyzing={isAiAnalyzing}
             />
           )}
 

@@ -17,6 +17,7 @@ interface CartSidebarProps {
   discount: number;
   tax: number;
   total: number;
+  roundingDifference?: number; // Added
   settings?: SystemSettings;
 }
 
@@ -32,6 +33,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
   discount,
   tax,
   total,
+  roundingDifference = 0, // Added default
   settings
 }) => {
   const { formatPrice } = useGlobal();
@@ -186,6 +188,17 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                  <span>{formatPrice(tax)}</span>
               </div>
            )}
+           
+           {/* Rounding Adjustment Display */}
+           {roundingDifference !== 0 && (
+              <div className="flex justify-between text-xs text-slate-400 italic">
+                 <span>Rounding</span>
+                 <span className={roundingDifference > 0 ? 'text-green-600' : 'text-red-500'}>
+                    {roundingDifference > 0 ? '+' : ''}{formatPrice(roundingDifference)}
+                 </span>
+              </div>
+           )}
+
            <div className="flex justify-between items-end pt-2 border-t border-slate-100">
               <span className="text-base font-bold text-slate-800">Total</span>
               <span className="text-4xl font-extrabold text-slate-900 tracking-tighter">{formatPrice(total)}</span>

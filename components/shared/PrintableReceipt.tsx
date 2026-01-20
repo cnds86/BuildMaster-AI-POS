@@ -20,6 +20,10 @@ export const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ sale, settin
     }).format(amount);
   };
 
+  const showTax = settings?.tax?.displayOnReceipt !== false; // Default true if undefined
+  // Check newly added setting, default to true if undefined for backward compatibility
+  const showRounding = settings?.rounding?.displayOnReceipt !== false; 
+
   return (
     <div id="printable-receipt" className={`bg-white p-4 text-xs font-mono text-black mx-auto ${receiptWidthClass} print:shadow-none print:border-none`}>
       <div className="text-center mb-4">
@@ -74,6 +78,23 @@ export const PrintableReceipt: React.FC<PrintableReceiptProps> = ({ sale, settin
             <span>-{formatPrice(sale.discountAmount)}</span>
           </div>
         ) : null}
+        
+        {sale.taxAmount && sale.taxAmount > 0 && showTax && (
+           <div className="flex justify-between">
+             <span>Tax</span>
+             <span>{formatPrice(sale.taxAmount)}</span>
+           </div>
+        )}
+
+        {/* Rounding Display - Controlled by Setting */}
+        {sale.roundingDifference !== undefined && sale.roundingDifference !== 0 && showRounding && (
+           <div className="flex justify-between italic text-[10px]">
+             <span>Rounding</span>
+             <span>
+                {sale.roundingDifference > 0 ? '+' : ''}{formatPrice(sale.roundingDifference)}
+             </span>
+           </div>
+        )}
         
         <div className="flex justify-between font-bold text-sm mt-1 pt-1 border-t border-black">
           <span>Total</span>

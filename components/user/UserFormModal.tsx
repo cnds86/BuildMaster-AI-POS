@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Branch, UserRole } from '../../types';
-import { X, UserCircle, Edit2, Lock, Mail, Briefcase, Building2, CheckCircle, AlertTriangle } from 'lucide-react';
+import { X, UserCircle, Edit2, Lock, Mail, Briefcase, Building2, CheckCircle, Loader2 } from 'lucide-react';
+import { processAndResizeImage } from '../../lib/utils';
 
 interface UserFormModalProps {
   isOpen: boolean;
@@ -12,13 +13,11 @@ interface UserFormModalProps {
   currentUser: User | null;
 }
 
-const MAX_FILE_SIZE_MB = 5;
-const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
-
 export const UserFormModal: React.FC<UserFormModalProps> = ({ 
   isOpen, onClose, onSubmit, initialData, branches, currentUser 
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const [formData, setFormData] = useState<Partial<User>>({
     username: '',
@@ -39,7 +38,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         email: initialData.email || '',
         role: initialData.role,
         avatarUrl: initialData.avatarUrl || '',
-        password: '', // Don't pre-fill password for editing security
+        password: '', 
         department: initialData.department || '',
         branchId: initialData.branchId || ''
       });
@@ -57,26 +56,26 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
     }
   }, [initialData, isOpen]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      alert(`File size exceeds the limit of ${MAX_FILE_SIZE_MB}MB.`);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
 
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
-    };
-    reader.readAsDataURL(file);
+    setIsProcessing(true);
+    try {
+      // Avatar resize: 300px is sufficient
+      const resized = await processAndResizeImage(file, 300, 0.8);
+      setFormData(prev => ({ ...prev, avatarUrl: resized }));
+    } catch (err) {
+      alert('Failed to process image');
+    } finally {
+      setIsProcessing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleRemoveImage = () => {
@@ -91,7 +90,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         alert("Password is required for new users.");
         return;
     }
-    // Security check
     if (currentUser?.role !== 'Admin' && formData.role === 'Admin') {
        alert("You do not have permission to create Administrator accounts.");
        return;
@@ -101,7 +99,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
   const getRolePermissions = (role: UserRole) => {
     const p = (label: string, access: boolean) => ({ label, access });
-    // Simplified permission logic for visualization
     switch (role) {
       case 'Admin': return [p('Full Access', true)];
       case 'Manager': return [p('Dashboard', true), p('Approvals', true), p('Reports', true), p('Settings', false)];
@@ -135,10 +132,12 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                   <label className="block text-sm font-medium text-slate-700 mb-2">Profile Avatar</label>
                   <div className="flex items-center space-x-4">
                     <div 
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => !isProcessing && fileInputRef.current?.click()}
                       className="relative w-16 h-16 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-primary-400 transition-colors overflow-hidden group"
                     >
-                      {formData.avatarUrl ? (
+                      {isProcessing ? (
+                         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                      ) : formData.avatarUrl ? (
                         <>
                           <img src={formData.avatarUrl} alt="Preview" className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -154,8 +153,9 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                        <div className="flex space-x-2">
                           <button
                             type="button"
+                            disabled={isProcessing}
                             onClick={() => fileInputRef.current?.click()}
-                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50"
+                            className="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                           >
                             Upload
                           </button>
@@ -169,7 +169,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                             </button>
                           )}
                        </div>
-                       <p className="text-[10px] text-slate-400 mt-1">Max 5MB. Formats: JPG, PNG</p>
+                       <p className="text-[10px] text-slate-400 mt-1">Auto-resized (Max 300px)</p>
                     </div>
                     <input 
                       type="file" 
@@ -274,7 +274,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
               {/* Right Column: Role & Permissions */}
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 h-fit">
                 <label className="block text-sm font-bold text-slate-700 mb-4">Role & Permissions</label>
-                
                 <div className="space-y-3 mb-6">
                   {/* Admin - Only visible if current user is Admin */}
                   {currentUser?.role === 'Admin' && (
@@ -293,8 +292,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                       </div>
                     </label>
                   )}
-
-                  {/* Manager */}
                   <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Manager' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                     <input 
                       type="radio" 
@@ -309,8 +306,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                        <span className="block text-xs text-slate-500">Dashboard, Approvals & Stock</span>
                     </div>
                   </label>
-
-                  {/* Staff */}
                   <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Staff' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                     <input 
                       type="radio" 
@@ -325,8 +320,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                        <span className="block text-xs text-slate-500">Inventory, Warehouse & Stock</span>
                     </div>
                   </label>
-
-                  {/* Cashier */}
                   <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Cashier' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                     <input 
                       type="radio" 

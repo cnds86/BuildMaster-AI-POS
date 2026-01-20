@@ -1,94 +1,116 @@
+
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Camera, RefreshCw, Zap } from 'lucide-react';
+import { X, Camera, Zap, AlertTriangle } from 'lucide-react';
+
+// Declare native BarcodeDetector for TypeScript
+declare var BarcodeDetector: any;
 
 interface BarcodeScannerProps {
   onScan: (code: string) => void;
   onClose: () => void;
   isOpen: boolean;
-  dummyCodes?: string[]; // List of codes to randomly pick from for simulation
 }
 
-export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen, dummyCodes = [] }) => {
+export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose, isOpen }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
+  const [isSupported, setIsSupported] = useState(true);
+
+  // Scan Interval Ref
+  const scanInterval = useRef<any>(null);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
 
     if (isOpen) {
+      // Check if browser supports native barcode detection
+      if (!('BarcodeDetector' in window)) {
+        console.warn("BarcodeDetector API not supported in this browser.");
+        setIsSupported(false);
+      }
+
       startCamera();
     }
 
     async function startCamera() {
       try {
-        setScanning(true);
         stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' } 
+          video: { 
+            facingMode: 'environment', // Prefer back camera
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
         });
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           setHasPermission(true);
+          
+          // Start detection loop if supported
+          if ('BarcodeDetector' in window) {
+             const barcodeDetector = new BarcodeDetector({ 
+               formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'] 
+             });
+
+             const detect = async () => {
+                if (videoRef.current && videoRef.current.readyState === 4) { // HAVE_ENOUGH_DATA
+                   try {
+                      const barcodes = await barcodeDetector.detect(videoRef.current);
+                      if (barcodes.length > 0) {
+                         const code = barcodes[0].rawValue;
+                         onScan(code);
+                         stopScanner(); // Stop after successful scan
+                      }
+                   } catch (err) {
+                      // Detection error, ignore frame
+                   }
+                }
+             };
+             
+             // Check every 200ms
+             scanInterval.current = setInterval(detect, 200);
+          }
         }
       } catch (err) {
         console.error("Camera Error:", err);
         setHasPermission(false);
-        setError("Could not access camera. Please ensure you have granted permissions.");
+        setError("Could not access camera. Please ensure permissions are granted and you are on HTTPS.");
       }
+    }
+
+    function stopScanner() {
+       if (scanInterval.current) clearInterval(scanInterval.current);
+       if (stream) stream.getTracks().forEach(track => track.stop());
     }
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      setScanning(false);
+      stopScanner();
     };
   }, [isOpen]);
-
-  // Simulation Logic: Mock scanning a random code after a click
-  const handleSimulateScan = () => {
-    if (dummyCodes.length > 0) {
-      const randomCode = dummyCodes[Math.floor(Math.random() * dummyCodes.length)];
-      // Visual feedback
-      const overlay = document.getElementById('scan-overlay');
-      if (overlay) {
-        overlay.classList.add('bg-green-500/30');
-        setTimeout(() => {
-          overlay.classList.remove('bg-green-500/30');
-          onScan(randomCode);
-          onClose(); // Close after success
-        }, 300);
-      }
-    } else {
-        // Fallback generic code
-        onScan("885000001");
-        onClose();
-    }
-  };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black z-[60] flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center p-4 bg-black/50 absolute top-0 left-0 right-0 z-10 text-white">
+      <div className="flex justify-between items-center p-4 bg-black/50 absolute top-0 left-0 right-0 z-10 text-white backdrop-blur-sm">
         <h3 className="font-bold text-lg flex items-center">
-          <Camera className="w-5 h-5 mr-2" /> Scan Barcode
+          <Camera className="w-5 h-5 mr-2" /> Scanner
         </h3>
-        <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20">
+        <button onClick={onClose} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors">
           <X className="w-6 h-6" />
         </button>
       </div>
 
       {/* Camera View */}
-      <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden" onClick={handleSimulateScan}>
+      <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
         {hasPermission === false ? (
-          <div className="text-white text-center p-6">
+          <div className="text-white text-center p-6 max-w-xs">
             <Zap className="w-12 h-12 mx-auto mb-4 text-slate-500" />
-            <p className="text-lg mb-2">Camera Access Denied</p>
-            <p className="text-sm text-slate-400">{error}</p>
+            <p className="text-lg mb-2 font-bold">Camera Access Denied</p>
+            <p className="text-sm text-slate-400 mb-4">{error}</p>
+            <button onClick={onClose} className="px-4 py-2 bg-white text-black rounded-lg font-bold">Close</button>
           </div>
         ) : (
           <>
@@ -96,25 +118,32 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan, onClose,
               ref={videoRef} 
               autoPlay 
               playsInline 
-              className="w-full h-full object-cover opacity-80"
+              muted
+              className="w-full h-full object-cover"
             />
+            
             {/* Scan Overlay UI */}
-            <div id="scan-overlay" className="absolute inset-0 flex flex-col items-center justify-center transition-colors duration-200">
-               <div className="w-64 h-48 border-2 border-white/50 rounded-lg relative flex items-center justify-center">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-green-500 -mt-1 -ml-1"></div>
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-green-500 -mt-1 -mr-1"></div>
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-green-500 -mb-1 -ml-1"></div>
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-green-500 -mb-1 -mr-1"></div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+               <div className="w-72 h-48 border-2 border-white/50 rounded-xl relative flex items-center justify-center shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
+                  <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-green-500 -mt-1 -ml-1 rounded-tl-lg"></div>
+                  <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-green-500 -mt-1 -mr-1 rounded-tr-lg"></div>
+                  <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-500 -mb-1 -ml-1 rounded-bl-lg"></div>
+                  <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-green-500 -mb-1 -mr-1 rounded-br-lg"></div>
                   
                   {/* Scanning Line */}
-                  <div className="w-full h-0.5 bg-red-500 absolute animate-scan"></div>
+                  <div className="w-full h-0.5 bg-red-500 absolute animate-scan shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
                </div>
-               <p className="text-white mt-8 text-sm bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm">
-                  Align barcode within frame
+               
+               <p className="text-white mt-8 text-sm bg-black/60 px-4 py-2 rounded-full backdrop-blur-md font-medium tracking-wide">
+                  Align code within frame
                </p>
-               <p className="text-xs text-white/50 mt-2 animate-pulse">
-                  (Tap screen to simulate scan)
-               </p>
+
+               {!isSupported && (
+                 <div className="mt-4 flex items-center text-orange-300 bg-orange-900/50 px-3 py-1.5 rounded-lg border border-orange-500/30">
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    <span className="text-xs">Native scanning not supported by this browser.</span>
+                 </div>
+               )}
             </div>
           </>
         )}

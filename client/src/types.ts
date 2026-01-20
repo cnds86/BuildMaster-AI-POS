@@ -1,6 +1,3 @@
-
-// ... existing imports
-
 export enum Category {
   CEMENT = 'Cement & Concrete',
   STEEL = 'Steel & Metal',
@@ -25,8 +22,8 @@ export interface UnitDefinition {
 
 export interface VariantAttribute {
   id: string;
-  name: string; // e.g., 'Color', 'Material'
-  values: string[]; // e.g., ['Red', 'Blue', 'Steel', 'Wood']
+  name: string;
+  values: string[];
 }
 
 export interface CategoryItem {
@@ -36,7 +33,6 @@ export interface CategoryItem {
   description?: string;
 }
 
-// ... rest of the file remains unchanged
 export interface ProductVariant {
   id: string;
   name: string;
@@ -44,8 +40,8 @@ export interface ProductVariant {
   barcode: string;
   conversionFactor: number;
   price: number;
-  stock?: number; // Added for UI form handling
-  tierPrices?: Record<string, number>; // New: Specific prices per CustomerLevel ID
+  stock?: number;
+  tierPrices?: Record<string, number>;
   costPrice?: number;
   color?: string;
   size?: string;
@@ -55,7 +51,7 @@ export interface ProductVariant {
 export interface ProductInventory {
   warehouseId: string;
   quantity: number;
-  variantId?: string; // Added to track specific variant stock
+  variantId?: string;
 }
 
 export interface BranchPrice {
@@ -75,7 +71,7 @@ export interface Product {
   name: string;
   category: Category | string; 
   price: number;
-  tierPrices?: Record<string, number>; // New: Specific prices per CustomerLevel ID
+  tierPrices?: Record<string, number>;
   costPrice?: number;
   branchPrices?: BranchPrice[];
   stock: number;
@@ -98,6 +94,9 @@ export interface CartItem extends Product {
   sellConversionFactor: number;
 }
 
+export interface CustomerLevel { id: string; name: string; discountPercentage: number; color?: string; }
+export interface Customer { id: string; code: string; name: string; phone: string; taxId?: string; address?: string; email?: string; loyaltyPoints: number; notes?: string; levelId?: string; level?: CustomerLevel; }
+
 export interface HeldOrder {
   id: string;
   items: CartItem[];
@@ -114,7 +113,7 @@ export interface Sale {
   discountAmount?: number;
   taxAmount?: number;
   total: number;
-  roundingDifference?: number; // Added: Stores the rounding amount (e.g., -200 or +300)
+  roundingDifference?: number;
   date: string;
   paymentMethod: 'cash' | 'card' | 'transfer' | 'qr' | 'credit';
   paymentStatus: 'paid' | 'unpaid' | 'partial';
@@ -159,7 +158,7 @@ export interface EstimateResultItem {
   estimatedQuantity: number;
   unit: string;
   reasoning: string;
-  matchedProductId?: string;
+  matchedProductId?: string | null;
 }
 export interface ReorderSuggestion { productId: string; productName: string; currentStock: number; suggestedReorderQty: number; priority: 'High' | 'Medium' | 'Low'; reasoning: string; }
 export interface NewProductSuggestion { name: string; categoryName: string; estimatedPrice: number; reasoning: string; suggestedUnit: string; }
@@ -172,17 +171,12 @@ export interface PosMachine { id: string; branchId: string; machineNumber: strin
 export interface Warehouse { id: string; branchId: string; name: string; code: string; type: 'General' | 'Cold Storage' | 'Hazardous' | 'Showroom'; description?: string; }
 export interface StorageLocation { id: string; warehouseId: string; zone: string; rack: string; shelf: string; bin: string; fullCode: string; type?: 'Pallet' | 'Shelf' | 'Floor'; }
 
-export interface CustomerLevel { id: string; name: string; discountPercentage: number; color?: string; }
-export interface Customer { id: string; code: string; name: string; phone: string; taxId?: string; address?: string; email?: string; loyaltyPoints: number; notes?: string; levelId?: string; level?: CustomerLevel; }
-
 export type DocumentStatus = 'Draft' | 'Approved' | 'Completed' | 'Cancelled';
-export interface StockItem { productId: string; variantId?: string; productName: string; unit: string; quantity: number; note?: string; }
+export interface StockItem { productId: string; variantId?: string; productName: string; unit: string; quantity: number; note?: string; countedQuantity?: number; diff?: number; systemQuantity?: number; costPrice?: number; }
 export interface StockTransfer { id: string; date: string; sourceWarehouseId: string; targetWarehouseId: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; }
-export interface StockCountItem extends StockItem { systemQuantity: number; countedQuantity: number; diff: number; }
-export interface StockCount { id: string; date: string; warehouseId: string; status: DocumentStatus; items: StockCountItem[]; referenceNo: string; counterName: string; reason: string; }
+export interface StockCount { id: string; date: string; warehouseId: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; counterName: string; reason: string; }
 export interface StockReservation { id: string; date: string; expiryDate: string; warehouseId: string; customerName: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; }
-export interface StockReceiptItem extends StockItem { costPrice: number; }
-export interface StockReceipt { id: string; date: string; warehouseId: string; vendorName: string; vendorInvoiceNo?: string; status: DocumentStatus; items: StockReceiptItem[]; referenceNo: string; totalCost: number; }
+export interface StockReceipt { id: string; date: string; warehouseId: string; vendorName: string; vendorInvoiceNo?: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; totalCost: number; }
 export interface StockAdjustment { id: string; date: string; warehouseId: string; status: DocumentStatus; items: StockItem[]; referenceNo: string; reason: string; }
 
 export interface SyncLog { id: string; timestamp: string; type: 'Auto' | 'Manual' | 'Push' | 'Pull'; status: 'Success' | 'Failed' | 'Partial'; details: string; durationMs: number; }
@@ -273,7 +267,7 @@ export interface SystemSettings {
   currencySymbol: string; 
   defaultItemsPerPage: number; 
   tax: TaxSettings; 
-  rounding?: RoundingSettings; // Added rounding settings
+  rounding?: RoundingSettings;
   cashDenominations: number[]; 
   customerDisplay: CustomerDisplaySettings; 
   loyaltyProgram: { enabled: boolean; earnRate: number; redeemRate: number; }; 

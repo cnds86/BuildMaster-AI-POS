@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Product, UnitDefinition, CategoryItem, Warehouse, Sale } from '../types';
-import { Search, Plus, Sparkles, Download, Upload, ScanBarcode, LayoutGrid, List, AlertCircle, X } from 'lucide-react';
+import { Search, Plus, Sparkles, Download, Upload, ScanBarcode, LayoutGrid, List } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useInventoryStore } from '../store/useInventoryStore';
@@ -41,11 +41,10 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [unknownCode, setUnknownCode] = useState<string | null>(null);
   
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Partial<Product> | undefined>(undefined);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
   
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -93,7 +92,7 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   };
 
   const handleFormSubmit = (product: Product) => {
-    if (editingProduct && editingProduct.id) updateProduct(product);
+    if (editingProduct) updateProduct(product);
     else addProduct(product);
   };
 
@@ -113,36 +112,8 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   };
 
   const handleScan = (code: string) => {
-    const normalizedCode = code.trim().toLowerCase();
-    
-    // Check if product exists
-    const foundProduct = products.find(p => 
-      p.barcode?.toLowerCase() === normalizedCode || 
-      p.sku?.toLowerCase() === normalizedCode ||
-      (p.variants && p.variants.some(v => v.barcode?.toLowerCase() === normalizedCode || v.code.toLowerCase() === normalizedCode))
-    );
-
-    if (foundProduct) {
-      setSearchTerm(code); // Just filter list to show it
-      setIsScannerOpen(false);
-    } else {
-      // Not found - close scanner and show custom modal
-      setIsScannerOpen(false);
-      setUnknownCode(code);
-    }
-  };
-
-  const handleCreateFromScan = () => {
-    if (!unknownCode) return;
-    setEditingProduct({
-       barcode: unknownCode,
-       sku: unknownCode, // Suggest SKU as Barcode initially
-       name: '',
-       price: 0,
-       stock: 0
-    });
-    setUnknownCode(null);
-    setIsFormOpen(true);
+    setSearchTerm(code);
+    setIsScannerOpen(false);
   };
 
   const handleExportCSV = () => {
@@ -255,43 +226,11 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
       {/* Modals */}
       <BarcodeScanner isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} onScan={handleScan} />
       
-      {/* Product Not Found Modal */}
-      {unknownCode && (
-        <div className="fixed inset-0 bg-black/60 z-[80] flex items-center justify-center p-4 animate-fade-in">
-           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
-              <div className="p-6 text-center">
-                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ScanBarcode className="w-8 h-8 text-orange-600" />
-                 </div>
-                 <h3 className="text-lg font-bold text-slate-900 mb-2">Product Not Found</h3>
-                 <p className="text-slate-500 text-sm mb-1">
-                    The barcode <span className="font-mono font-bold text-slate-800">{unknownCode}</span> does not exist in the system.
-                 </p>
-                 <p className="text-slate-500 text-sm">Would you like to add it now?</p>
-              </div>
-              <div className="flex border-t border-slate-100">
-                 <button 
-                    onClick={() => setUnknownCode(null)}
-                    className="flex-1 py-4 text-slate-600 font-bold hover:bg-slate-50 transition-colors border-r border-slate-100"
-                 >
-                    Cancel
-                 </button>
-                 <button 
-                    onClick={handleCreateFromScan}
-                    className="flex-1 py-4 text-blue-600 font-bold hover:bg-blue-50 transition-colors flex items-center justify-center"
-                 >
-                    <Plus className="w-4 h-4 mr-2" /> Create Product
-                 </button>
-              </div>
-           </div>
-        </div>
-      )}
-
       <ProductFormModal 
         isOpen={isFormOpen} 
         onClose={() => setIsFormOpen(false)} 
         onSubmit={handleFormSubmit} 
-        initialData={editingProduct as Product} 
+        initialData={editingProduct} 
         categories={categories} 
         units={units}
         attributes={attributes}

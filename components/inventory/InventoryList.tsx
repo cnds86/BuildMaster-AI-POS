@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Product, CategoryItem } from '../../types';
-import { AlertTriangle, Box, Edit2, Tag, Trash2, Store } from 'lucide-react';
+import { AlertTriangle, Box, Edit2, Tag, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface InventoryListProps {
   products: Product[];
@@ -13,6 +13,8 @@ interface InventoryListProps {
   onPrintLabel: (product: Product) => void;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export const InventoryList: React.FC<InventoryListProps> = ({ 
   products, 
   categories, 
@@ -22,10 +24,23 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   onDelete, 
   onPrintLabel 
 }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page when products change (e.g. filter changes)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [products]);
+
   const getCategoryName = (idOrName: string) => {
     const cat = categories.find(c => c.id === idOrName);
     return cat ? cat.name : idOrName; 
   };
+
+  const totalPages = Math.ceil(products.length / ITEMS_PER_PAGE);
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return products.slice(start, start + ITEMS_PER_PAGE);
+  }, [products, currentPage]);
 
   if (products.length === 0) {
     return (
@@ -37,12 +52,12 @@ export const InventoryList: React.FC<InventoryListProps> = ({
   }
 
   return (
-    <>
-      {/* LIST VIEW (TABLE) */}
-      {viewMode === 'list' && (
-        <div className="overflow-x-auto flex-1">
+    <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        {/* LIST VIEW (TABLE) */}
+        {viewMode === 'list' && (
           <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 sticky top-0 z-10">
+            <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap pl-8">Product Name</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">SKU / Code</th>
@@ -53,7 +68,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {products.map((product) => {
+              {paginatedProducts.map((product) => {
                 const isLowStock = product.stock < (product.minStock || 20);
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 transition-colors group ${isLowStock ? 'bg-red-50/30' : ''}`}>
@@ -133,78 +148,104 @@ export const InventoryList: React.FC<InventoryListProps> = ({
               })}
             </tbody>
           </table>
+        )}
+
+        {/* GRID VIEW (CARDS) */}
+        {viewMode === 'grid' && (
+          <div className="p-4">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+               {paginatedProducts.map((product) => {
+                  const isLowStock = product.stock < (product.minStock || 20);
+                  return (
+                     <div 
+                        key={product.id}
+                        className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative flex flex-col group hover:shadow-md transition-all hover:border-slate-300"
+                     >
+                        <div className="p-4 flex gap-4 items-start">
+                           {/* Image */}
+                           <div className="w-16 h-16 bg-slate-50 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center relative">
+                              {product.imageUrl ? (
+                                 <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                              ) : (
+                                 <Box className="w-6 h-6 text-slate-300" />
+                              )}
+                           </div>
+                           
+                           {/* Content */}
+                           <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-slate-900 text-sm truncate" title={product.name}>{product.name}</h3>
+                              <p className="text-xs text-slate-500 truncate mt-0.5">{getCategoryName(product.category)}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                 <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">{product.sku}</span>
+                                 {isLowStock && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">Low Stock</span>}
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="px-4 pb-3 flex justify-between items-end mt-auto">
+                           <div>
+                              <span className="text-lg font-bold text-slate-900">{formatPrice(product.price)}</span>
+                              <span className="text-xs text-slate-400 ml-1">/{product.unit}</span>
+                           </div>
+                           <div className={`text-sm font-bold ${isLowStock ? 'text-red-600' : 'text-slate-600'}`}>
+                              {product.stock} available
+                           </div>
+                        </div>
+
+                        {/* Actions Footer */}
+                        <div className="grid grid-cols-3 border-t border-slate-100 divide-x divide-slate-100 bg-slate-50 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <button 
+                              onClick={() => onPrintLabel(product)}
+                              className="py-3 flex items-center justify-center text-slate-500 hover:bg-white text-xs font-bold hover:text-blue-600 transition-colors"
+                           >
+                              <Tag className="w-3.5 h-3.5 mr-1.5" /> Label
+                           </button>
+                           <button 
+                              onClick={() => onEdit(product)}
+                              className="py-3 flex items-center justify-center text-slate-500 hover:bg-white text-xs font-bold hover:text-slate-900 transition-colors"
+                           >
+                              <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Edit
+                           </button>
+                           <button 
+                              onClick={() => onDelete(product.id)}
+                              className="py-3 flex items-center justify-center text-slate-500 hover:bg-white text-xs font-bold hover:text-red-600 transition-colors"
+                           >
+                              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Del
+                           </button>
+                        </div>
+                     </div>
+                  );
+               })}
+             </div>
+          </div>
+        )}
+      </div>
+
+      {/* PAGINATION CONTROLS */}
+      {totalPages > 1 && (
+        <div className="p-3 border-t border-slate-100 bg-white flex justify-between items-center z-10 shrink-0">
+           <button 
+             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+             disabled={currentPage === 1}
+             className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:hover:bg-transparent transition-colors flex items-center text-sm font-medium"
+           >
+             <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+           </button>
+           
+           <span className="text-sm font-medium text-slate-600">
+              Page {currentPage} of {totalPages}
+              <span className="text-slate-400 ml-2 text-xs">({products.length} items)</span>
+           </span>
+
+           <button 
+             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+             disabled={currentPage === totalPages}
+             className="p-2 rounded-lg hover:bg-slate-100 text-slate-600 disabled:opacity-30 disabled:hover:bg-transparent transition-colors flex items-center text-sm font-medium"
+           >
+             Next <ChevronRight className="w-4 h-4 ml-1" />
+           </button>
         </div>
       )}
-
-      {/* GRID VIEW (CARDS) */}
-      {viewMode === 'grid' && (
-        <div className="flex-1 overflow-y-auto bg-white p-4">
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-             {products.map((product) => {
-                const isLowStock = product.stock < (product.minStock || 20);
-                return (
-                   <div 
-                      key={product.id}
-                      className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden relative flex flex-col group hover:shadow-md transition-all hover:border-slate-300"
-                   >
-                      <div className="p-4 flex gap-4 items-start">
-                         {/* Image */}
-                         <div className="w-16 h-16 bg-slate-50 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center relative">
-                            {product.imageUrl ? (
-                               <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                            ) : (
-                               <Box className="w-6 h-6 text-slate-300" />
-                            )}
-                         </div>
-                         
-                         {/* Content */}
-                         <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-slate-900 text-sm truncate" title={product.name}>{product.name}</h3>
-                            <p className="text-xs text-slate-500 truncate mt-0.5">{getCategoryName(product.category)}</p>
-                            <div className="flex items-center gap-2 mt-2">
-                               <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">{product.sku}</span>
-                               {isLowStock && <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-bold">Low Stock</span>}
-                            </div>
-                         </div>
-                      </div>
-
-                      <div className="px-4 pb-3 flex justify-between items-end mt-auto">
-                         <div>
-                            <span className="text-lg font-bold text-slate-900">{formatPrice(product.price)}</span>
-                            <span className="text-xs text-slate-400 ml-1">/{product.unit}</span>
-                         </div>
-                         <div className={`text-sm font-bold ${isLowStock ? 'text-red-600' : 'text-slate-600'}`}>
-                            {product.stock} available
-                         </div>
-                      </div>
-
-                      {/* Actions Footer - Hidden by default, visible on hover */}
-                      <div className="grid grid-cols-3 border-t border-slate-100 divide-x divide-slate-100 bg-slate-50 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button 
-                            onClick={() => onPrintLabel(product)}
-                            className="py-3 flex items-center justify-center text-slate-500 hover:bg-white text-xs font-bold hover:text-blue-600 transition-colors"
-                         >
-                            <Tag className="w-3.5 h-3.5 mr-1.5" /> Label
-                         </button>
-                         <button 
-                            onClick={() => onEdit(product)}
-                            className="py-3 flex items-center justify-center text-slate-500 hover:bg-white text-xs font-bold hover:text-slate-900 transition-colors"
-                         >
-                            <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Edit
-                         </button>
-                         <button 
-                            onClick={() => onDelete(product.id)}
-                            className="py-3 flex items-center justify-center text-slate-500 hover:bg-white text-xs font-bold hover:text-red-600 transition-colors"
-                         >
-                            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Del
-                         </button>
-                      </div>
-                   </div>
-                );
-             })}
-           </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 };
