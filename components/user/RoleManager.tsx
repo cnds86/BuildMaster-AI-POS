@@ -136,7 +136,7 @@ export const RoleManager: React.FC = () => {
                       <div>
                          <div className="flex items-center gap-2 mb-1">
                             <span className="font-bold text-slate-800">{role.name}</span>
-                            {role.isSystem && <Lock className="w-3 h-3 text-slate-400" title="System Role (Protected)" />}
+                            {role.isSystem && <span title="System Role (Protected)"><Lock className="w-3 h-3 text-slate-400" /></span>}
                          </div>
                          <p className="text-xs text-slate-500 line-clamp-1">{role.description || 'No description'}</p>
                       </div>

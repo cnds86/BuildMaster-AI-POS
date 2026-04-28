@@ -296,6 +296,7 @@ export const VariantsTab: React.FC<VariantsTabProps> = ({
                    )}
                 </div>
              </div>
+             );
           })}
           
           {variants.length === 0 && (

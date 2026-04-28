@@ -97,8 +97,8 @@ export const LocationGrid: React.FC<LocationGridProps> = ({
                            </td>
                            <td className="px-6 py-3">
                               <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded border ${
-                                 loc.type === 'Cold Storage' ? 'bg-cyan-50 text-cyan-700 border-cyan-100' : 
-                                 loc.type === 'Hazardous' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                 loc.type === 'Pallet' ? 'bg-cyan-50 text-cyan-700 border-cyan-100' : 
+                                 loc.type === 'Floor' ? 'bg-orange-50 text-orange-700 border-orange-100' :
                                  'bg-slate-50 text-slate-600 border-slate-100'
                               }`}>
                                  {loc.type || 'Shelf'}

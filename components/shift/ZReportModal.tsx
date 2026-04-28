@@ -2,6 +2,8 @@
 import React from 'react';
 import { X, FileText, Printer } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
+import { usePrint } from '../../lib/usePrint';
+import { IframePrintWarning } from '../shared/IframePrintWarning';
 
 export interface ZReportData {
   shiftId: string;
@@ -31,6 +33,7 @@ interface ZReportModalProps {
 
 export const ZReportModal: React.FC<ZReportModalProps> = ({ report, onClose }) => {
   const { settings, formatPrice } = useGlobal();
+  const { showIframeWarning, setShowIframeWarning, handlePrint } = usePrint();
 
   if (!report) return null;
 
@@ -49,6 +52,8 @@ export const ZReportModal: React.FC<ZReportModalProps> = ({ report, onClose }) =
              </button>
           </div>
           
+          <IframePrintWarning show={showIframeWarning} onDismiss={() => setShowIframeWarning(false)} />
+
           <div className="flex-1 overflow-y-auto p-6 bg-slate-50 print:p-0 print:bg-white">
              <div id="printable-report" className={`bg-white p-4 shadow-sm border border-slate-200 text-xs font-mono text-black mx-auto ${receiptWidthClass} print:shadow-none print:border-none`}>
                 <div className="text-center mb-4">
@@ -112,7 +117,7 @@ export const ZReportModal: React.FC<ZReportModalProps> = ({ report, onClose }) =
              <button onClick={onClose} className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 font-medium hover:bg-slate-100">
                 Close
              </button>
-             <button onClick={() => window.print()} className="px-6 py-2 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 shadow-sm flex items-center">
+             <button onClick={handlePrint} className="px-6 py-2 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 shadow-sm flex items-center">
                 <Printer className="w-4 h-4 mr-2" /> Print
              </button>
           </div>

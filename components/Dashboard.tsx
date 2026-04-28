@@ -25,7 +25,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 type TimeRange = '7d' | '30d' | '90d' | 'all';
 
 export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
-  const { t, formatPrice, auditLogs, settings } = useGlobal();
+  const { t, formatPrice, auditLogs, settings, expenses } = useGlobal();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   
   // AI State
@@ -178,7 +178,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
        return d >= thirtyDaysAgo && s.status !== 'voided';
     });
-    const result = await generateBusinessInsights(recentSales, products);
+    const result = await generateBusinessInsights(recentSales, products, expenses);
     setInsight(result);
     setLoadingInsight(false);
   };

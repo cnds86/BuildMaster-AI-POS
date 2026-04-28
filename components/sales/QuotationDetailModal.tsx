@@ -5,6 +5,8 @@ import { X, Printer, ShoppingCart, Trash2, Edit } from 'lucide-react';
 import { PrintableQuotation } from '../shared/PrintableQuotation';
 import { useCartStore } from '../../store/useCartStore';
 import { useSalesStore } from '../../store/useSalesStore';
+import { usePrint } from '../../lib/usePrint';
+import { IframePrintWarning } from '../shared/IframePrintWarning';
 
 interface QuotationDetailModalProps {
   quotation: Quotation | null;
@@ -21,12 +23,10 @@ export const QuotationDetailModal: React.FC<QuotationDetailModalProps> = ({
   const clearCart = useCartStore((state) => state.clearCart);
   const updateQuotation = useSalesStore((state) => state.updateQuotation);
   const deleteQuotation = useSalesStore((state) => state.deleteQuotation);
+  
+  const { showIframeWarning, setShowIframeWarning, handlePrint } = usePrint();
 
   if (!isOpen || !quotation) return null;
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const handleConvertToSale = () => {
     if (window.confirm("This will clear your current cart and load items from this quotation. Continue?")) {
@@ -34,7 +34,7 @@ export const QuotationDetailModal: React.FC<QuotationDetailModalProps> = ({
        
        if (quotation.items && quotation.items.length > 0) {
          quotation.items.forEach(item => {
-            addToCart(item, item.quantity, item.selectedVariantId);
+            addToCart(item, item.quantity, item.selectedVariantId, item.sellPrice);
          });
          
          updateQuotation({ ...quotation, status: 'converted' });
@@ -91,6 +91,8 @@ export const QuotationDetailModal: React.FC<QuotationDetailModalProps> = ({
               </button>
            </div>
         </div>
+
+        <IframePrintWarning show={showIframeWarning} onDismiss={() => setShowIframeWarning(false)} />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto bg-slate-50 p-6 print:p-0 print:bg-white print:overflow-visible">

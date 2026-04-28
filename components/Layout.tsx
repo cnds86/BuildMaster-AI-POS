@@ -18,7 +18,9 @@ import {
   BarChart4,
   Receipt,
   Scale,
-  FileText
+  FileText,
+  Truck,
+  Wallet
 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { useGlobal } from '../context/GlobalContext';
@@ -47,9 +49,11 @@ const NAV_ITEMS: NavItemConfig[] = [
   { id: 'pos', icon: ShoppingCart, label: 'Point of Sale', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
   { id: 'shifts', icon: Clock, label: 'My Shift', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
   { id: 'sales', icon: Receipt, label: 'Sales History', allowedRoles: ['Admin', 'Manager', 'Cashier'] },
+  { id: 'expenses', icon: Wallet, label: 'Expenses', allowedRoles: ['Admin', 'Manager', 'Cashier', 'Staff'] },
   { id: 'quotations', icon: FileText, label: 'Quotations', allowedRoles: ['Admin', 'Manager', 'Cashier'] }, 
   { id: 'inventory', icon: Package, label: 'Inventory', allowedRoles: ['Admin', 'Manager', 'Staff'] },
   { id: 'stock', icon: ClipboardList, label: 'Stock Mgmt', allowedRoles: ['Admin', 'Manager', 'Staff'] },
+  { id: 'delivery', icon: Truck, label: 'Delivery & Fleet', allowedRoles: ['Admin', 'Manager', 'Staff'] },
   { id: 'customers', icon: Contact, label: 'Customers', allowedRoles: ['Admin', 'Manager', 'Cashier', 'Staff'] },
   { id: 'approvals', icon: FileCheck, label: 'Approvals', allowedRoles: ['Admin', 'Manager'] },
   { id: 'promotions', icon: Tv, label: 'Promotions', allowedRoles: ['Admin', 'Manager', 'Staff'] },

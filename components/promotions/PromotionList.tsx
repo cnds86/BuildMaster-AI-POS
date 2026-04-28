@@ -56,13 +56,20 @@ export const PromotionList: React.FC<PromotionListProps> = ({
 
         return (
           <div key={promo.id} className={`group bg-white rounded-xl shadow-sm border overflow-hidden flex flex-col transition-all ${promo.isActive ? 'border-slate-200' : 'border-slate-100 opacity-75'}`}>
-            <div className="relative aspect-video bg-slate-100 overflow-hidden">
-              <img 
-                src={promo.imageUrl} 
-                alt={promo.title} 
-                className="w-full h-full object-cover transition-transform group-hover:scale-105" 
-              />
-              <div className="absolute top-2 left-2">
+              <div className="relative aspect-video bg-slate-100 overflow-hidden flex items-center justify-center">
+                {promo.imageUrl ? (
+                  <img 
+                    src={promo.imageUrl} 
+                    alt={promo.title} 
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                  />
+                ) : (
+                  <div className="text-slate-400 flex flex-col items-center">
+                    <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                    <span className="text-xs font-semibold uppercase">No Image</span>
+                  </div>
+                )}
+                <div className="absolute top-2 left-2">
                  <span className={`flex items-center px-2 py-1 rounded-md text-xs font-bold shadow-sm backdrop-blur-md ${status.color.includes('bg-') ? status.color.replace('bg-', 'bg-white/90 text-') : 'bg-white/90 text-slate-600'}`}>
                     <StatusIcon className="w-3 h-3 mr-1" /> {status.label}
                  </span>

@@ -180,7 +180,11 @@ export const analyzeInventory = async (products: Product[], sales: Sale[]): Prom
   }
 };
 
-export const generateBusinessInsights = async (sales: Sale[], products: Product[]): Promise<BusinessInsight | null> => {
+export const generateBusinessInsights = async (
+  sales: Sale[], 
+  products: Product[],
+  expenses: any[] = []
+): Promise<BusinessInsight | null> => {
   if (!ai) {
     return null;
   }
@@ -199,23 +203,26 @@ export const generateBusinessInsights = async (sales: Sale[], products: Product[
     });
   });
 
+  const totalExpenses = expenses.reduce((sum, item) => sum + item.amount, 0);
+
   const lowStockCount = products.filter(p => p.stock <= (p.minStock || 0)).length;
 
   const context = {
     dailySales: dailyRevenue,
     categoryPerformance: categoryRevenue,
     lowStockItemsCount: lowStockCount,
-    totalProducts: products.length
+    totalProducts: products.length,
+    totalExpenses
   };
 
   const systemInstruction = `
     You are a senior business analyst for a retail store.
-    Analyze the provided sales data (Daily Revenue map) and Inventory status.
+    Analyze the provided sales data, inventory status, and total expenses.
     
     Tasks:
-    1. Write a 1-sentence Executive Summary of performance.
+    1. Write a 1-sentence Executive Summary of performance (mentioning profitability after expenses).
     2. Determine the trend direction ('up', 'down', 'stable').
-    3. List 3 actionable bullet points for the manager (e.g., restock, run promo, cut costs).
+    3. List 3 actionable bullet points for the manager (e.g. restock, promo, cut expenses).
     4. Predict the TOTAL revenue for the NEXT 7 DAYS based on the recent daily trend.
     5. Identify the top performing category name.
 

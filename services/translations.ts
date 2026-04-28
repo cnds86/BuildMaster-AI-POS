@@ -78,6 +78,16 @@ export const translations = {
       aiEstimate: "AI Estimate",
       viewCart: "View Cart"
     },
+    settings: {
+      company: "Company Information",
+      receipt: "Receipt & Print Settings",
+      financials: "Financials & Tax",
+      customerDisplay: "Customer Display Configuration",
+      device: "Device & Network (Master/Slave)",
+      database: "Database & Backup",
+      localization: "Localization & Language",
+      interface: "Interface & Display"
+    },
     inventory: {
       title: "Inventory Management",
       subtitle: "Manage stock, pricing, and product variants.",
@@ -172,6 +182,16 @@ export const translations = {
       aiEstimate: "AI ประเมินวัสดุ",
       viewCart: "ดูตะกร้า"
     },
+    settings: {
+      company: "ข้อมูลบริษัท",
+      receipt: "ตั้งค่าใบเสร็จและการพิมพ์",
+      financials: "การเงินและภาษี",
+      customerDisplay: "ตั้งค่าหน้าจอแสดงผลลูกค้า",
+      device: "อุปกรณ์และเครือข่าย",
+      database: "ฐานข้อมูลและการสำรองข้อมูล",
+      localization: "ภาษาและท้องถิ่น",
+      interface: "อินเทอร์เฟซและการแสดงผล"
+    },
     inventory: {
       title: "จัดการสินค้าคงคลัง",
       subtitle: "จัดการสต็อก ราคา และสินค้า",
@@ -265,6 +285,16 @@ export const translations = {
       selectCustomer: "ເລືອກລູກຄ້າ",
       aiEstimate: "AI ຄຳນວນ",
       viewCart: "ເບິ່ງກະຕ່າ"
+    },
+    settings: {
+      company: "ຂໍ້ມູນບໍລິສັດ",
+      receipt: "ຕັ້ງຄ່າໃບຮັບເງິນແລະການພິມ",
+      financials: "ການເງິນແລະອາກອນ",
+      customerDisplay: "ຕັ້ງຄ່າຈໍສະແດງຜົນລູກຄ້າ",
+      device: "ອຸປະກອນແລະເຄືອຂ່າຍ",
+      database: "ຖານຂໍ້ມູນແລະການສຳຮອງຂໍ້ມູນ",
+      localization: "ພາສາແລະທ້ອງຖິ່ນ",
+      interface: "ອິນເຕີເຟດແລະການສະແດງຜົນ"
     },
     inventory: {
       title: "ຈັດການສາງສິນຄ້າ",

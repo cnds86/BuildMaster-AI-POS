@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Customer, SystemSettings } from '../../types';
-import { ShoppingCart, PauseCircle, X, Minus, Plus, Trash2, User, Tag, ChevronRight, ChevronDown } from 'lucide-react';
+import { ShoppingCart, PauseCircle, X, Minus, Plus, Trash2, User, Tag, ChevronRight, ChevronDown, Sparkles } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
 import { useCartStore } from '../../store/useCartStore';
 
@@ -15,6 +15,7 @@ interface CartSidebarProps {
   onDiscountClick: () => void;
   subtotal: number;
   discount: number;
+  autoDiscount?: number;
   tax: number;
   total: number;
   roundingDifference?: number; // Added
@@ -31,12 +32,13 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
   onDiscountClick,
   subtotal,
   discount,
+  autoDiscount = 0,
   tax,
   total,
   roundingDifference = 0, // Added default
   settings
 }) => {
-  const { formatPrice } = useGlobal();
+  const { formatPrice, t } = useGlobal();
   const { cart, removeFromCart, updateQuantity } = useCartStore();
 
   const renderVariantDetails = (item: any) => {
@@ -61,7 +63,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
       <div className="p-4 md:p-5 border-b border-slate-100 bg-white flex justify-between items-center z-10 shrink-0 shadow-sm">
         <div>
            <div className="flex items-center gap-2">
-              <h3 className="font-extrabold text-slate-900 text-lg md:text-xl">Order Ticket</h3>
+              <h3 className="font-extrabold text-slate-900 text-lg md:text-xl">{t('pos.currentOrder', 'Order Ticket')}</h3>
               <span className="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-0.5 rounded-full">{cart.reduce((a,c)=>a+c.quantity,0)}</span>
            </div>
            <div className="text-xs text-slate-400 mt-0.5 font-medium">
@@ -107,8 +109,8 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                <ShoppingCart className="w-8 h-8 text-slate-200" />
             </div>
             <div className="text-center">
-               <p className="font-bold text-slate-400">Cart is empty</p>
-               <p className="text-xs mt-1">Scan items to start</p>
+               <p className="font-bold text-slate-400">{t('pos.emptyCart', 'Cart is empty')}</p>
+               <p className="text-xs mt-1">{t('pos.emptyCartDesc', 'Scan items to start')}</p>
             </div>
           </div>
         ) : (
@@ -179,12 +181,27 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
 
         <div className="px-6 space-y-2 mb-4">
            <div className="flex justify-between text-sm text-slate-500 font-medium">
-              <span>Subtotal</span>
+              <span>{t('pos.subtotal', 'Subtotal')}</span>
               <span>{formatPrice(subtotal)}</span>
            </div>
+           
+           {autoDiscount > 0 && (
+              <div className="flex justify-between text-sm text-orange-600 font-bold bg-orange-50 px-2 py-1 -mx-2 rounded">
+                 <span className="flex items-center"><Sparkles className="w-4 h-4 mr-1.5" /> Auto Promo Applied</span>
+                 <span>-{formatPrice(autoDiscount)}</span>
+              </div>
+           )}
+
+           {discount - autoDiscount > 0 && (
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                 <span>Manual / Loyalty Discount</span>
+                 <span>-{formatPrice(discount - autoDiscount)}</span>
+              </div>
+           )}
+
            {settings?.tax?.enabled && (
               <div className="flex justify-between text-sm text-slate-500 font-medium">
-                 <span>Tax ({settings.tax.rate}%)</span>
+                 <span>{t('pos.tax', 'Tax')} ({settings.tax.rate}%)</span>
                  <span>{formatPrice(tax)}</span>
               </div>
            )}
@@ -200,7 +217,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
            )}
 
            <div className="flex justify-between items-end pt-2 border-t border-slate-100">
-              <span className="text-base font-bold text-slate-800">Total</span>
+              <span className="text-base font-bold text-slate-800">{t('common.total', 'Total')}</span>
               <span className="text-4xl font-extrabold text-slate-900 tracking-tighter">{formatPrice(total)}</span>
            </div>
         </div>

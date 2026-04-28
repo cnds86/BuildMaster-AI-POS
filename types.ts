@@ -196,6 +196,27 @@ export interface Department {
   managerId?: string;
 }
 
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Expense {
+  id: string;
+  date: string;
+  categoryId: string;
+  categoryName?: string;
+  amount: number;
+  paymentMethod: 'cash' | 'transfer' | 'credit';
+  referenceNo?: string;
+  description: string;
+  recordedBy: string; // userId
+  recordedByName?: string;
+  branchId?: string; 
+  receiptUrl?: string; // Optional proof
+}
+
 export interface SystemRole {
   id: string;
   name: string;
@@ -245,7 +266,24 @@ export interface ShiftSchedule {
 }
 
 export type Language = 'en' | 'th' | 'lo';
-export interface Promotion { id: string; title: string; imageUrl: string; isActive: boolean; order?: number; startDate?: string; endDate?: string; }
+export type PromotionType = 'amount_off_order' | 'percent_off_order' | 'bxgy' | 'product_discount';
+
+export interface Promotion { 
+  id: string; 
+  title: string; 
+  description?: string;
+  imageUrl: string; 
+  isActive: boolean; 
+  type?: PromotionType;
+  value?: number; // Discount amount or percentage
+  minOrderAmount?: number;
+  validProductIds?: string[];
+  buyQuantity?: number;
+  getQuantity?: number;
+  order?: number; 
+  startDate?: string; 
+  endDate?: string; 
+}
 export interface LocalDatabaseConfig { enabled: boolean; type: 'postgresql' | 'sqlite' | 'mysql'; host: string; port: string; databaseName: string; username: string; password: string; }
 export interface TaxSettings { enabled: boolean; rate: number; calculationMode: 'included' | 'excluded'; displayOnReceipt: boolean; }
 export interface CustomerDisplaySettings { enabled: boolean; welcomeMessage: string; promotionInterval: number; }
@@ -300,3 +338,42 @@ export interface SystemSettings {
 export interface AppNotification { id: string; title: string; message: string; type: 'info' | 'warning' | 'error' | 'success'; timestamp: string; read: boolean; link?: string; }
 export type AuditAction = 'SALE_VOID' | 'SALE_RETURN' | 'USER_CREATE' | 'USER_DELETE' | 'SETTINGS_UPDATE' | 'STOCK_APPROVE' | 'STOCK_REJECT' | 'SHIFT_OVERRIDE' | 'LOGIN_FAILED' | 'CASH_IN' | 'CASH_OUT' | 'DEPT_CHANGE' | 'ROLE_CHANGE';
 export interface AuditLog { id: string; action: AuditAction; userId: string; userName: string; details: string; timestamp: string; severity: 'low' | 'medium' | 'high' | 'critical'; resourceId?: string; }
+
+// --- Delivery & Fleet Management ---
+export type DeliveryStatus = 'Pending' | 'Scheduled' | 'In Transit' | 'Delivered' | 'Failed' | 'Cancelled';
+
+export interface Vehicle {
+  id: string;
+  plateNumber: string;
+  type: 'Truck' | 'Van' | 'Pickup' | 'Motorcycle';
+  capacityWeight: number; // in kg
+  capacityVolume?: number; // in cubic meters
+  status: 'Available' | 'In Use' | 'Maintenance' | 'Inactive';
+  branchId: string;
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  licenseNumber: string;
+  status: 'Available' | 'On Delivery' | 'Off Duty' | 'Inactive';
+  branchId: string;
+}
+
+export interface DeliveryOrder {
+  id: string;
+  saleId: string; // Link to the original sale
+  customerName: string;
+  customerPhone: string;
+  deliveryAddress: string;
+  status: DeliveryStatus;
+  scheduledDate: string; // ISO date string
+  vehicleId?: string;
+  driverId?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  estimatedWeight?: number;
+}

@@ -4,12 +4,13 @@ import {
   Product, UnitDefinition, CategoryItem, VariantAttribute,
   Sale, Customer, CustomerLevel, Shift, ShiftSchedule, Promotion, CashTransaction, Quotation,
   Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment,
-  CartItem, DocumentStatus
+  CartItem, DocumentStatus, Expense, ExpenseCategory
 } from '../types';
 import { useSystemStore } from '../store/useSystemStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useSalesStore } from '../store/useSalesStore';
 import { useStockStore } from '../store/useStockStore';
+import { useExpenseStore } from '../store/useExpenseStore';
 import { translations } from '../services/translations';
 
 interface GlobalContextType {
@@ -87,9 +88,9 @@ interface GlobalContextType {
   addCustomerLevel: (level: CustomerLevel) => void;
   updateCustomerLevel: (level: CustomerLevel) => void;
   deleteCustomerLevel: (id: string) => void;
-  startShift: (shift: Shift) => void;
-  endShift: (id: string, endData: Partial<Shift>) => void;
-  addCashTransaction: (transaction: CashTransaction) => void;
+  startShift: (branchId: string, startCash: number, notes?: string, posId?: string) => void;
+  endShift: (shiftId: string, endCash: number, notes?: string) => void;
+  addCashTransaction: (type: 'in' | 'out', amount: number, reason: string) => void;
   addShiftSchedule: (schedule: ShiftSchedule) => void;
   updateShiftSchedule: (schedule: ShiftSchedule) => void;
   deleteShiftSchedule: (id: string) => void;
@@ -152,11 +153,17 @@ interface GlobalContextType {
   restoreSystemDataFull: (data: any) => void;
   
   // Helpers
-  t: (key: string) => string;
+  t: (key: string, defaultValue?: string) => string;
   formatPrice: (amount: number) => string;
-  startShiftAction: (branchId: string, startCash: number, notes?: string, posId?: string) => void;
-  endShiftAction: (shiftId: string, endCash: number, notes?: string) => void;
-  addCashTransactionAction: (type: 'in' | 'out', amount: number, reason: string) => void;
+
+  // Expenses
+  expenses: Expense[];
+  expenseCategories: ExpenseCategory[];
+  addExpense: (e: Expense) => void;
+  updateExpense: (e: Expense) => void;
+  deleteExpense: (id: string) => void;
+  addExpenseCategory: (c: ExpenseCategory) => void;
+  deleteExpenseCategory: (id: string) => void;
 }
 
 const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
@@ -166,16 +173,28 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const inventoryStore = useInventoryStore();
   const salesStore = useSalesStore();
   const stockStore = useStockStore();
+  const expenseStore = useExpenseStore();
 
   // Helper: Translation
-  const t = (key: string): string => {
+  const t = (key: string, defaultValue?: string): string => {
     const lang = systemStore.settings.language || 'en';
     const keys = key.split('.');
-    let value: any = translations[lang as keyof typeof translations] || translations['en'];
+    
+    let value: any = translations[lang as keyof typeof translations];
     for (const k of keys) {
       if (value) value = value[k];
     }
-    return value || key;
+    if (value) return value;
+    
+    if (lang !== 'en') {
+      let enValue: any = translations['en'];
+      for (const k of keys) {
+        if (enValue) enValue = enValue[k];
+      }
+      if (enValue) return enValue;
+    }
+    
+    return defaultValue || key;
   };
 
   // Helper: Format Price
@@ -499,33 +518,132 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const value: GlobalContextType = {
-    // Stores
-    ...systemStore,
-    ...inventoryStore,
-    ...salesStore,
-    ...stockStore,
-    
-    // Actions Wrapper to match interface
-    updateTransfer, deleteTransfer, updateCount, deleteCount, updateReservation, deleteReservation,
-    updateReceipt, deleteReceipt, updateAdjustment, deleteAdjustment,
-    
-    // Shifts
+    // System
+    currentUser: systemStore.currentUser,
+    users: systemStore.users,
+    departments: systemStore.departments,
+    systemRoles: systemStore.systemRoles,
+    settings: systemStore.settings,
+    branches: systemStore.branches,
+    posMachines: systemStore.posMachines,
+    auditLogs: systemStore.auditLogs,
+    syncLogs: systemStore.syncLogs,
+    notifications: systemStore.notifications,
+    setCurrentUser: systemStore.setCurrentUser,
+    addUser: systemStore.addUser,
+    updateUser: systemStore.updateUser,
+    deleteUser: systemStore.deleteUser,
+    addDepartment: systemStore.addDepartment,
+    updateDepartment: systemStore.updateDepartment,
+    deleteDepartment: systemStore.deleteDepartment,
+    addSystemRole: systemStore.addSystemRole,
+    updateSystemRole: systemStore.updateSystemRole,
+    deleteSystemRole: systemStore.deleteSystemRole,
+    updateSettings: systemStore.updateSettings,
+    addBranch: systemStore.addBranch,
+    updateBranch: systemStore.updateBranch,
+    deleteBranch: systemStore.deleteBranch,
+    addPos: systemStore.addPos,
+    updatePos: systemStore.updatePos,
+    deletePos: systemStore.deletePos,
+    logAction: systemStore.logAction,
+    addSyncLog: systemStore.addSyncLog,
+    addNotification: systemStore.addNotification,
+    markNotificationRead: systemStore.markNotificationRead,
+    clearAllNotifications: systemStore.clearAllNotifications,
+    restoreSystemData: systemStore.restoreSystemData,
+
+    // Inventory
+    products: inventoryStore.products,
+    units: inventoryStore.units,
+    categories: inventoryStore.categories,
+    attributes: inventoryStore.attributes,
+    addProduct: inventoryStore.addProduct,
+    updateProduct: inventoryStore.updateProduct,
+    deleteProduct: inventoryStore.deleteProduct,
+    updateProductStock: inventoryStore.updateProductStock,
+    addUnit: inventoryStore.addUnit,
+    updateUnit: inventoryStore.updateUnit,
+    deleteUnit: inventoryStore.deleteUnit,
+    addCategory: inventoryStore.addCategory,
+    updateCategory: inventoryStore.updateCategory,
+    deleteCategory: inventoryStore.deleteCategory,
+    addAttribute: inventoryStore.addAttribute,
+    updateAttribute: inventoryStore.updateAttribute,
+    deleteAttribute: inventoryStore.deleteAttribute,
+    restoreInventoryData: inventoryStore.restoreInventoryData,
+
+    // Sales
+    sales: salesStore.sales,
+    quotations: salesStore.quotations,
+    customers: salesStore.customers,
+    customerLevels: salesStore.customerLevels,
+    shifts: salesStore.shifts,
+    shiftSchedules: salesStore.shiftSchedules,
+    promotions: salesStore.promotions,
+    addSale: salesStore.addSale,
+    updateSale: salesStore.updateSale,
+    addQuotation: salesStore.addQuotation,
+    updateQuotation: salesStore.updateQuotation,
+    deleteQuotation: salesStore.deleteQuotation,
+    addCustomer: salesStore.addCustomer,
+    updateCustomer: salesStore.updateCustomer,
+    deleteCustomer: salesStore.deleteCustomer,
+    addCustomerLevel: salesStore.addCustomerLevel,
+    updateCustomerLevel: salesStore.updateCustomerLevel,
+    deleteCustomerLevel: salesStore.deleteCustomerLevel,
     startShift: startShiftAction,
     endShift: endShiftAction,
     addCashTransaction: addCashTransactionAction,
+    addShiftSchedule: salesStore.addShiftSchedule,
+    updateShiftSchedule: salesStore.updateShiftSchedule,
+    deleteShiftSchedule: salesStore.deleteShiftSchedule,
+    addPromotion: salesStore.addPromotion,
+    updatePromotion: salesStore.updatePromotion,
+    deletePromotion: salesStore.deletePromotion,
+    restoreSalesData: salesStore.restoreSalesData,
 
-    // Composite Actions
+    // Stock
+    warehouses: stockStore.warehouses,
+    locations: stockStore.locations,
+    transfers: stockStore.transfers,
+    counts: stockStore.counts,
+    reservations: stockStore.reservations,
+    receipts: stockStore.receipts,
+    adjustments: stockStore.adjustments,
+    addWarehouse: stockStore.addWarehouse,
+    updateWarehouse: stockStore.updateWarehouse,
+    deleteWarehouse: stockStore.deleteWarehouse,
+    addLocation: stockStore.addLocation,
+    updateLocation: stockStore.updateLocation,
+    deleteLocation: stockStore.deleteLocation,
+    updateDocument: stockStore.updateDocument,
+    deleteDocument: stockStore.deleteDocument,
+    restoreStockData: stockStore.restoreStockData,
+    updateTransfer, deleteTransfer, updateCount, deleteCount, updateReservation, deleteReservation,
+    updateReceipt, deleteReceipt, updateAdjustment, deleteAdjustment,
+    handleStockStatusChange,
+    
+    // Composite
     processSale,
     handleVoidSale,
     settleSaleDebt,
     processReturn,
-    handleStockStatusChange,
     handleSyncOperation,
     restoreSystemDataFull,
     
     // Helpers
     t,
-    formatPrice
+    formatPrice,
+
+    // Expenses
+    expenses: expenseStore.expenses,
+    expenseCategories: expenseStore.expenseCategories,
+    addExpense: expenseStore.addExpense,
+    updateExpense: expenseStore.updateExpense,
+    deleteExpense: expenseStore.deleteExpense,
+    addExpenseCategory: expenseStore.addExpenseCategory,
+    deleteExpenseCategory: expenseStore.deleteExpenseCategory
   };
 
   return (

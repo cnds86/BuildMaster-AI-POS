@@ -10,7 +10,7 @@ interface GeneralTabProps {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   categoryOptions: { id: string; name: string; level: number }[];
   units: UnitDefinition[];
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
   handleImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
   onAnalyzeImage?: () => void;
   isAiAnalyzing?: boolean;

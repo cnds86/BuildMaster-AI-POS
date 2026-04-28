@@ -6,7 +6,7 @@ import { CartItem, Product, HeldOrder, Customer } from '../types';
 interface CartState {
   cart: CartItem[];
   heldOrders: HeldOrder[];
-  addToCart: (product: Product, qty?: number, variantId?: string) => void;
+  addToCart: (product: Product, qty?: number, variantId?: string, overridePrice?: number) => void;
   removeFromCart: (index: number) => void;
   updateQuantity: (index: number, delta: number) => void;
   setQuantity: (index: number, quantity: number) => void;
@@ -30,7 +30,7 @@ export const useCartStore = create<CartState>()(
       heldOrders: [], 
       total: 0,
 
-      addToCart: (product, qty, variantId) => {
+      addToCart: (product, qty, variantId, overridePrice) => {
         set((state) => {
           // Logic to find price/unit based on variant
           let sellPrice = product.price;
@@ -40,10 +40,14 @@ export const useCartStore = create<CartState>()(
           if (variantId && product.variants) {
             const variant = product.variants.find((v) => v.id === variantId);
             if (variant) {
-              sellPrice = variant.price;
+              sellPrice = variant.price; 
               sellUnit = variant.name;
               conversion = variant.conversionFactor;
             }
+          }
+          
+          if (overridePrice !== undefined) {
+             sellPrice = overridePrice;
           }
 
           // Enforce MOQ on first add

@@ -26,6 +26,8 @@ import { DatabaseSettings } from './settings/DatabaseSettings';
 import { LocalizationSettings } from './settings/LocalizationSettings';
 import { CustomerDisplaySettings } from './settings/CustomerDisplaySettings';
 
+import { useGlobal } from '../context/GlobalContext';
+
 interface SettingsProps {
   settings: SystemSettings;
   onUpdateSettings: (settings: SystemSettings) => void;
@@ -36,14 +38,14 @@ interface SettingsProps {
 type SettingsTab = 'company' | 'receipt' | 'financials' | 'device' | 'database' | 'localization' | 'interface' | 'customer_display';
 
 const TABS: { id: SettingsTab; label: string; icon: any }[] = [
-  { id: 'company', label: 'Company Information', icon: Building },
-  { id: 'receipt', label: 'Receipt & Print Settings', icon: Printer },
-  { id: 'financials', label: 'Financials & Tax', icon: Percent },
-  { id: 'customer_display', label: 'Customer Display Configuration', icon: Tv },
-  { id: 'device', label: 'Device & Network (Master/Slave)', icon: Network },
-  { id: 'database', label: 'Database & Backup', icon: Database },
-  { id: 'localization', label: 'Localization & Language', icon: Globe },
-  { id: 'interface', label: 'Interface & Display', icon: LayoutList },
+  { id: 'company', label: 'settings.company', icon: Building },
+  { id: 'receipt', label: 'settings.receipt', icon: Printer },
+  { id: 'financials', label: 'settings.financials', icon: Percent },
+  { id: 'customer_display', label: 'settings.customerDisplay', icon: Tv },
+  { id: 'device', label: 'settings.device', icon: Network },
+  { id: 'database', label: 'settings.database', icon: Database },
+  { id: 'localization', label: 'settings.localization', icon: Globe },
+  { id: 'interface', label: 'settings.interface', icon: LayoutList },
 ];
 
 export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, branches = [], posMachines = [] }) => {
@@ -96,6 +98,8 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
 
   const isSaveDisabled = activeTab === 'device' && (posCheckStatus === 'taken' || posCheckStatus === 'checking');
 
+  const { t } = useGlobal();
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -119,9 +123,9 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             
-            let label = tab.label;
+            let label = t(tab.label, tab.label);
             if (tab.id === 'database') {
-                label = 'Database & Backup';
+                label = t('settings.database', 'Database & Backup');
             }
 
             return (

@@ -20,6 +20,8 @@ import { ReportsManagement } from './components/ReportsManagement';
 import { UserProfile } from './components/UserProfile';
 import { SalesHistory } from './components/SalesHistory';
 import { QuotationsManagement } from './components/QuotationsManagement';
+import { DeliveryDashboard } from './components/delivery/DeliveryDashboard';
+import { ExpenseManagement } from './components/ExpenseManagement';
 import { LoginPage } from './components/LoginPage';
 import { useGlobal } from './context/GlobalContext';
 import { UserRole } from './types';
@@ -31,9 +33,11 @@ const PERMISSIONS: Record<string, UserRole[]> = {
   'pos': ['Admin', 'Manager', 'Staff', 'Cashier'],
   'shifts': ['Admin', 'Manager', 'Staff', 'Cashier'],
   'sales': ['Admin', 'Manager', 'Cashier'],
+  'expenses': ['Admin', 'Manager', 'Cashier'],
   'quotations': ['Admin', 'Manager', 'Cashier'],
   'inventory': ['Admin', 'Manager', 'Staff'],
   'stock': ['Admin', 'Manager', 'Staff'],
+  'delivery': ['Admin', 'Manager', 'Staff'],
   'customers': ['Admin', 'Manager', 'Cashier', 'Staff'],
   'approvals': ['Admin', 'Manager'],
   'promotions': ['Admin', 'Manager', 'Staff'],
@@ -62,6 +66,7 @@ function App() {
     handleStockStatusChange, handleSyncOperation,
     startShift, endShift,
     addPromotion, updatePromotion, deletePromotion,
+    expenses, expenseCategories,
     settings, updateSettings,
     t, handleVoidSale, settleSaleDebt
   } = useGlobal();
@@ -107,9 +112,11 @@ function App() {
       {activeTab === 'pos' && <PosTerminal products={products} onProcessSale={processSale} settings={settings} />}
       {activeTab === 'shifts' && <ShiftManagement shifts={shifts} branches={branches} users={users} currentUser={currentUser} onStartShift={startShift} onEndShift={endShift} />}
       {activeTab === 'sales' && <SalesHistory sales={sales} onVoidSale={handleVoidSale} />}
+      {activeTab === 'expenses' && <ExpenseManagement expenses={expenses} categories={expenseCategories} users={users} branches={branches} />}
       {activeTab === 'quotations' && <QuotationsManagement />} 
       {activeTab === 'inventory' && <Inventory products={products} units={units} categories={categories} warehouses={warehouses} sales={sales} onAddProduct={addProduct} onUpdateProduct={updateProduct} onDeleteProduct={deleteProduct} />}
       {activeTab === 'stock' && <StockManagement warehouses={warehouses} products={products} transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} defaultItemsPerPage={settings.defaultItemsPerPage} onUpdateTransfer={updateTransfer} onUpdateCount={updateCount} onUpdateReservation={updateReservation} onUpdateReceipt={updateReceipt} onUpdateAdjustment={updateAdjustment} onDeleteTransfer={deleteTransfer} onDeleteCount={deleteCount} onDeleteReservation={deleteReservation} onDeleteReceipt={deleteReceipt} onDeleteAdjustment={deleteAdjustment} onStatusChange={handleStockStatusChange} />}
+      {activeTab === 'delivery' && <DeliveryDashboard />}
       {activeTab === 'approvals' && <ApprovalManagement transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} warehouses={warehouses} onStatusChange={handleStockStatusChange} />}
       {activeTab === 'promotions' && <PromotionsManagement promotions={promotions} onAddPromotion={addPromotion} onUpdatePromotion={updatePromotion} onDeletePromotion={deletePromotion} />}
       {activeTab === 'customers' && <CustomerManagement customers={customers} sales={sales} onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer} />}

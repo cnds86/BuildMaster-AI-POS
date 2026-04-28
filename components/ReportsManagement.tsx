@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Users,
   Clock,
+  Wallet,
 } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
 
@@ -23,10 +24,10 @@ interface ReportsManagementProps {
   products: Product[];
 }
 
-type ReportType = 'sales' | 'inventory' | 'low-stock' | 'staff' | 'hourly';
+type ReportType = 'sales' | 'inventory' | 'low-stock' | 'staff' | 'hourly' | 'expenses';
 
 export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, products }) => {
-  const { formatPrice } = useGlobal();
+  const { formatPrice, expenses, expenseCategories } = useGlobal();
   const [activeTab, setActiveTab] = useState<ReportType>('sales');
   
   // Date Filters
@@ -150,6 +151,41 @@ export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, pro
     return hours;
   }, [filteredSales]);
 
+  // --- Expense Report Logic ---
+  const expenseReportData = useMemo(() => {
+    const dailyData = new Map<string, { date: string; amount: number }>();
+    let totalExpenses = 0;
+    const categoryTotals: Record<string, number> = {};
+
+    const filteredExpenses = expenses.filter(e => {
+      const d = new Date(e.date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      return d >= start && d <= end;
+    });
+
+    filteredExpenses.forEach(exp => {
+      const dateKey = new Date(exp.date).toLocaleDateString('en-US');
+      totalExpenses += exp.amount;
+      
+      const existing = dailyData.get(dateKey) || { date: dateKey, amount: 0 };
+      existing.amount += exp.amount;
+      dailyData.set(dateKey, existing);
+
+      categoryTotals[exp.categoryId] = (categoryTotals[exp.categoryId] || 0) + exp.amount;
+    });
+
+    const chartData = Array.from(dailyData.values()).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    return { 
+      totalExpenses, 
+      categoryTotals, 
+      chartData,
+      categories: expenseCategories
+    };
+  }, [expenses, expenseCategories, startDate, endDate]);
+
   // --- CSV Export Logic ---
   const handleExport = () => {
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -228,6 +264,12 @@ export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, pro
             <Clock className="w-4 h-4 mr-2" /> Hourly
           </button>
           <button
+            onClick={() => setActiveTab('expenses')}
+            className={`flex items-center px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'expenses' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <Wallet className="w-4 h-4 mr-2" /> Expenses
+          </button>
+          <button
             onClick={() => setActiveTab('inventory')}
             className={`flex items-center px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'inventory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
@@ -278,6 +320,26 @@ export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, pro
 
       {activeTab === 'hourly' && (
          <HourlyTraffic data={hourlyReportData} formatPrice={formatPrice} />
+      )}
+
+      {activeTab === 'expenses' && (
+         <div className="space-y-6 animate-fade-in">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-sm text-slate-500 font-medium mb-1">Total Period Expenses</p>
+                  <h3 className="text-3xl font-bold text-red-600">{formatPrice(expenseReportData.totalExpenses)}</h3>
+               </div>
+               <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <p className="text-sm text-slate-500 font-medium mb-1">Operating Profit (Revenue - Expense)</p>
+                  <h3 className="text-3xl font-bold text-slate-800">{formatPrice(salesReportData.totalRevenue - expenseReportData.totalExpenses)}</h3>
+               </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-[400px]">
+               <h4 className="font-bold text-slate-700 mb-6">Expense Trend</h4>
+               <SalesAnalytics data={{ ...salesReportData, chartData: expenseReportData.chartData.map(d => ({ ...d, revenue: d.amount, profit: 0 })) }} formatPrice={formatPrice} />
+            </div>
+         </div>
       )}
 
       {(activeTab === 'inventory' || activeTab === 'low-stock') && (

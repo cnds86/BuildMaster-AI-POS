@@ -3,6 +3,8 @@ import React from 'react';
 import { Sale, SystemSettings } from '../../types';
 import { CheckCircle, X, Printer, Plus } from 'lucide-react';
 import { PrintableReceipt } from '../shared/PrintableReceipt';
+import { usePrint } from '../../lib/usePrint';
+import { IframePrintWarning } from '../shared/IframePrintWarning';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -12,6 +14,8 @@ interface ReceiptModalProps {
 }
 
 export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, sale, settings }) => {
+  const { showIframeWarning, setShowIframeWarning, handlePrint } = usePrint();
+
   if (!isOpen || !sale) return null;
 
   return (
@@ -22,12 +26,14 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, sal
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         
+        <IframePrintWarning show={showIframeWarning} onDismiss={() => setShowIframeWarning(false)} />
+
         <div className="p-6 bg-slate-50 flex-1 overflow-y-auto max-h-[60vh] print:p-0 print:max-h-none print:overflow-visible">
           <PrintableReceipt sale={sale} settings={settings} />
         </div>
 
         <div className="p-4 bg-white border-t border-slate-100 flex gap-3 print:hidden">
-          <button onClick={() => window.print()} className="flex-1 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold hover:bg-slate-50 flex items-center justify-center transition-colors">
+          <button onClick={handlePrint} className="flex-1 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg font-bold hover:bg-slate-50 flex items-center justify-center transition-colors">
             <Printer className="w-5 h-5 mr-2" /> Print
           </button>
           <button onClick={onClose} className="flex-1 py-3 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 flex items-center justify-center transition-colors">
@@ -38,3 +44,4 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ isOpen, onClose, sal
     </div>
   );
 };
+

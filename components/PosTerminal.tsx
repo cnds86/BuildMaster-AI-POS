@@ -36,7 +36,7 @@ interface PosTerminalProps {
 }
 
 export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSale, settings }) => {
-  const { customers, customerLevels, t, branches, warehouses, currentUser, formatPrice, categories } = useGlobal();
+  const { customers, customerLevels, t, branches, warehouses, currentUser, formatPrice, categories, shifts, startShift, posMachines, promotions } = useGlobal();
   const { 
     cart, addToCart, clearCart,
     heldOrders, holdCurrentOrder, recallOrder, discardHeldOrder
@@ -54,6 +54,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [productForSelector, setProductForSelector] = useState<Product | null>(null);
+
+  // Shift & Cash Drawer State
+  const activeShift = useMemo(() => {
+    return shifts?.find(s => s.userId === currentUser?.id && s.status === 'Open');
+  }, [shifts, currentUser]);
+  const [startCashValue, setStartCashValue] = useState<string>('');
+  const [selectedPosId, setSelectedPosId] = useState<string>(settings?.currentPosId || '');
 
   // Transaction State
   const [manualDiscount, setManualDiscount] = useState<{ type: 'percent' | 'fixed', value: number } | null>(null);
@@ -128,13 +135,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     } else {
       // Calculate price immediately
       const price = getDynamicPrice(product);
-      addToCart({ ...product, price }, 1);
+      addToCart(product, 1, undefined, price);
     }
   };
 
   const handleConfirmSelection = (product: Product, quantity: number, variantId?: string) => {
     const price = getDynamicPrice(product, variantId);
-    addToCart({ ...product, price }, quantity, variantId);
+    addToCart(product, quantity, variantId, price);
     setProductForSelector(null);
   };
 
@@ -145,7 +152,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   }, [selectedCustomer, customerLevels]);
 
   const rawSubtotal = cart.reduce((sum, item) => sum + (item.sellPrice * item.quantity), 0);
-  const customerDiscountAmount = 0; 
+  const customerDiscountAmount = 0; // Already in sellPrice
 
   let manualDiscountAmount = 0;
   if (manualDiscount) {
@@ -159,7 +166,52 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const redeemRate = settings?.loyaltyProgram?.redeemRate || 100;
   const loyaltyDiscountAmount = redeemPoints > 0 ? redeemPoints / redeemRate : 0;
 
-  let discountAmount = Math.min(customerDiscountAmount + manualDiscountAmount + loyaltyDiscountAmount, rawSubtotal);
+  // --- Automated Promotions ---
+  const autoDiscountAmount = useMemo(() => {
+    let totalAutoDiscount = 0;
+    
+    // Get valid/active promotions
+    const now = new Date();
+    const activePromos = promotions?.filter(p => {
+       if (!p.isActive || !p.type || !p.value) return false;
+       if (p.startDate && new Date(p.startDate) > now) return false;
+       if (p.endDate) {
+          const end = new Date(p.endDate);
+          end.setHours(23, 59, 59, 999);
+          if (now > end) return false;
+       }
+       return true;
+    }) || [];
+
+    activePromos.forEach(promo => {
+       // Type 1: Amount Off Order
+       if (promo.type === 'amount_off_order') {
+          if (!promo.minOrderAmount || rawSubtotal >= promo.minOrderAmount) {
+             totalAutoDiscount += promo.value || 0;
+          }
+       }
+       // Type 2: Percent Off Order
+       else if (promo.type === 'percent_off_order') {
+          if (!promo.minOrderAmount || rawSubtotal >= promo.minOrderAmount) {
+             totalAutoDiscount += rawSubtotal * ((promo.value || 0) / 100);
+          }
+       }
+       // Type 3: Product Discount
+       else if (promo.type === 'product_discount' && promo.validProductIds && promo.validProductIds.length > 0) {
+          cart.forEach(item => {
+             if (promo.validProductIds?.includes(item.id)) {
+                // Determine if value is percentage (<= 100) or flat amount. Assume flat amount for specific product discounts unless otherwise stated. Let's simplify and make it flat amount discount * item.quantity for now
+                const itemDiscount = (promo.value || 0) * item.quantity;
+                totalAutoDiscount += Math.min(itemDiscount, item.sellPrice * item.quantity); // Cannot exceed item total
+             }
+          });
+       }
+    });
+
+    return totalAutoDiscount;
+  }, [cart, rawSubtotal, promotions]);
+
+  let discountAmount = Math.min(customerDiscountAmount + manualDiscountAmount + loyaltyDiscountAmount + autoDiscountAmount, rawSubtotal);
   let discountedSubtotal = rawSubtotal - discountAmount;
 
   let taxAmount = 0;
@@ -223,11 +275,35 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
      setRedeemPoints(0);
   }, [selectedCustomer]);
 
-  // --- Keyboard Shortcuts ---
+  // --- Keyboard Shortcuts & Barcode Interceptor ---
   useEffect(() => {
+    let barcodeBuffer = '';
+    let barcodeTimeout: ReturnType<typeof setTimeout>;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       
+      // Ignore if typing inside input/textarea (but allow barcode scanner if it types fast)
+      // Usually, scanners type faster than humas (< 30ms per char).
+      // If target is an input, we might still want to intercept if they blindly scan.
+      // But let's build the buffer anyway.
+      
+      if (e.key.length === 1) {
+        barcodeBuffer += e.key;
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = setTimeout(() => {
+          barcodeBuffer = '';
+        }, 50); // Scanners typically send characters very fast
+      } else if (e.key === 'Enter') {
+        if (barcodeBuffer.length > 3) {
+          // It's likely a barcode scan
+          e.preventDefault();
+          performScan(barcodeBuffer);
+          barcodeBuffer = '';
+          return;
+        }
+      }
+
       if (e.key === 'F4') {
         e.preventDefault();
         setIsCustomerModalOpen(true);
@@ -272,7 +348,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+       window.removeEventListener('keydown', handleKeyDown);
+       clearTimeout(barcodeTimeout);
+    };
   }, [
     cart.length, 
     isCheckoutOpen, 
@@ -283,10 +362,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     isAiModalOpen, 
     isScannerOpen,
     isCartOpen,
-    productForSelector
+    productForSelector,
+    branchProducts // Needed for performScan inside the effect closure if we don't decouple it or use ref. Actually, performScan is defined outside. Let's make sure it updates.
   ]);
 
-  const performScan = (code: string) => {
+  const performScan = useCallback((code: string) => {
     // CRITICAL: Always close scanner first to prevent frozen video
     setIsScannerOpen(false);
 
@@ -302,7 +382,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         );
         if (variantMatch) {
           const price = getDynamicPrice(p, variantMatch.id);
-          addToCart({ ...p, price }, 1, variantMatch.id);
+          addToCart(p, 1, variantMatch.id, price);
           setSearchTerm(''); // Clear for next scan
           productFound = true;
           break; // Exit loop
@@ -338,7 +418,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
            alert(`Product not found: ${code}`);
         }, 300);
     }
-  };
+  }, [branchProducts, addToCart, customerLevels, selectedCustomer]);
 
   const handleAiItemsAdded = (items: EstimateResultItem[]) => {
     items.forEach(est => {
@@ -346,7 +426,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         const product = branchProducts.find(p => p.id === est.matchedProductId);
         if (product) {
            const price = getDynamicPrice(product);
-           addToCart({ ...product, price }, Math.ceil(est.estimatedQuantity), undefined);
+           addToCart(product, Math.ceil(est.estimatedQuantity), undefined, price);
         }
       }
     });
@@ -416,6 +496,82 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         };
      });
   }, [branchProducts, selectedCustomer, customerLevels]);
+
+  const handleStartShift = () => {
+    const amount = parseFloat(startCashValue.replace(/,/g, ''));
+    if (isNaN(amount) || amount < 0) {
+      alert("Please enter a valid starting cash amount.");
+      return;
+    }
+    
+    // Ensure POS Machine is selected if there are any available for this branch
+    const branchPosMachines = posMachines.filter(p => p.branchId === activeBranchId);
+    if (branchPosMachines.length > 0 && !selectedPosId) {
+      alert("Please select a POS Machine.");
+      return;
+    }
+
+    startShift(activeBranchId, amount, "Shift opened from POS Terminal", selectedPosId);
+  };
+
+  // Guard: Restrict POS access if no active shift
+  if (!activeShift) {
+    const branchPosMachines = posMachines.filter(p => p.branchId === activeBranchId);
+    
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-50 md:-m-6 px-4">
+        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+          <div className="w-20 h-20 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Monitor className="w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Open Register</h2>
+          <p className="text-slate-500 mb-8">You must open a shift and declare starting cash before you can process sales.</p>
+          
+          <div className="space-y-5 text-left">
+            {branchPosMachines.length > 0 && (
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Select POS Machine</label>
+                <select 
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-slate-50"
+                  value={selectedPosId}
+                  onChange={(e) => setSelectedPosId(e.target.value)}
+                >
+                  <option value="">-- Select POS --</option>
+                  {branchPosMachines.map(pos => (
+                    <option key={pos.id} value={pos.id}>{pos.machineNumber}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Starting Cash in Drawer</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">
+                  {settings?.currencySymbol || '$'}
+                </span>
+                <input 
+                  type="text" 
+                  className="w-full pl-8 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-xl font-bold bg-slate-50"
+                  value={startCashValue}
+                  onChange={(e) => setStartCashValue(e.target.value)}
+                  placeholder="0.00"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <button 
+              onClick={handleStartShift}
+              className="w-full py-3 mt-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md"
+            >
+              Open Shift & Start Selling
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-full overflow-hidden bg-white md:-m-6">
@@ -505,6 +661,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
             onDiscountClick={() => setIsDiscountModalOpen(true)}
             subtotal={rawSubtotal}
             discount={discountAmount}
+            autoDiscount={autoDiscountAmount}
             tax={taxAmount}
             total={finalTotal}
             roundingDifference={roundingDifference}

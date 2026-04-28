@@ -1,8 +1,12 @@
 
 import React, { useState } from 'react';
 import { Sale, SystemSettings } from '../../types';
-import { XCircle, RotateCcw, Wallet, DollarSign, Reply, Ban, Printer, CheckCircle, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { XCircle, RotateCcw, Wallet, DollarSign, Reply, Ban, Printer, CheckCircle, CreditCard, Banknote, QrCode, Truck } from 'lucide-react';
 import { PrintableReceipt } from '../shared/PrintableReceipt';
+import { DeliveryFormModal } from '../delivery/DeliveryFormModal';
+import { useDeliveryStore } from '../../store/useDeliveryStore';
+import { usePrint } from '../../lib/usePrint';
+import { IframePrintWarning } from '../shared/IframePrintWarning';
 
 interface SaleDetailModalProps {
   sale: Sale | null;
@@ -21,8 +25,12 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
 }) => {
   const [isReturnMode, setIsReturnMode] = useState(false);
   const [isSettleMode, setIsSettleMode] = useState(false);
+  const [isDeliveryModalOpen, setIsDeliveryModalOpen] = useState(false);
   const [returnQuantities, setReturnQuantities] = useState<Record<number, number>>({});
   
+  const { addDelivery } = useDeliveryStore();
+  const { showIframeWarning, setShowIframeWarning, handlePrint } = usePrint();
+
   // Settle Debt State
   const [settleAmountStr, setSettleAmountStr] = useState('');
   const [settleMethod, setSettleMethod] = useState<'cash' | 'transfer' | 'qr'>('cash');
@@ -91,10 +99,6 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
      onClose();
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Format Date for UI (e.g. 14/12/2025, 23:24:50)
   const formattedDate = new Date(sale.date).toLocaleString('en-GB', {
     day: '2-digit', month: '2-digit', year: 'numeric',
@@ -118,6 +122,8 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
           </button>
         </div>
         
+        <IframePrintWarning show={showIframeWarning} onDismiss={() => setShowIframeWarning(false)} />
+
         {/* Screen View */}
         <div className="p-6 overflow-y-auto flex-1 bg-white print:hidden">
            
@@ -142,6 +148,19 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
                        {sale.status === 'voided' ? 'Voided' : sale.paymentStatus || 'Paid'}
                     </span>
                  </div>
+                 
+                 {/* Delivery Info */}
+                 {useDeliveryStore.getState().deliveries.find(d => d.saleId === sale.id) && (
+                   <div className="col-span-2 mt-2 p-3 bg-indigo-50 rounded-lg flex justify-between items-center border border-indigo-100">
+                     <div className="flex items-center text-indigo-800">
+                       <Truck className="w-4 h-4 mr-2" />
+                       <span className="font-medium text-sm">Delivery Scheduled</span>
+                     </div>
+                     <span className="text-xs font-bold px-2 py-1 bg-white text-indigo-700 rounded border border-indigo-200">
+                       {useDeliveryStore.getState().deliveries.find(d => d.saleId === sale.id)?.status}
+                     </span>
+                   </div>
+                 )}
               </div>
            )}
 
@@ -251,10 +270,10 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
                      <span>Subtotal</span>
                      <span className="text-slate-800">{formatPrice(sale.subtotal || sale.total)}</span>
                   </div>
-                  {sale.discountAmount > 0 && (
+                  {(sale.discountAmount || 0) > 0 && (
                     <div className="flex justify-between items-center text-sm font-medium text-green-600">
                        <span>Discount</span>
-                       <span>-{formatPrice(sale.discountAmount)}</span>
+                       <span>-{formatPrice(sale.discountAmount || 0)}</span>
                     </div>
                   )}
                   {sale.taxAmount && sale.taxAmount > 0 && (
@@ -292,18 +311,24 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
                  )}
 
                  {sale.status !== 'voided' && sale.type !== 'return' && isAdminOrManager && (
-                    <div className="grid grid-cols-2 gap-4 mb-2">
+                    <div className="grid grid-cols-3 gap-4 mb-2">
                        <button 
                           onClick={toggleReturnMode}
                           className="py-3 px-4 border border-slate-300 text-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-slate-50 flex items-center justify-center transition-colors"
                        >
-                          <Reply className="w-4 h-4 mr-2" /> RETURN / REFUND
+                          <Reply className="w-4 h-4 mr-2" /> RETURN
+                       </button>
+                       <button 
+                          onClick={() => setIsDeliveryModalOpen(true)}
+                          className="py-3 px-4 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-indigo-100 flex items-center justify-center transition-colors"
+                       >
+                          <Truck className="w-4 h-4 mr-2" /> DELIVERY
                        </button>
                        <button 
                           onClick={onVoid}
                           className="py-3 px-4 bg-red-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-700 flex items-center justify-center transition-colors shadow-sm"
                        >
-                          <Ban className="w-4 h-4 mr-2" /> VOID TRANSACTION
+                          <Ban className="w-4 h-4 mr-2" /> VOID
                        </button>
                     </div>
                  )}
@@ -368,6 +393,16 @@ export const SaleDetailModal: React.FC<SaleDetailModalProps> = ({
            )}
         </div>
       </div>
+
+      <DeliveryFormModal 
+        isOpen={isDeliveryModalOpen}
+        onClose={() => setIsDeliveryModalOpen(false)}
+        sale={sale}
+        onSubmit={(delivery) => {
+          addDelivery(delivery);
+          alert('Delivery scheduled successfully!');
+        }}
+      />
     </div>
   );
 };
