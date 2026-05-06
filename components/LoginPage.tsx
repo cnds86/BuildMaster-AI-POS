@@ -24,28 +24,7 @@ export const LoginPage: React.FC = () => {
       const cleanUsername = loginUsername.trim().toLowerCase();
       const cleanPassword = loginPassword.trim();
 
-      // 1. Client-Side Check (Fastest, supports session-created users)
-      const clientMatch = users.find(u => 
-        u.username.toLowerCase() === cleanUsername
-      );
-      
-      if (clientMatch && clientMatch.password) {
-        // Verify against the hash stored in client state
-        const isValid = verifyPasswordSync(cleanPassword, clientMatch.password);
-        
-        if (isValid) {
-          // Set cookie for middleware access
-          document.cookie = `user_role=${clientMatch.role}; path=/; max-age=86400`;
-          
-          await new Promise(resolve => setTimeout(resolve, 600));
-          const { password, ...safeUser } = clientMatch;
-          setCurrentUser(safeUser as any);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 2. Server-Side / API Check (Robust auth)
+      // 1. Server-Side / API Check (Robust auth)
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -60,9 +39,28 @@ export const LoginPage: React.FC = () => {
             setLoading(false);
             return;
           }
+        } else {
+           console.warn(`API returned ${res.status}`);
         }
       } catch (apiError) {
         console.warn("API Login failed, attempting local fallback only", apiError);
+      }
+
+      // 2. Client-Side Check (Fallback)
+      const clientMatch = users.find(u => 
+        u.username.toLowerCase() === cleanUsername
+      );
+      
+      if (clientMatch && clientMatch.password) {
+        const isValid = verifyPasswordSync(cleanPassword, clientMatch.password);
+        if (isValid) {
+          document.cookie = `user_role=${clientMatch.role}; path=/; max-age=86400`;
+          await new Promise(resolve => setTimeout(resolve, 600));
+          const { password, ...safeUser } = clientMatch;
+          setCurrentUser(safeUser as any);
+          setLoading(false);
+          return;
+        }
       }
 
       throw new Error('Invalid username or password');
