@@ -6,6 +6,8 @@ import { jwt } from '@elysiajs/jwt'
 import { db } from './db.js'
 import { authRoutes, ROLES } from './plugins/auth.js'
 import { aiRoutes } from './routes/ai.js'
+import { logRoutes } from './plugins/logging.js'
+import { errorHandler } from './plugins/error-handler.js'
 import 'dotenv/config'
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -17,6 +19,8 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h'
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 const app = new Elysia()
+  // ── Global Error Handler (must be first) ──────────────────────────────────────
+  .use(errorHandler)
   // ── Global Middleware ──────────────────────────────────────────────────────
   .use(cors({ origin: CORS_ORIGIN, credentials: true }))
   .use(cookie())
@@ -35,25 +39,89 @@ const app = new Elysia()
   // ── Auth Routes ────────────────────────────────────────────────────────────
   .use(authRoutes)
 
-  // ── Health Check ───────────────────────────────────────────────────────────
-  .get('/api/health', () => ({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    environment: process.env.NODE_ENV || 'development',
-  }))
-
-  // ── Protected API Routes ───────────────────────────────────────────────────
+  // ── Protected API Routes ──────────────────────────────────────────────────
   .group('/api', (app) =>
     app
-      // Products
-      .get('/products', async () => {
+      // Health Check
+      .get('/health', () => ({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0',
+        environment: process.env.NODE_ENV || 'development',
+      }))
+
+      // Products — with optional filtering & pagination
+      .get('/products', async ({ query: { category, low_stock, search, page = '1', limit = '50' } }) => {
         try {
-          const products = await db.selectFrom('products').selectAll().where('active', '=', true).execute()
+          const pageNum = Math.max(1, parseInt(page as string, 10) || 1)
+          const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 50))
+          const offset = (pageNum - 1) * limitNum
+
+          let q = db.selectFrom('products').selectAll().where('active', '=', true)
+
+          if (low_stock === 'true' || low_stock === '1') {
+            // Low stock = stock < min_stock when min_stock is set,
+            // OR stock < 20 when min_stock is NULL
+            q = q.where((eb) => eb.or([
+              eb('stock', '<', eb.ref('min_stock')),
+              eb.and([eb('stock', '<', 20), eb('min_stock', 'is', null)]),
+            ]))
+          }
+
+          if (category) {
+            q = q.where('category', '=', category as string)
+          }
+
+          if (search) {
+            q = q.where((eb) => eb.or([
+              eb('name', 'ilike', `%${search}%`),
+              eb('sku', 'ilike', `%${search}%`),
+              eb('category', 'ilike', `%${search}%`),
+            ]))
+          }
+
+          const products = await q.orderBy('name', 'asc').limit(limitNum).offset(offset).execute()
+          return { products, page: pageNum, limit: limitNum }
+        } catch (err) {
+          console.error('DB error:', err)
+          return { products: [], error: 'Database unavailable' }
+        }
+      })
+
+      // Low-stock products — dedicated endpoint
+      .get('/products/low-stock', async () => {
+        try {
+          const products = await db
+            .selectFrom('products')
+            .selectAll()
+            .where('active', '=', true)
+            .where((eb) => eb.or([
+              eb('stock', '<', eb.ref('min_stock')),
+              eb.and([eb('stock', '<', 20), eb('min_stock', 'is', null)]),
+            ]))
+            .orderBy('stock', 'asc')
+            .execute()
           return { products }
         } catch (err) {
           console.error('DB error:', err)
           return { products: [], error: 'Database unavailable' }
+        }
+      })
+
+      // Categories — distinct product categories
+      .get('/categories', async () => {
+        try {
+          const result = await db
+            .selectFrom('products')
+            .select(['category'])
+            .distinct()
+            .where('active', '=', true)
+            .orderBy('category', 'asc')
+            .execute()
+          return { categories: result.map(r => r.category).filter(Boolean) }
+        } catch (err) {
+          console.error('DB error:', err)
+          return { categories: [], error: 'Database error' }
         }
       })
 
@@ -102,6 +170,137 @@ const app = new Elysia()
             .execute()
           return { shifts }
         } catch { set.status = 500; return { error: 'Failed to fetch shifts' } }
+      })
+
+      // Customers
+      .get('/customers', async () => {
+        try {
+          const customers = await db
+            .selectFrom('customers')
+            .selectAll()
+            .where('active', '=', true)
+            .orderBy('name', 'asc')
+            .execute()
+          return { customers }
+        } catch (err) {
+          console.error('DB error:', err)
+          return { customers: [], error: 'Database error' }
+        }
+      })
+
+      .get('/customers/:id', async ({ params: { id } }) => {
+        try {
+          const customer = await db
+            .selectFrom('customers')
+            .selectAll()
+            .where('id', '=', id)
+            .where('active', '=', true)
+            .executeTakeFirst()
+          if (!customer) return { error: 'Not found' }
+          return { customer }
+        } catch { return { error: 'Database error' } }
+      })
+
+      // Orders (Sales)
+      .get('/orders', async ({ query: { status, customer_id, date_from, date_to, page = '1', limit = '50' }, jwt: jwtFn, cookie: { auth_token } }) => {
+        try {
+          const pageNum = Math.max(1, parseInt(page as string, 10) || 1)
+          const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10) || 50))
+          const offset = (pageNum - 1) * limitNum
+
+          let q = db.selectFrom('sales').selectAll()
+
+          if (status) {
+            q = q.where('status', '=', status as string)
+          }
+
+          if (customer_id) {
+            q = q.where('customer_id', '=', customer_id as string)
+          }
+
+          if (date_from) {
+            q = q.where('created_at', '>=', new Date(date_from as string))
+          }
+
+          if (date_to) {
+            const endDate = new Date(date_to as string)
+            endDate.setDate(endDate.getDate() + 1)
+            q = q.where('created_at', '<', endDate)
+          }
+
+          const [orders, countResult] = await Promise.all([
+            q.orderBy('created_at', 'desc').limit(limitNum).offset(offset).execute(),
+            db.selectFrom('sales').select((e) => e.fn.count('id').as('count')).executeTakeFirst(),
+          ])
+
+          return {
+            orders,
+            total: Number(countResult?.count ?? 0),
+            page: pageNum,
+            limit: limitNum,
+          }
+        } catch (err) {
+          console.error('DB error:', err)
+          return { orders: [], error: 'Database error' }
+        }
+      })
+
+      .get('/orders/:id', async ({ params: { id } }) => {
+        try {
+          const order = await db.selectFrom('sales').selectAll().where('id', '=', id).executeTakeFirst()
+          if (!order) return { error: 'Not found' }
+
+          const items = await db
+            .selectFrom('sale_items')
+            .selectAll()
+            .where('sale_id', '=', id)
+            .execute()
+
+          return { order, items }
+        } catch { return { error: 'Database error' } }
+      })
+
+      // Recalculate order totals (fix rounding errors)
+      .post('/orders/recalculate', async ({ body, set }) => {
+        try {
+          const { order_id } = body as { order_id: string }
+          if (!order_id) { set.status = 400; return { error: 'order_id required' } }
+
+          const order = await db.selectFrom('sales').selectAll().where('id', '=', order_id).executeTakeFirst()
+          if (!order) { set.status = 404; return { error: 'Order not found' } }
+
+          const items = await db
+            .selectFrom('sale_items')
+            .selectAll()
+            .where('sale_id', '=', order_id)
+            .execute()
+
+          // Recalculate subtotal and totals
+          const subtotal = items.reduce((sum, item) => sum + (item.sell_price * item.quantity), 0)
+          const tax_amount = Math.round(subtotal * 0.07 * 100) / 100
+          const discount_amount = order.discount_amount ?? 0
+          const total = Math.round((subtotal + tax_amount - discount_amount) * 100) / 100
+
+          await db
+            .updateTable('sales')
+            .set({ subtotal, tax_amount, total })
+            .where('id', '=', order_id)
+            .execute()
+
+          return {
+            order_id,
+            subtotal,
+            tax_amount,
+            discount_amount,
+            total,
+            recalculated: true,
+          }
+        } catch (err) {
+          console.error('Recalculate error:', err)
+          return { error: 'Failed to recalculate' }
+        }
+      }, {
+        body: t.Object({ order_id: t.String() }),
       })
 
       // Shifts — open new shift
@@ -155,6 +354,9 @@ const app = new Elysia()
 
   // ── AI Routes (server-side Gemini proxy) ────────────────────────────────────
   .use(aiRoutes)
+
+  // ── Request Logging Routes ────────────────────────────────────────────────────
+  .use(logRoutes)
 
   // ── SPA Fallback ───────────────────────────────────────────────────────────
   .get('*', () => new Response(Bun.file('./dist/index.html'), {
