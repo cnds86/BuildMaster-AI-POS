@@ -1,10 +1,10 @@
-import { Product, Category, Sale, UnitDefinition, VariantAttribute, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion, AuditLog, Department, SystemRole } from '../types';
+import { Product, Category, Sale, UnitDefinition, VariantAttribute, CategoryItem, Branch, PosMachine, Warehouse, StorageLocation, StockTransfer, StockCount, StockReservation, StockReceipt, StockAdjustment, User, SystemSettings, SyncLog, Customer, CustomerLevel, ShiftSchedule, Promotion, AuditLog, Department, SystemRole, Shift } from '../types';
 
 export const INITIAL_USERS: User[] = [
-  { id: 'u1', username: 'admin', password: '123', name: 'Owner Admin', role: 'Admin', email: 'admin@buildmaster.com', branchId: 'b1', department: 'Management' },
-  { id: 'u2', username: 'manager', password: '123', name: 'Manager Somchai', role: 'Manager', email: 'manager@buildmaster.com', branchId: 'b1', department: 'Operations' },
-  { id: 'u3', username: 'staff', password: '123', name: 'Staff Somsri', role: 'Staff', branchId: 'b1', department: 'Warehouse' },
-  { id: 'u4', username: 'cashier', password: '123', name: 'Cashier Noi', role: 'Cashier', branchId: 'b1', department: 'Sales' },
+  { id: 'u1', username: 'admin', password: '123', name: 'Owner Admin', role: 'ADMIN', email: 'admin@buildmaster.com', branchId: 'b1', department: 'Management' },
+  { id: 'u2', username: 'manager', password: '123', name: 'Manager Somchai', role: 'MANAGER', email: 'manager@buildmaster.com', branchId: 'b1', department: 'Operations' },
+  { id: 'u3', username: 'staff', password: '123', name: 'Staff Somsri', role: 'STAFF', branchId: 'b1', department: 'Warehouse' },
+  { id: 'u4', username: 'cashier', password: '123', name: 'Cashier Noi', role: 'CASHIER', branchId: 'b1', department: 'Sales' },
 ];
 
 export const INITIAL_DEPARTMENTS: Department[] = [
@@ -453,6 +453,32 @@ const generateHistoricalSales = (count: number): Sale[] => {
   // Sort by date descending
   return sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
+
+// Initial shifts for Zustand store (userId matches INITIAL_USERS u1/u4)
+export const INITIAL_SHIFTS: Shift[] = [
+  {
+    id: 'sh-init-001',
+    userId: 'u1',           // admin (matches INITIAL_USERS)
+    userName: 'Owner Admin',
+    branchId: 'b1',
+    posId: '',
+    startTime: new Date(Date.now() - 2 * 3600000).toISOString(),
+    startCash: 1000000,
+    notes: 'Morning shift opened',
+    status: 'Open'
+  },
+  {
+    id: 'sh-init-002',
+    userId: 'u4',           // cashier (matches INITIAL_USERS)
+    userName: 'Cashier Noi',
+    branchId: 'b1',
+    posId: 'pos-001',
+    startTime: new Date(Date.now() - 6 * 3600000).toISOString(),
+    startCash: 500000,
+    notes: 'Morning shift',
+    status: 'Open'
+  }
+];
 
 export const INITIAL_SALES: Sale[] = generateHistoricalSales(150); // Generate 150 historical sales
 

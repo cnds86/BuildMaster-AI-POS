@@ -1,13 +1,9 @@
 import { Kysely, PostgresDialect } from 'kysely'
-import pkg from 'pg'
-import dotenv from 'dotenv'
-import type { Database } from './types/db' // Your generated/manual types
+import { Pool } from 'pg'
+import 'dotenv/config'
+import type { Database } from './types/db'
 
-dotenv.config()
-const { Pool } = pkg
-
-// Fallback to avoid crashing if no DATABASE_URL is set
-const connectionString = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/mahaxay_pos'
+const connectionString = process.env.DATABASE_URL || 'postgresql://user:***@localhost:5432/mahaxay_pos'
 
 const dialect = new PostgresDialect({
   pool: new Pool({

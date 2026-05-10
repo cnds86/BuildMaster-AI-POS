@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { HeldOrder } from '../../types';
 import { ClipboardList, PauseCircle, RefreshCw, Trash2, X } from 'lucide-react';
-import { useGlobal } from '../../context/GlobalContext';
+import { useGlobal } from '../../../context/GlobalContext';
 
 interface RecallModalProps {
   isOpen: boolean;

@@ -183,7 +183,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                         <UserCircle className="w-4 h-4 mr-3 text-slate-400" /> My Profile
                      </button>
                      
-                     {currentUser?.role === 'Admin' && (
+                     {currentUser?.role === 'ADMIN' && (
                        <button 
                          onClick={() => { onTabChange('settings'); setShowUserMenu(false); }}
                          className="flex items-center w-full px-3 py-2.5 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 rounded-lg transition-colors"

@@ -2,6 +2,7 @@
 import React from 'react';
 import { User, Branch } from '../../types';
 import { UserCircle, ShieldCheck, LayoutDashboard, ClipboardList, Store, Building2, Briefcase, Edit2, Trash2 } from 'lucide-react';
+import { roleLabel } from '../../lib/roles';
 
 interface UserListProps {
   users: User[];
@@ -45,16 +46,16 @@ export const UserList: React.FC<UserListProps> = ({ users, branches, currentUser
                   </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                      user.role === 'Admin' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                      user.role === 'Manager' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
-                      user.role === 'Staff' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      user.role === 'ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                      user.role === 'MANAGER' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                      user.role === 'STAFF' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                       'bg-green-50 text-green-700 border-green-200'
                     }`}>
-                      {user.role === 'Admin' && <ShieldCheck className="w-3 h-3 mr-1"/>}
-                      {user.role === 'Manager' && <LayoutDashboard className="w-3 h-3 mr-1"/>}
+                      {user.role === 'ADMIN' && <ShieldCheck className="w-3 h-3 mr-1"/>}
+                      {user.role === 'MANAGER' && <LayoutDashboard className="w-3 h-3 mr-1"/>}
                       {user.role === 'Staff' && <ClipboardList className="w-3 h-3 mr-1"/>}
-                      {user.role === 'Cashier' && <Store className="w-3 h-3 mr-1"/>}
-                      {user.role}
+                      {user.role === 'CASHIER' && <Store className="w-3 h-3 mr-1"/>}
+                      {roleLabel(user.role)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">
@@ -81,12 +82,12 @@ export const UserList: React.FC<UserListProps> = ({ users, branches, currentUser
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end space-x-2">
-                       <button onClick={() => onEdit(user)} className={`p-1.5 rounded transition-colors ${user.role === 'Admin' && currentUser?.role !== 'Admin' ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-primary-600 hover:bg-slate-100'}`}>
+                       <button onClick={() => onEdit(user)} className={`p-1.5 rounded transition-colors ${user.role === 'ADMIN' && currentUser?.role !== 'ADMIN' ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-primary-600 hover:bg-slate-100'}`}>
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => onDelete(user)} 
-                        className={`p-1.5 rounded transition-colors ${user.role === 'Admin' && currentUser?.role !== 'Admin' ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-slate-100'}`}
+                        className={`p-1.5 rounded transition-colors ${user.role === 'ADMIN' && currentUser?.role !== 'ADMIN' ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-slate-100'}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

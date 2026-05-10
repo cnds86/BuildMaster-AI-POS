@@ -22,7 +22,7 @@ const StatCard = ({ title, value, icon: Icon, color, subtext, trend, progress }:
     <div className="flex items-start justify-between mb-4 relative z-10">
       <div>
         <p className="text-sm font-medium text-slate-500">{title}</p>
-        <h3 className="text-2xl font-bold text-slate-800 mt-1">{value}</h3>
+        <h3 className="text-2xl font-bold text-slate-800 mt-1 truncate">{value}</h3>
       </div>
       <div className={`p-3 rounded-full ${color}`}>
         <Icon className="w-5 h-5 text-white" />

@@ -48,7 +48,7 @@ export const LabelPrintModal: React.FC<LabelPrintModalProps> = ({ isOpen, onClos
                    <div className="font-bold truncate w-full mb-1">{product.name}</div>
                    {settings.showPrice && <div className={`${settings.type === 'shelf' ? 'text-2xl' : 'text-lg'} font-bold`}>{formatPrice(product.price)}</div>}
                    {settings.showSku && <div className="text-slate-500 font-mono text-xs">{product.sku}</div>}
-                   <div className="flex-1 w-full bg-slate-800 mt-2 opacity-80 h-8"></div>
+                   <div className="w-full bg-slate-800 mt-2 opacity-80 h-6 sm:h-8"></div>
                 </div>
              </div>
           </div>

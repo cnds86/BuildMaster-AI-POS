@@ -277,7 +277,8 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     change?: number,
     pointsRedeemed?: number,
     source: 'pos' | 'back-office' = 'pos',
-    roundingDifference: number = 0
+    roundingDifference: number = 0,
+    taxAmount: number = 0
   ): Promise<Sale> => {
     
     // Client-side Inventory Check for Back Office Sales
@@ -295,10 +296,10 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       id: `S-${Date.now()}`,
       items: items,
       total: total,
-      subtotal: subtotal || total,
+      subtotal: subtotal || (total - taxAmount - roundingDifference),
       discountAmount: discountAmount || 0,
       roundingDifference: roundingDifference, 
-      taxAmount: 0,
+      taxAmount: taxAmount,
       date: new Date().toISOString(),
       paymentMethod: paymentMethod,
       paymentStatus: paymentMethod === 'credit' ? 'unpaid' : 'paid',

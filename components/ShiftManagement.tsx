@@ -55,13 +55,13 @@ export const ShiftManagement: React.FC<ShiftManagementProps> = ({
 
   const historyShifts = useMemo(() => {
     let filtered = shifts;
-    if (currentUser?.role !== 'Admin' && currentUser?.role !== 'Manager') {
+    if (currentUser?.role !== 'ADMIN' && currentUser?.role !== 'MANAGER') {
       filtered = filtered.filter(s => s.userId === currentUser?.id);
     }
     return filtered.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   }, [shifts, currentUser]);
 
-  const canPlanShifts = currentUser?.role === 'Admin' || currentUser?.role === 'Manager';
+  const canPlanShifts = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
   const selectedBranchId = currentUser?.branchId || settings.currentBranchId || branches[0]?.id || '';
 
   // Auto-clone logic for calendar (simplified version of original hook)

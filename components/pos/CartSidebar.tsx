@@ -141,7 +141,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
                 <div className="flex-1 min-w-0 py-1 flex flex-col justify-between">
                    <div className="flex justify-between items-start gap-2">
                       <div>
-                         <h4 className="font-bold text-slate-800 text-sm line-clamp-2 leading-tight">{item.name}</h4>
+                         <h4 className="font-bold text-black text-sm line-clamp-2 leading-tight">{item.name}</h4>
                          <div className="flex flex-wrap items-center gap-2 mt-1">
                             <span className="text-xs font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
                                {item.sellUnit}
@@ -216,9 +216,19 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
               </div>
            )}
 
+           {/* Rounding Adjustment Display */}
+           {roundingDifference !== 0 && (
+              <div className="flex justify-between text-xs text-slate-400 italic">
+                 <span>Rounding</span>
+                 <span className={roundingDifference > 0 ? 'text-green-600' : 'text-red-500'}>
+                    {roundingDifference > 0 ? '+' : ''}{formatPrice(roundingDifference)}
+                 </span>
+              </div>
+           )}
+
            <div className="flex justify-between items-end pt-2 border-t border-slate-100">
               <span className="text-base font-bold text-slate-800">{t('common.total', 'Total')}</span>
-              <span className="text-4xl font-extrabold text-slate-900 tracking-tighter">{formatPrice(total)}</span>
+              <span className="text-4xl font-extrabold text-slate-900 tracking-tighter">{formatPrice(total + roundingDifference)}</span>
            </div>
         </div>
 
@@ -228,7 +238,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
               disabled={cart.length === 0}
               className="w-full py-4 bg-red-600 text-white rounded-2xl font-bold text-xl hover:bg-red-700 hover:shadow-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
            >
-              <span>Charge {formatPrice(total)}</span>
+              <span>Charge {formatPrice(total + roundingDifference)}</span>
               <ChevronRight className="w-5 h-5 ml-2 opacity-60" />
            </button>
         </div>

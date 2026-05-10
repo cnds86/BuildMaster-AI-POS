@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { User, SystemSettings, Branch, PosMachine, AuditLog, SyncLog, AppNotification, Department, SystemRole } from '../types';
 import { INITIAL_USERS, INITIAL_SETTINGS, INITIAL_BRANCHES, INITIAL_POS_MACHINES, INITIAL_AUDIT_LOGS, INITIAL_SYNC_LOGS, INITIAL_DEPARTMENTS, INITIAL_ROLES } from '../services/data';
 import { hashPasswordSync } from '../lib/auth';
+import { normalizeRole } from '../lib/roles';
 
 interface SystemState {
   currentUser: User | null;
@@ -64,12 +65,13 @@ export const useSystemStore = create<SystemState>()(
       syncLogs: INITIAL_SYNC_LOGS,
       notifications: [],
 
-      setCurrentUser: (user) => set({ currentUser: user }),
+      setCurrentUser: (user) => set({ currentUser: user ? { ...user, role: normalizeRole(user.role) } : null }),
       
       addUser: (user) => set((state) => {
         // Securely hash before storing in state/localstorage
         const secureUser = {
            ...user,
+           role: normalizeRole(user.role),
            password: user.password ? hashPasswordSync(user.password) : undefined
         };
         return { users: [...state.users, secureUser] };
@@ -84,7 +86,7 @@ export const useSystemStore = create<SystemState>()(
            passwordToStore = hashPasswordSync(user.password);
         }
 
-        const secureUser = { ...user, password: passwordToStore };
+        const secureUser = { ...user, role: normalizeRole(user.role), password: passwordToStore };
         return { users: state.users.map(u => u.id === user.id ? secureUser : u) };
       }),
 

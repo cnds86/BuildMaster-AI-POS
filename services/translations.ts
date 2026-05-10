@@ -24,7 +24,9 @@ export const translations = {
       warehouses: "Warehouse (WMS)",
       users: "Users & Roles",
       settings: "Settings",
-      logout: "Logout"
+      logout: "Logout",
+      expenses: "Expenses",
+      delivery: "Delivery & Fleet"
     },
     common: {
       search: "Search...",

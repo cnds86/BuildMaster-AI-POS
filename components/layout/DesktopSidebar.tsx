@@ -35,8 +35,9 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onToggleCollapse
 }) => {
   // Filter nav items based on user role
-  const visibleNavItems = navItems.filter(item => 
-    currentUser && item.allowedRoles.includes(currentUser.role)
+  const userRole = currentUser?.role?.toUpperCase() as UserRole;
+  const visibleNavItems = navItems.filter(item =>
+    currentUser && item.allowedRoles.map(r => r.toUpperCase()).includes(userRole)
   );
 
   return (
@@ -95,6 +96,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => {
+                    // Use onTabChange so App.tsx's handleTabChange can do RBAC permission check
                     onTabChange(item.id);
                     setMobileMenuOpen(false);
                   }}

@@ -36,13 +36,20 @@ export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, pro
 
   // --- Filtered Sales Helper ---
   const filteredSales = useMemo(() => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    // Parse date strings carefully to avoid timezone off-by-one issues
+    // Date input gives YYYY-MM-DD which creates midnight UTC of that date
+    // We want to include the full local day, so adjust to end-of-day in local timezone
+    const [startY, startM, startD] = startDate.split('-').map(Number);
+    const [endY, endM, endD] = endDate.split('-').map(Number);
+    
+    // Create dates at start of day in local time
+    const start = new Date(startY, startM - 1, startD, 0, 0, 0);
+    // End at 23:59:59.999 in local time to include the full end day
+    const end = new Date(endY, endM - 1, endD, 23, 59, 59, 999);
 
     return sales.filter(s => {
-      const d = new Date(s.date);
-      return d >= start && d <= end && s.status !== 'voided';
+      const saleDate = new Date(s.date);
+      return saleDate >= start && saleDate <= end && s.status !== 'voided';
     });
   }, [sales, startDate, endDate]);
 

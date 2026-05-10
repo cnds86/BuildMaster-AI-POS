@@ -56,9 +56,32 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const [productForSelector, setProductForSelector] = useState<Product | null>(null);
 
   // Shift & Cash Drawer State
+  // Merge Zustand shifts (demo/local) with PostgreSQL shifts (real data)
+  const [apiShifts, setApiShifts] = useState<any[]>([]);
+
+  // Fetch shifts from API when currentUser changes (for PostgreSQL shifts)
+  useEffect(() => {
+    if (!currentUser) return;
+    fetch('/api/shifts', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.shifts) setApiShifts(data.shifts); })
+      .catch(() => {});
+  }, [currentUser?.id]);
+
+  const allShifts = useMemo(() => {
+    const z = shifts || [];
+    const a = apiShifts || [];
+    // Prefer Zustand shifts (local/demo store) since backend /api/shifts
+    // requires auth_token cookie which the login endpoint doesn't set.
+    // PostgreSQL is source of truth for persistent data — local Zustand
+    // handles active shift for current session.
+    const zIds = new Set(z.map(s => s.id));
+    return [...z, ...a.filter(s => !zIds.has(s.id))];
+  }, [shifts, apiShifts]);
+
   const activeShift = useMemo(() => {
-    return shifts?.find(s => s.userId === currentUser?.id && s.status === 'Open');
-  }, [shifts, currentUser]);
+    return allShifts.find(s => s.userId === currentUser?.id && s.status === 'Open');
+  }, [allShifts, currentUser]);
   const [startCashValue, setStartCashValue] = useState<string>('');
   const [selectedPosId, setSelectedPosId] = useState<string>(settings?.currentPosId || '');
 
@@ -467,7 +490,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         change, 
         redeemPoints, 
         'pos',
-        roundingDifference // Pass rounding info
+        roundingDifference, // Pass rounding info
+        taxAmount // Pass tax amount for receipt
       );
       
       setLastSale(sale);
@@ -648,8 +672,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
       {/* Cart Sidebar (Right Side) */}
       <div className={`
-         fixed inset-0 z-40 bg-white transform transition-transform duration-300 lg:relative lg:translate-x-0 lg:w-[420px] xl:w-[480px] shadow-2xl lg:shadow-none
-         ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}
+         absolute inset-y-0 right-0 z-40 w-[420px] xl:w-[480px] bg-white shadow-2xl transform transition-transform duration-300
+         ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}
+         hidden lg:block
       `}>
          <CartSidebar 
             isOpen={isCartOpen}

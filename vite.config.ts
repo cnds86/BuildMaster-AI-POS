@@ -11,14 +11,19 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
-    port: 3000,
+    port: 5176,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'opcd196.mahaxaygroup.com',
+    ],
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3001',
+        target: 'http://127.0.0.1:3006',
         changeOrigin: true
       },
       '/ws': {
-        target: 'ws://127.0.0.1:3001',
+        target: 'ws://127.0.0.1:3006',
         ws: true
       }
     }

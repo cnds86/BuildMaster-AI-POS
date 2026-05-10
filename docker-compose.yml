@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mhxpos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mhxpos
+      POSTGRES_PASSWORD: mhxpos123
+      POSTGRES_DB: mhxpos
+    ports:
+      - "54330:5432"
+    volumes:
+      - mhxpos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mhxpos -d mhxpos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: mhxpos-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ""
+    ports:
+      - "16379:6379"
+    volumes:
+      - mhxpos_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mhxpos_pgdata:
+  mhxpos_redisdata:

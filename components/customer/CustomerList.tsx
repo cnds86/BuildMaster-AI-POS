@@ -78,7 +78,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                 <div 
                   key={customer.id} 
                   onClick={() => onView(customer)}
-                  className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden"
+                  className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col md:flex-row items-start md:items-center gap-5 relative overflow-hidden"
                 >
                   {/* Left Highlight Bar based on Level Color */}
                   <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: level?.color || '#e2e8f0' }}></div>

@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Sale, Customer, CustomerLevel, Shift, ShiftSchedule, Promotion, CashTransaction, Quotation } from '../types';
-import { INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_CUSTOMER_LEVELS, INITIAL_PROMOTIONS, INITIAL_SHIFT_SCHEDULES } from '../services/data';
+import { INITIAL_SALES, INITIAL_CUSTOMERS, INITIAL_CUSTOMER_LEVELS, INITIAL_PROMOTIONS, INITIAL_SHIFT_SCHEDULES, INITIAL_SHIFTS } from '../services/data';
 
 interface SalesState {
   sales: Sale[];
@@ -51,7 +51,7 @@ export const useSalesStore = create<SalesState>()(
       quotations: [],
       customers: INITIAL_CUSTOMERS,
       customerLevels: INITIAL_CUSTOMER_LEVELS,
-      shifts: [],
+      shifts: INITIAL_SHIFTS,
       shiftSchedules: INITIAL_SHIFT_SCHEDULES,
       promotions: INITIAL_PROMOTIONS,
 

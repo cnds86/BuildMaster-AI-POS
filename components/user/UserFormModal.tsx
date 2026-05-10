@@ -90,7 +90,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         alert("Password is required for new users.");
         return;
     }
-    if (currentUser?.role !== 'Admin' && formData.role === 'Admin') {
+    if (currentUser?.role !== 'ADMIN' && formData.role === 'ADMIN') {
        alert("You do not have permission to create Administrator accounts.");
        return;
     }
@@ -276,13 +276,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                 <label className="block text-sm font-bold text-slate-700 mb-4">Role & Permissions</label>
                 <div className="space-y-3 mb-6">
                   {/* Admin - Only visible if current user is Admin */}
-                  {currentUser?.role === 'Admin' && (
-                    <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Admin' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
+                  {currentUser?.role === 'ADMIN' && (
+                    <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'ADMIN' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                       <input 
                         type="radio" 
                         name="role" 
-                        value="Admin" 
-                        checked={formData.role === 'Admin'}
+                        value="ADMIN" 
+                        checked={formData.role === 'ADMIN'}
                         onChange={e => setFormData({...formData, role: 'Admin'})}
                         className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                       />
@@ -292,12 +292,12 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                       </div>
                     </label>
                   )}
-                  <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Manager' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
+                  <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'MANAGER' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                     <input 
                       type="radio" 
                       name="role" 
-                      value="Manager" 
-                      checked={formData.role === 'Manager'}
+                      value="MANAGER" 
+                      checked={formData.role === 'MANAGER'}
                       onChange={e => setFormData({...formData, role: 'Manager'})}
                       className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                     />
@@ -310,7 +310,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     <input 
                       type="radio" 
                       name="role" 
-                      value="Staff" 
+                      value="STAFF" 
                       checked={formData.role === 'Staff'}
                       onChange={e => setFormData({...formData, role: 'Staff'})}
                       className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"
@@ -324,7 +324,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                     <input 
                       type="radio" 
                       name="role" 
-                      value="Cashier" 
+                      value="CASHIER" 
                       checked={formData.role === 'Cashier'}
                       onChange={e => setFormData({...formData, role: 'Cashier'})}
                       className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"

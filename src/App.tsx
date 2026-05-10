@@ -1,54 +1,54 @@
 
-import React, { useState, useEffect } from 'react';
-import { Layout } from './components/Layout';
-import { Dashboard } from './components/Dashboard';
-import { Inventory } from './components/Inventory';
-import { PosTerminal } from './components/PosTerminal';
-import { UnitManagement } from './components/UnitManagement';
-import { CategoryManagement } from './components/CategoryManagement';
-import { BranchManagement } from './components/BranchManagement';
-import { WarehouseManagement } from './components/WarehouseManagement';
-import { StockManagement } from './components/StockManagement';
-import { ApprovalManagement } from './components/ApprovalManagement';
-import { UserManagement } from './components/UserManagement';
-import { Settings } from './components/Settings';
-import { SyncManagement } from './components/SyncManagement';
-import { CustomerManagement } from './components/CustomerManagement';
-import { ShiftManagement } from './components/ShiftManagement';
-import { PromotionsManagement } from './components/PromotionsManagement';
-import { ReportsManagement } from './components/ReportsManagement';
-import { UserProfile } from './components/UserProfile';
-import { SalesHistory } from './components/SalesHistory';
-import { QuotationsManagement } from './components/QuotationsManagement';
-import { DeliveryDashboard } from './components/delivery/DeliveryDashboard';
-import { ExpenseManagement } from './components/ExpenseManagement';
-import { LoginPage } from './components/LoginPage';
-import { useGlobal } from './context/GlobalContext';
-import { UserRole } from './types';
+import React, { useState, useEffect, useRef } from 'react';
+import { Layout } from '../components/Layout';
+import { Dashboard } from '../components/Dashboard';
+import { Inventory } from '../components/Inventory';
+import { PosTerminal } from '../components/PosTerminal';
+import { UnitManagement } from '../components/UnitManagement';
+import { CategoryManagement } from '../components/CategoryManagement';
+import { BranchManagement } from '../components/BranchManagement';
+import { WarehouseManagement } from '../components/WarehouseManagement';
+import { StockManagement } from '../components/StockManagement';
+import { ApprovalManagement } from '../components/ApprovalManagement';
+import { UserManagement } from '../components/UserManagement';
+import { Settings } from '../components/Settings';
+import { SyncManagement } from '../components/SyncManagement';
+import { CustomerManagement } from '../components/CustomerManagement';
+import { ShiftManagement } from '../components/ShiftManagement';
+import { PromotionsManagement } from '../components/PromotionsManagement';
+import { ReportsManagement } from '../components/ReportsManagement';
+import { UserProfile } from '../components/UserProfile';
+import { SalesHistory } from '../components/SalesHistory';
+import { QuotationsManagement } from '../components/QuotationsManagement';
+import { DeliveryDashboard } from '../components/delivery/DeliveryDashboard';
+import { ExpenseManagement } from '../components/ExpenseManagement';
+import { LoginPage } from '../components/LoginPage';
+import { useGlobal } from '../context/GlobalContext';
+import { UserRole } from '../types';
 
-// Define Permissions Map
-const PERMISSIONS: Record<string, UserRole[]> = {
-  'dashboard': ['Admin', 'Manager'],
-  'reports': ['Admin', 'Manager'],
-  'pos': ['Admin', 'Manager', 'Staff', 'Cashier'],
-  'shifts': ['Admin', 'Manager', 'Staff', 'Cashier'],
-  'sales': ['Admin', 'Manager', 'Cashier'],
-  'expenses': ['Admin', 'Manager', 'Cashier'],
-  'quotations': ['Admin', 'Manager', 'Cashier'],
-  'inventory': ['Admin', 'Manager', 'Staff'],
-  'stock': ['Admin', 'Manager', 'Staff'],
-  'delivery': ['Admin', 'Manager', 'Staff'],
-  'customers': ['Admin', 'Manager', 'Cashier', 'Staff'],
-  'approvals': ['Admin', 'Manager'],
-  'promotions': ['Admin', 'Manager', 'Staff'],
-  'sync': ['Admin', 'Manager'],
-  'categories': ['Admin', 'Staff', 'Manager'],
-  'units': ['Admin', 'Staff', 'Manager'],
-  'branches': ['Admin', 'Manager'],
-  'warehouses': ['Admin', 'Staff', 'Manager'],
-  'users': ['Admin', 'Manager'],
-  'settings': ['Admin'],
-  'profile': ['Admin', 'Manager', 'Staff', 'Cashier']
+// Define Permissions Map — all uppercase for direct comparison with normalized roles
+const PERMISSIONS: Record<string, string[]> = {
+  'dashboard': ['ADMIN', 'MANAGER'],
+  'reports': ['ADMIN', 'MANAGER'],
+  'pos': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
+  'shifts': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
+  'sales': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'expenses': ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'],
+  'quotations': ['ADMIN', 'MANAGER', 'CASHIER'],
+  'inventory': ['ADMIN', 'MANAGER', 'STAFF'],
+  'stock': ['ADMIN', 'MANAGER', 'STAFF'],
+  'delivery': ['ADMIN', 'MANAGER', 'STAFF'],
+  'customers': ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'],
+  'approvals': ['ADMIN', 'MANAGER'],
+  'promotions': ['ADMIN', 'MANAGER', 'STAFF'],
+  'sync': ['ADMIN', 'MANAGER'],
+  'categories': ['ADMIN', 'STAFF', 'MANAGER'],
+  'units': ['ADMIN', 'STAFF', 'MANAGER'],
+  'branches': ['ADMIN', 'MANAGER'],
+  'warehouses': ['ADMIN', 'STAFF', 'MANAGER'],
+  'users': ['ADMIN', 'MANAGER'],
+  'settings': ['ADMIN'],
+  'profile': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER']
 };
 
 function App() {
@@ -71,17 +71,36 @@ function App() {
     t, handleVoidSale, settleSaleDebt
   } = useGlobal();
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash || 'dashboard';
+  });
+
+  // Sync URL hash → activeTab
+  // Use ref to avoid re-registering listener on every activeTab change
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
   useEffect(() => {
-    if (currentUser) {
-      if (PERMISSIONS[activeTab] && !PERMISSIONS[activeTab].includes(currentUser.role)) {
-         if (currentUser.role === 'Cashier') setActiveTab('pos');
-         else if (currentUser.role === 'Staff') setActiveTab('inventory');
+    const onHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && hash !== activeTabRef.current) setActiveTab(hash);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []); // empty dep = register ONCE on mount
+
+  const userRole = currentUser?.role?.toUpperCase() ?? null;
+
+  useEffect(() => {
+    if (currentUser && userRole) {
+      if (PERMISSIONS[activeTab] && !PERMISSIONS[activeTab].includes(userRole)) {
+         if (userRole === 'CASHIER') setActiveTab('pos');
+         else if (userRole === 'STAFF') setActiveTab('inventory');
          else setActiveTab('dashboard');
       }
     }
-  }, [currentUser]);
+  }, [currentUser, activeTab, userRole]);
 
   const handleLogout = () => {
     setCurrentUser(null);
@@ -89,10 +108,14 @@ function App() {
   };
 
   const handleTabChange = (tabId: string) => {
-    if (currentUser && PERMISSIONS[tabId]?.includes(currentUser.role)) {
-      setActiveTab(tabId);
+    if (!currentUser || !userRole) {
+      window.location.hash = tabId;
+      return;
+    }
+    if (PERMISSIONS[tabId]?.includes(userRole)) {
+      window.location.hash = tabId;
     } else {
-      alert("Access Denied: You do not have permission to view this module.");
+      alert(`Access Denied: ${userRole} role cannot access "${tabId}" module.`);
     }
   };
 

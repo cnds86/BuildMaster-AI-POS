@@ -78,7 +78,7 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({ sales = [], onVoidSa
     });
   };
 
-  const isAdminOrManager = currentUser?.role === 'Admin' || currentUser?.role === 'Manager';
+  const isAdminOrManager = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
 
   return (
     <div className="space-y-6 h-full flex flex-col pb-20 md:pb-0">

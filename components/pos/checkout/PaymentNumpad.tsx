@@ -47,8 +47,8 @@ export const PaymentNumpad: React.FC<PaymentNumpadProps> = ({
                 </div>
             )}
         </div>
-        <div className="flex gap-3 flex-1 min-h-[320px]">
-            <div className="grid grid-cols-3 gap-3 flex-[3]">
+        <div className="flex-1 flex gap-3 flex-1 min-h-0">
+            <div className="grid grid-cols-3 gap-3 flex-[3] content-start">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, '00', 0, 'BS'].map((btn) => (
                     <button
                     key={btn}

@@ -28,7 +28,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
 
   const handleOpenModal = (user?: User) => {
     // Permission check: Managers cannot edit Admins
-    if (user && user.role === 'Admin' && currentUser?.role !== 'Admin') {
+    if (user && user.role === 'ADMIN' && currentUser?.role !== 'ADMIN') {
       alert("Only Administrators can edit other Administrator accounts.");
       return;
     }
@@ -37,7 +37,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({
   };
 
   const handleDeleteUser = (user: User) => {
-    if (user.role === 'Admin' && currentUser?.role !== 'Admin') {
+    if (user.role === 'ADMIN' && currentUser?.role !== 'ADMIN') {
       alert("Only Administrators can delete Administrator accounts.");
       return;
     }

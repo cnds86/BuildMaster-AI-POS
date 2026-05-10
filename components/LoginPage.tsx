@@ -11,7 +11,7 @@ export const LoginPage: React.FC = () => {
   const { setCurrentUser, users, t } = useGlobal();
   
   const [loginUsername, setLoginUsername] = useState('admin');
-  const [loginPassword, setLoginPassword] = useState('123');
+  const [loginPassword, setLoginPassword] = useState('password123');
   const [loginError, setLoginError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -151,13 +151,16 @@ export const LoginPage: React.FC = () => {
               </form>
               
               <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                 <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-2">
+                 <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-3">
                    {t('common.demo')}
                  </p>
-                 <div className="flex justify-center space-x-2 text-xs">
-                    <button onClick={() => { setLoginUsername('admin'); setLoginPassword('123'); }} className="bg-slate-100 px-2 py-1 rounded text-slate-600 font-mono hover:bg-slate-200 transition-colors">admin / 123</button>
-                    <button onClick={() => { setLoginUsername('cashier'); setLoginPassword('123'); }} className="bg-slate-100 px-2 py-1 rounded text-slate-600 font-mono hover:bg-slate-200 transition-colors">cashier / 123</button>
+                 <div className="flex flex-wrap justify-center gap-2 text-xs">
+                    <button onClick={() => { setLoginUsername('admin'); setLoginPassword('password123'); }} className="bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono hover:bg-slate-200 transition-colors border border-slate-200">admin</button>
+                    <button onClick={() => { setLoginUsername('manager'); setLoginPassword('password123'); }} className="bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono hover:bg-slate-200 transition-colors border border-slate-200">manager</button>
+                    <button onClick={() => { setLoginUsername('staff01'); setLoginPassword('password123'); }} className="bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono hover:bg-slate-200 transition-colors border border-slate-200">staff01</button>
+                    <button onClick={() => { setLoginUsername('cashier01'); setLoginPassword('password123'); }} className="bg-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono hover:bg-slate-200 transition-colors border border-slate-200">cashier01</button>
                  </div>
+                 <p className="text-xs text-slate-400 mt-2">Password: <span className="font-mono text-slate-600">password123</span> ทุก account</p>
               </div>
            </div>
         </div>

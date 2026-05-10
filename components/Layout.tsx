@@ -44,26 +44,26 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'reports', icon: BarChart4, label: 'Reports & Analytics', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'pos', icon: ShoppingCart, label: 'Point of Sale', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
-  { id: 'shifts', icon: Clock, label: 'My Shift', allowedRoles: ['Admin', 'Manager', 'Staff', 'Cashier'] },
-  { id: 'sales', icon: Receipt, label: 'Sales History', allowedRoles: ['Admin', 'Manager', 'Cashier'] },
-  { id: 'expenses', icon: Wallet, label: 'Expenses', allowedRoles: ['Admin', 'Manager', 'Cashier', 'Staff'] },
-  { id: 'quotations', icon: FileText, label: 'Quotations', allowedRoles: ['Admin', 'Manager', 'Cashier'] }, 
-  { id: 'inventory', icon: Package, label: 'Inventory', allowedRoles: ['Admin', 'Manager', 'Staff'] },
-  { id: 'stock', icon: ClipboardList, label: 'Stock Mgmt', allowedRoles: ['Admin', 'Manager', 'Staff'] },
-  { id: 'delivery', icon: Truck, label: 'Delivery & Fleet', allowedRoles: ['Admin', 'Manager', 'Staff'] },
-  { id: 'customers', icon: Contact, label: 'Customers', allowedRoles: ['Admin', 'Manager', 'Cashier', 'Staff'] },
-  { id: 'approvals', icon: FileCheck, label: 'Approvals', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'promotions', icon: Tv, label: 'Promotions', allowedRoles: ['Admin', 'Manager', 'Staff'] },
-  { id: 'sync', icon: RefreshCw, label: 'Data Sync', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'categories', icon: FolderTree, label: 'Categories', allowedRoles: ['Admin', 'Staff', 'Manager'] },
-  { id: 'units', icon: Scale, label: 'Unit Mgmt', allowedRoles: ['Admin', 'Staff', 'Manager'] },
-  { id: 'branches', icon: Store, label: 'Branches & POS', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'warehouses', icon: Container, label: 'Warehouse (WMS)', allowedRoles: ['Admin', 'Staff', 'Manager'] },
-  { id: 'users', icon: Users, label: 'Users & Roles', allowedRoles: ['Admin', 'Manager'] },
-  { id: 'settings', icon: Settings, label: 'Settings', allowedRoles: ['Admin'] },
+  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', allowedRoles: ['ADMIN', 'MANAGER'] },
+  { id: 'reports', icon: BarChart4, label: 'Reports & Analytics', allowedRoles: ['ADMIN', 'MANAGER'] },
+  { id: 'pos', icon: ShoppingCart, label: 'Point of Sale', allowedRoles: ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'] },
+  { id: 'shifts', icon: Clock, label: 'My Shift', allowedRoles: ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'] },
+  { id: 'sales', icon: Receipt, label: 'Sales History', allowedRoles: ['ADMIN', 'MANAGER', 'CASHIER'] },
+  { id: 'expenses', icon: Wallet, label: 'Expenses', allowedRoles: ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'] },
+  { id: 'quotations', icon: FileText, label: 'Quotations', allowedRoles: ['ADMIN', 'MANAGER', 'CASHIER'] }, 
+  { id: 'inventory', icon: Package, label: 'Inventory', allowedRoles: ['ADMIN', 'MANAGER', 'STAFF'] },
+  { id: 'stock', icon: ClipboardList, label: 'Stock Mgmt', allowedRoles: ['ADMIN', 'MANAGER', 'STAFF'] },
+  { id: 'delivery', icon: Truck, label: 'Delivery & Fleet', allowedRoles: ['ADMIN', 'MANAGER', 'STAFF'] },
+  { id: 'customers', icon: Contact, label: 'Customers', allowedRoles: ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'] },
+  { id: 'approvals', icon: FileCheck, label: 'Approvals', allowedRoles: ['ADMIN', 'MANAGER'] },
+  { id: 'promotions', icon: Tv, label: 'Promotions', allowedRoles: ['ADMIN', 'MANAGER', 'STAFF'] },
+  { id: 'sync', icon: RefreshCw, label: 'Data Sync', allowedRoles: ['ADMIN', 'MANAGER'] },
+  { id: 'categories', icon: FolderTree, label: 'Categories', allowedRoles: ['ADMIN', 'STAFF', 'MANAGER'] },
+  { id: 'units', icon: Scale, label: 'Unit Mgmt', allowedRoles: ['ADMIN', 'STAFF', 'MANAGER'] },
+  { id: 'branches', icon: Store, label: 'Branches & POS', allowedRoles: ['ADMIN', 'MANAGER'] },
+  { id: 'warehouses', icon: Container, label: 'Warehouse (WMS)', allowedRoles: ['ADMIN', 'STAFF', 'MANAGER'] },
+  { id: 'users', icon: Users, label: 'Users & Roles', allowedRoles: ['ADMIN', 'MANAGER'] },
+  { id: 'settings', icon: Settings, label: 'Settings', allowedRoles: ['ADMIN'] },
 ];
 
 export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, currentUser, onLogout }) => {
@@ -102,7 +102,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
         <TopBar 
           setMobileMenuOpen={setMobileMenuOpen}
           mobileMenuOpen={mobileMenuOpen}

@@ -162,7 +162,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </button>
            </div>
            
-           <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
+           <div className="flex-1 p-4 sm:p-8 overflow-y-auto flex flex-col">
               <div className="text-center mb-6">
                  <h3 className="text-xl font-bold text-slate-800 flex items-center justify-center gap-2">
                     {paymentMethod === 'cash' ? <Banknote className="text-blue-600"/> : paymentMethod === 'qr' ? <QrCode className="text-red-600"/> : paymentMethod === 'credit' ? <FileText className="text-orange-500"/> : <CreditCard className="text-blue-600"/>}
