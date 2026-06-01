@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Dashboard } from '../components/Dashboard';
 import { Inventory } from '../components/Inventory';
@@ -23,136 +23,199 @@ import { QuotationsManagement } from '../components/QuotationsManagement';
 import { DeliveryDashboard } from '../components/delivery/DeliveryDashboard';
 import { ExpenseManagement } from '../components/ExpenseManagement';
 import { LoginPage } from '../components/LoginPage';
+import { WMSDashboard } from '../components/wms/WMSDashboard';
 import { useGlobal } from '../context/GlobalContext';
 import { UserRole } from '../types';
 
-// Define Permissions Map — all uppercase for direct comparison with normalized roles
+// RBAC permission map — mirrors original PERMISSIONS but uses path keys
 const PERMISSIONS: Record<string, string[]> = {
-  'dashboard': ['ADMIN', 'MANAGER'],
-  'reports': ['ADMIN', 'MANAGER'],
-  'pos': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
-  'shifts': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
-  'sales': ['ADMIN', 'MANAGER', 'CASHIER'],
-  'expenses': ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'],
-  'quotations': ['ADMIN', 'MANAGER', 'CASHIER'],
-  'inventory': ['ADMIN', 'MANAGER', 'STAFF'],
-  'stock': ['ADMIN', 'MANAGER', 'STAFF'],
-  'delivery': ['ADMIN', 'MANAGER', 'STAFF'],
-  'customers': ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'],
-  'approvals': ['ADMIN', 'MANAGER'],
-  'promotions': ['ADMIN', 'MANAGER', 'STAFF'],
-  'sync': ['ADMIN', 'MANAGER'],
-  'categories': ['ADMIN', 'STAFF', 'MANAGER'],
-  'units': ['ADMIN', 'STAFF', 'MANAGER'],
-  'branches': ['ADMIN', 'MANAGER'],
-  'warehouses': ['ADMIN', 'STAFF', 'MANAGER'],
-  'users': ['ADMIN', 'MANAGER'],
-  'settings': ['ADMIN'],
-  'profile': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER']
+  '/dashboard': ['ADMIN', 'MANAGER'],
+  '/reports': ['ADMIN', 'MANAGER'],
+  '/pos': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
+  '/shifts': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
+  '/sales': ['ADMIN', 'MANAGER', 'CASHIER'],
+  '/expenses': ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'],
+  '/quotations': ['ADMIN', 'MANAGER', 'CASHIER'],
+  '/inventory': ['ADMIN', 'MANAGER', 'STAFF'],
+  '/stock': ['ADMIN', 'MANAGER', 'STAFF'],
+  '/delivery': ['ADMIN', 'MANAGER', 'STAFF'],
+  '/customers': ['ADMIN', 'MANAGER', 'CASHIER', 'STAFF'],
+  '/approvals': ['ADMIN', 'MANAGER'],
+  '/promotions': ['ADMIN', 'MANAGER', 'STAFF'],
+  '/sync': ['ADMIN', 'MANAGER'],
+  '/categories': ['ADMIN', 'STAFF', 'MANAGER'],
+  '/units': ['ADMIN', 'STAFF', 'MANAGER'],
+  '/branches': ['ADMIN', 'MANAGER'],
+  '/warehouses': ['ADMIN', 'STAFF', 'MANAGER'],
+  '/wms': ['ADMIN', 'STAFF', 'MANAGER'],
+  '/users': ['ADMIN', 'MANAGER'],
+  '/settings': ['ADMIN'],
+  '/profile': ['ADMIN', 'MANAGER', 'STAFF', 'CASHIER'],
 };
+// ─── Page Wrapper
+function DashboardPage() {
+  const { sales, products } = useGlobal();
+  return <Dashboard sales={sales} products={products} />;
+}
+function PosTerminalPage() {
+  const { products } = useGlobal();
+  const { processSale } = useGlobal();
+  const { settings } = useGlobal();
+  return <PosTerminal products={products} onProcessSale={processSale} settings={settings} />;
+}
+function ShiftManagementPage() {
+  const { shifts, branches, users } = useGlobal();
+  const { currentUser } = useGlobal();
+  const { startShift, endShift } = useGlobal();
+  return <ShiftManagement shifts={shifts} branches={branches} users={users} currentUser={currentUser} onStartShift={startShift} onEndShift={endShift} />;
+}
+function SalesHistoryPage() {
+  const { sales } = useGlobal();
+  const { handleVoidSale } = useGlobal();
+  return <SalesHistory sales={sales} onVoidSale={handleVoidSale} />;
+}
+function ExpenseManagementPage() {
+  const { expenses, expenseCategories, users, branches } = useGlobal();
+  return <ExpenseManagement expenses={expenses} categories={expenseCategories} users={users} branches={branches} />;
+}
+function InventoryPage() {
+  const { products, units, categories, warehouses, sales } = useGlobal();
+  const { addProduct, updateProduct, deleteProduct } = useGlobal();
+  return <Inventory products={products} units={units} categories={categories} warehouses={warehouses} sales={sales} onAddProduct={addProduct} onUpdateProduct={updateProduct} onDeleteProduct={deleteProduct} />;
+}
+function StockManagementPage() {
+  const { warehouses, products, transfers, counts, reservations, receipts, adjustments, settings } = useGlobal();
+  const { updateTransfer, updateCount, updateReservation, updateReceipt, updateAdjustment, deleteTransfer, deleteCount, deleteReservation, deleteReceipt, deleteAdjustment, handleStockStatusChange } = useGlobal();
+  return <StockManagement warehouses={warehouses} products={products} transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} defaultItemsPerPage={settings.defaultItemsPerPage} onUpdateTransfer={updateTransfer} onUpdateCount={updateCount} onUpdateReservation={updateReservation} onUpdateReceipt={updateReceipt} onUpdateAdjustment={updateAdjustment} onDeleteTransfer={deleteTransfer} onDeleteCount={deleteCount} onDeleteReservation={deleteReservation} onDeleteReceipt={deleteReceipt} onDeleteAdjustment={deleteAdjustment} onStatusChange={handleStockStatusChange} />;
+}
+function PromotionsManagementPage() {
+  const { promotions } = useGlobal();
+  const { addPromotion, updatePromotion, deletePromotion } = useGlobal();
+  return <PromotionsManagement promotions={promotions} onAddPromotion={addPromotion} onUpdatePromotion={updatePromotion} onDeletePromotion={deletePromotion} />;
+}
+function CustomerManagementPage() {
+  const { customers, sales, addCustomer, updateCustomer, deleteCustomer } = useGlobal();
+  return <CustomerManagement customers={customers} sales={sales} onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer} />;
+}
+function UnitManagementPage() {
+  const { units } = useGlobal();
+  const { addUnit, updateUnit, deleteUnit } = useGlobal();
+  return <UnitManagement units={units} onAddUnit={addUnit} onUpdateUnit={updateUnit} onDeleteUnit={deleteUnit} />;
+}
+function CategoryManagementPage() {
+  const { categories } = useGlobal();
+  const { addCategory, updateCategory, deleteCategory } = useGlobal();
+  return <CategoryManagement categories={categories} onAddCategory={addCategory} onUpdateCategory={updateCategory} onDeleteCategory={deleteCategory} />;
+}
+function BranchManagementPage() {
+  const { branches, posMachines } = useGlobal();
+  const { addBranch, updateBranch, deleteBranch, addPos, updatePos, deletePos } = useGlobal();
+  return <BranchManagement branches={branches} posMachines={posMachines} onAddBranch={addBranch} onUpdateBranch={updateBranch} onDeleteBranch={deleteBranch} onAddPosMachine={addPos} onUpdatePosMachine={updatePos} onDeletePosMachine={deletePos} />;
+}
+function WarehouseManagementPage() {
+  const { branches, warehouses, locations } = useGlobal();
+  const { addWarehouse, updateWarehouse, deleteWarehouse, addLocation, updateLocation, deleteLocation } = useGlobal();
+  return <WarehouseManagement branches={branches} warehouses={warehouses} locations={locations} onAddWarehouse={addWarehouse} onUpdateWarehouse={updateWarehouse} onDeleteWarehouse={deleteWarehouse} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />;
+}
+function UserManagementPage() {
+  const { users } = useGlobal();
+  const { addUser, updateUser, deleteUser } = useGlobal();
+  return <UserManagement users={users} onAddUser={addUser} onUpdateUser={updateUser} onDeleteUser={deleteUser} />;
+}
+function SettingsPage() {
+  const { settings, branches, posMachines } = useGlobal();
+  const { updateSettings } = useGlobal();
+  return <Settings settings={settings} onUpdateSettings={updateSettings} branches={branches} posMachines={posMachines} />;
+}
+function SyncManagementPage() {
+  const { settings, syncLogs, sales } = useGlobal();
+  const { handleSyncOperation } = useGlobal();
+  return <SyncManagement settings={settings} logs={syncLogs} sales={sales} onSync={handleSyncOperation} />;
+}
+function ApprovalManagementPage() {
+  const { transfers, counts, reservations, receipts, adjustments, warehouses } = useGlobal();
+  const { handleStockStatusChange } = useGlobal();
+  return <ApprovalManagement transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} warehouses={warehouses} onStatusChange={handleStockStatusChange} />;
+}
+function UserProfilePage() {
+  const { currentUser, shifts, sales } = useGlobal();
+  if (!currentUser) return null;
+  return <UserProfile user={currentUser} shifts={shifts} sales={sales} />;
+}
+function ReportsPage() {
+  const { sales, products } = useGlobal();
+  return <ReportsManagement sales={sales} products={products} />;
+}
 
-function App() {
-  const {
-    currentUser, setCurrentUser,
-    users, products, sales, units, categories, branches, posMachines, warehouses, locations,
-    transfers, counts, reservations, receipts, adjustments, syncLogs, customers, shifts, shiftSchedules, promotions,
-    processSale, addProduct, updateProduct, deleteProduct,
-    addUnit, updateUnit, deleteUnit, addCategory, updateCategory, deleteCategory,
-    addBranch, updateBranch, deleteBranch, addPos, updatePos, deletePos,
-    addWarehouse, updateWarehouse, deleteWarehouse, addLocation, updateLocation, deleteLocation,
-    addUser, updateUser, deleteUser, addCustomer, updateCustomer, deleteCustomer,
-    updateTransfer, deleteTransfer, updateCount, deleteCount, updateReservation, deleteReservation,
-    updateReceipt, deleteReceipt, updateAdjustment, deleteAdjustment,
-    handleStockStatusChange, handleSyncOperation,
-    startShift, endShift,
-    addPromotion, updatePromotion, deletePromotion,
-    expenses, expenseCategories,
-    settings, updateSettings,
-    t, handleVoidSale, settleSaleDebt
-  } = useGlobal();
-
-  const [activeTab, setActiveTab] = useState(() => {
-    const hash = window.location.hash.replace('#', '');
-    return hash || 'dashboard';
-  });
-
-  // Sync URL hash → activeTab
-  // Use ref to avoid re-registering listener on every activeTab change
-  const activeTabRef = useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
-
-  useEffect(() => {
-    const onHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (hash && hash !== activeTabRef.current) setActiveTab(hash);
-    };
-    window.addEventListener('hashchange', onHashChange);
-    return () => window.removeEventListener('hashchange', onHashChange);
-  }, []); // empty dep = register ONCE on mount
-
+// ─── App Routes ───────────────────────────────────────────────────────────────
+function AppRoutes() {
+  const { currentUser, setCurrentUser, fetchUsersFromBackend } = useGlobal();
+  const navigate = useNavigate();
   const userRole = currentUser?.role?.toUpperCase() ?? null;
 
+  // Default redirect based on role
+  const defaultRoute = !currentUser ? '/login'
+    : userRole === 'CASHIER' ? '/pos'
+    : userRole === 'STAFF' ? '/inventory'
+    : '/dashboard';
+
+  // BUG-FE-05 FIX: When a user logs in, pull the authoritative user list
+  // (real UUIDs from the DB) into the system store so that shift.userId and
+  // audit log user lookups resolve against the actual backend user ids.
   useEffect(() => {
-    if (currentUser && userRole) {
-      if (PERMISSIONS[activeTab] && !PERMISSIONS[activeTab].includes(userRole)) {
-         if (userRole === 'CASHIER') setActiveTab('pos');
-         else if (userRole === 'STAFF') setActiveTab('inventory');
-         else setActiveTab('dashboard');
-      }
+    if (currentUser) {
+      void fetchUsersFromBackend();
     }
-  }, [currentUser, activeTab, userRole]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id]);
 
   const handleLogout = () => {
     setCurrentUser(null);
-    setActiveTab('dashboard');
-  };
-
-  const handleTabChange = (tabId: string) => {
-    if (!currentUser || !userRole) {
-      window.location.hash = tabId;
-      return;
-    }
-    if (PERMISSIONS[tabId]?.includes(userRole)) {
-      window.location.hash = tabId;
-    } else {
-      alert(`Access Denied: ${userRole} role cannot access "${tabId}" module.`);
-    }
+    navigate('/login');
   };
 
   if (!currentUser) {
-    return <LoginPage />;
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
   }
 
   return (
-    <Layout 
-      activeTab={activeTab} 
-      onTabChange={handleTabChange}
-      currentUser={currentUser}
-      onLogout={handleLogout}
-    >
-      {activeTab === 'dashboard' && <Dashboard sales={sales} products={products} />}
-      {activeTab === 'reports' && <ReportsManagement sales={sales} products={products} />}
-      {activeTab === 'pos' && <PosTerminal products={products} onProcessSale={processSale} settings={settings} />}
-      {activeTab === 'shifts' && <ShiftManagement shifts={shifts} branches={branches} users={users} currentUser={currentUser} onStartShift={startShift} onEndShift={endShift} />}
-      {activeTab === 'sales' && <SalesHistory sales={sales} onVoidSale={handleVoidSale} />}
-      {activeTab === 'expenses' && <ExpenseManagement expenses={expenses} categories={expenseCategories} users={users} branches={branches} />}
-      {activeTab === 'quotations' && <QuotationsManagement />} 
-      {activeTab === 'inventory' && <Inventory products={products} units={units} categories={categories} warehouses={warehouses} sales={sales} onAddProduct={addProduct} onUpdateProduct={updateProduct} onDeleteProduct={deleteProduct} />}
-      {activeTab === 'stock' && <StockManagement warehouses={warehouses} products={products} transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} defaultItemsPerPage={settings.defaultItemsPerPage} onUpdateTransfer={updateTransfer} onUpdateCount={updateCount} onUpdateReservation={updateReservation} onUpdateReceipt={updateReceipt} onUpdateAdjustment={updateAdjustment} onDeleteTransfer={deleteTransfer} onDeleteCount={deleteCount} onDeleteReservation={deleteReservation} onDeleteReceipt={deleteReceipt} onDeleteAdjustment={deleteAdjustment} onStatusChange={handleStockStatusChange} />}
-      {activeTab === 'delivery' && <DeliveryDashboard />}
-      {activeTab === 'approvals' && <ApprovalManagement transfers={transfers} counts={counts} reservations={reservations} receipts={receipts} adjustments={adjustments} warehouses={warehouses} onStatusChange={handleStockStatusChange} />}
-      {activeTab === 'promotions' && <PromotionsManagement promotions={promotions} onAddPromotion={addPromotion} onUpdatePromotion={updatePromotion} onDeletePromotion={deletePromotion} />}
-      {activeTab === 'customers' && <CustomerManagement customers={customers} sales={sales} onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer} />}
-      {activeTab === 'sync' && <SyncManagement settings={settings} logs={syncLogs} sales={sales} onSync={handleSyncOperation} />}
-      {activeTab === 'units' && <UnitManagement units={units} onAddUnit={addUnit} onUpdateUnit={updateUnit} onDeleteUnit={deleteUnit} />}
-      {activeTab === 'categories' && <CategoryManagement categories={categories} onAddCategory={addCategory} onUpdateCategory={updateCategory} onDeleteCategory={deleteCategory} />}
-      {activeTab === 'branches' && <BranchManagement branches={branches} posMachines={posMachines} onAddBranch={addBranch} onUpdateBranch={updateBranch} onDeleteBranch={deleteBranch} onAddPosMachine={addPos} onUpdatePosMachine={updatePos} onDeletePosMachine={deletePos} />}
-      {activeTab === 'warehouses' && <WarehouseManagement branches={branches} warehouses={warehouses} locations={locations} onAddWarehouse={addWarehouse} onUpdateWarehouse={updateWarehouse} onDeleteWarehouse={deleteWarehouse} onAddLocation={addLocation} onUpdateLocation={updateLocation} onDeleteLocation={deleteLocation} />}
-      {activeTab === 'users' && <UserManagement users={users} onAddUser={addUser} onUpdateUser={updateUser} onDeleteUser={deleteUser} />}
-      {activeTab === 'settings' && <Settings settings={settings} onUpdateSettings={updateSettings} branches={branches} posMachines={posMachines} />}
-      {activeTab === 'profile' && <UserProfile user={currentUser} shifts={shifts} sales={sales} />}
+    <Layout onLogout={handleLogout}>
+      <Routes>
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/pos" element={<PosTerminalPage />} />
+        <Route path="/shifts" element={<ShiftManagementPage />} />
+        <Route path="/sales" element={<SalesHistoryPage />} />
+        <Route path="/expenses" element={<ExpenseManagementPage />} />
+        <Route path="/quotations" element={<QuotationsManagement />} />
+        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/stock" element={<StockManagementPage />} />
+        <Route path="/delivery" element={<DeliveryDashboard />} />
+        <Route path="/customers" element={<CustomerManagementPage />} />
+        <Route path="/approvals" element={<ApprovalManagementPage />} />
+        <Route path="/promotions" element={<PromotionsManagementPage />} />
+        <Route path="/sync" element={<SyncManagementPage />} />
+        <Route path="/units" element={<UnitManagementPage />} />
+        <Route path="/categories" element={<CategoryManagementPage />} />
+        <Route path="/branches" element={<BranchManagementPage />} />
+        <Route path="/warehouses" element={<WarehouseManagementPage />} />
+        <Route path="/wms" element={<WMSDashboard />} />
+        <Route path="/users" element={<UserManagementPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="*" element={<Navigate to={defaultRoute} replace />} />
+      </Routes>
     </Layout>
   );
+}
+
+function App() {
+  return <AppRoutes />;
 }
 
 export default App;

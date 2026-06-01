@@ -23,7 +23,8 @@ export const CustomerList: React.FC<CustomerListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredCustomers = customers.filter(c => {
-    const term = searchTerm.toLowerCase();
+    if (!c) return false;
+    const term = (searchTerm || '').toLowerCase();
     const nameMatch = (c.name || '').toLowerCase().includes(term);
     const phoneMatch = (c.phone || '').toLowerCase().includes(term);
     const codeMatch = (c.code || '').toLowerCase().includes(term);
@@ -86,14 +87,16 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                   {/* Avatar & Info */}
                   <div className="flex items-center flex-1 w-full md:w-auto">
                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-lg mr-4 border border-slate-200 shrink-0">
-                        {customer.name.charAt(0).toUpperCase()}
+                        {(customer.name || '?').charAt(0).toUpperCase()}
                      </div>
                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                           <h4 className="font-bold text-slate-800 truncate text-base">{customer.name}</h4>
+                           <h4 className="font-bold text-slate-800 truncate text-base">{customer.name || 'Unnamed'}</h4>
+                           {customer.code && (
                            <span className="text-[10px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
                               {customer.code}
                            </span>
+                           )}
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center text-sm text-slate-500 mt-0.5 gap-x-3">
                            {customer.phone && (
@@ -126,7 +129,7 @@ export const CustomerList: React.FC<CustomerListProps> = ({
                      {/* Points Badge */}
                      <div className="flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-xs font-bold border border-yellow-200">
                         <Award className="w-3 h-3 mr-1.5" />
-                        {customer.loyaltyPoints.toLocaleString()} pts
+                        {(customer.loyaltyPoints || 0).toLocaleString()} pts
                      </div>
                   </div>
 

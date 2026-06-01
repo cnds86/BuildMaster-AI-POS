@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Sale, Product, BusinessInsight } from '../types';
 import { CalendarRange, Sparkles } from 'lucide-react';
 import { INITIAL_CATEGORIES_TREE } from '../services/data';
@@ -32,6 +32,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
   const [insight, setInsight] = useState<BusinessInsight | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
 
+  // API-fetched data with Zustand fallback
+  const [apiDailySummary, setApiDailySummary] = useState<{
+    totalRevenue?: number; orderCount?: number; avgOrderValue?: number;
+  } | null>(null);
+  const [apiTrendData, setApiTrendData] = useState<{ name: string; sales: number }[] | null>(null);
+  // BUG-NEW-01 fix: forward the time range so the server filters correctly.
+  // Previous call always returned "today" only — UI would show ₭0 for any day
+  // that hadn't seen sales yet.
+  useEffect(() => {
+    fetch(`/api/reports/daily-summary?range=${timeRange}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data && !data.error && data.totalRevenue !== undefined) {
+          setApiDailySummary(data);
+        }
+      })
+      .catch(() => {});
+  }, [timeRange]);
+
+  // Fetch sales trend from API when timeRange changes
+  useEffect(() => {
+    fetch(`/api/reports/sales-trend?range=${timeRange}`, { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (data && !data.error && data.chartData) {
+          setApiTrendData(data.chartData);
+        }
+      })
+      .catch(() => {});
+  }, [timeRange]);
+
   // 1. Filter Sales based on Time Range
   const dashboardMetrics = useMemo(() => {
     const today = new Date();
@@ -48,14 +79,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
        return saleDate >= startDate && saleDate <= today && s.status !== 'voided';
     });
 
-    const totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
-    const totalOrders = filteredSales.length;
+    let totalRevenue = filteredSales.reduce((acc, s) => acc + s.total, 0);
+    let totalOrders = filteredSales.length;
+    
+    // Merge API daily summary when available (today's real data)
+    if (apiDailySummary && apiDailySummary.totalRevenue !== undefined) {
+      totalRevenue = apiDailySummary.totalRevenue;
+      totalOrders = apiDailySummary.orderCount ?? totalOrders;
+    }
     
     // Average Order Value
     const aov = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     return { filteredSales, totalRevenue, totalOrders, aov, startDate };
-  }, [sales, timeRange]);
+  }, [sales, timeRange, apiDailySummary]);
 
   // 2. Dynamic Trend Data
   const trendData = useMemo(() => {
@@ -82,6 +119,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
     });
 
     const data = Array.from(dailyMap).map(([name, sales]) => ({ name, sales, projected: 0 }));
+
+    // If API trend data is available, use it instead (real DB data)
+    if (apiTrendData && apiTrendData.length > 0) {
+      return apiTrendData.map(d => ({ name: d.name, sales: d.sales, projected: 0 }));
+    }
 
     // Inject Projection if available
     if (insight && insight.predictedRevenueNextWeek > 0) {

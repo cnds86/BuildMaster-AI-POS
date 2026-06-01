@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -30,9 +30,6 @@ import { KeyboardShortcuts } from './layout/KeyboardShortcuts';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: string;
-  onTabChange: (tab: string) => void;
-  currentUser: User | null;
   onLogout: () => void;
 }
 
@@ -66,18 +63,27 @@ const NAV_ITEMS: NavItemConfig[] = [
   { id: 'settings', icon: Settings, label: 'Settings', allowedRoles: ['ADMIN'] },
 ];
 
-export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, currentUser, onLogout }) => {
-  const { t, notifications, markNotificationRead, clearAllNotifications } = useGlobal();
+export const Layout: React.FC<LayoutProps> = ({ children, onLogout }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { currentUser, t, notifications, markNotificationRead, clearAllNotifications } = useGlobal();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Derive activeTab from current location pathname (e.g. "/pos" → "pos")
+  const activeTab = location.pathname.replace('/', '') || 'dashboard';
+
+  const handleTabChange = (tabId: string) => {
+    navigate(`/${tabId}`);
+  };
+
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F1') { e.preventDefault(); onTabChange('dashboard'); }
-      if (e.key === 'F2') { e.preventDefault(); onTabChange('pos'); }
-      if (e.key === 'F3') { e.preventDefault(); onTabChange('inventory'); }
+      if (e.key === 'F1') { e.preventDefault(); navigate('/dashboard'); }
+      if (e.key === 'F2') { e.preventDefault(); navigate('/pos'); }
+      if (e.key === 'F3') { e.preventDefault(); navigate('/inventory'); }
       if (e.shiftKey && e.key === '?') {
         e.preventDefault();
         setShowKeyboardHelp(prev => !prev);
@@ -86,14 +92,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onTabChange]);
+  }, [navigate]);
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       <DesktopSidebar 
         navItems={NAV_ITEMS}
         activeTab={activeTab}
-        onTabChange={onTabChange}
+        onTabChange={handleTabChange}
         currentUser={currentUser}
         t={t}
         mobileMenuOpen={mobileMenuOpen}
@@ -106,7 +112,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         <TopBar 
           setMobileMenuOpen={setMobileMenuOpen}
           mobileMenuOpen={mobileMenuOpen}
-          onTabChange={onTabChange}
+          onTabChange={handleTabChange}
           setShowKeyboardHelp={setShowKeyboardHelp}
           notifications={notifications}
           clearAllNotifications={clearAllNotifications}

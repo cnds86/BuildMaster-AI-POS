@@ -47,6 +47,9 @@ interface GlobalContextType {
   addNotification: (n: AppNotification) => void;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
+  // BUG-FE-05 FIX: pull authoritative user list from backend so shift.userId
+  // lookups resolve against real DB UUIDs rather than seed ids.
+  fetchUsersFromBackend: () => Promise<void>;
   restoreSystemData: (data: any) => void;
 
   // Inventory Store
@@ -199,6 +202,7 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Helper: Format Price
   const formatPrice = (amount: number): string => {
+    if (typeof amount !== 'number' || !Number.isFinite(amount)) amount = 0
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: systemStore.settings.currencySymbol === '₭' ? 'LAK' : systemStore.settings.currencySymbol === '฿' ? 'THB' : 'USD',
@@ -552,6 +556,7 @@ export const GlobalProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     addNotification: systemStore.addNotification,
     markNotificationRead: systemStore.markNotificationRead,
     clearAllNotifications: systemStore.clearAllNotifications,
+    fetchUsersFromBackend: systemStore.fetchUsersFromBackend,
     restoreSystemData: systemStore.restoreSystemData,
 
     // Inventory

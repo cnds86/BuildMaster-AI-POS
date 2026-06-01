@@ -60,25 +60,30 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
 
   const filteredProducts = products.filter(p => {
     const searchLower = searchTerm.toLowerCase();
-    
+
     // Check Main Product Fields
-    const matchesMain = 
-      p.name.toLowerCase().includes(searchLower) || 
-      p.sku?.toLowerCase().includes(searchLower) || 
-      p.barcode?.includes(searchLower);
+    const matchesMain =
+      p.name.toLowerCase().includes(searchLower) ||
+      p.sku?.toLowerCase().includes(searchLower) ||
+      p.barcode?.includes(searchTerm); // barcodes are numeric, don't lowercase
 
     // Check Variant Fields (Code, Barcode, Name/Unit)
-    const matchesVariant = p.variants && p.variants.some(v => 
+    const matchesVariant = p.variants && p.variants.some(v =>
       v.code.toLowerCase().includes(searchLower) ||
       v.barcode?.toLowerCase().includes(searchLower) ||
       v.name.toLowerCase().includes(searchLower)
     );
-    
-    const pCatName = getCategoryName(p.category);
+
+    // BUG-FE-06 FIX: also search by category name so typing
+    // "Cement" finds all products under the "Cement" category, etc.
+    const pCatName = getCategoryName(p.category).toLowerCase();
+    const matchesCategoryText = pCatName.includes(searchLower);
+
+    const pCatNameOrig = getCategoryName(p.category);
     const filterCatName = filterCategory === 'all' ? 'all' : getCategoryName(filterCategory);
-    const matchesCategory = filterCategory === 'all' || p.category === filterCategory || pCatName === filterCatName;
-    
-    return (matchesMain || matchesVariant) && matchesCategory;
+    const matchesCategory = filterCategory === 'all' || p.category === filterCategory || pCatNameOrig === filterCatName;
+
+    return (matchesMain || matchesVariant || matchesCategoryText) && matchesCategory;
   });
 
   // --- Handlers ---

@@ -47,7 +47,11 @@ interface SystemState {
   addNotification: (n: AppNotification) => void;
   markNotificationRead: (id: string) => void;
   clearAllNotifications: () => void;
-  
+
+  // BUG-FE-05 FIX: Pull authoritative user list (real UUIDs from DB) into the
+  // store so that shift.userId lookups can resolve against backend users.
+  fetchUsersFromBackend: () => Promise<void>;
+
   restoreSystemData: (data: any) => void;
 }
 
@@ -118,6 +122,59 @@ export const useSystemStore = create<SystemState>()(
         notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n) 
       })),
       clearAllNotifications: () => set({ notifications: [] }),
+
+      fetchUsersFromBackend: async () => {
+        try {
+          // Use any token from localStorage (same pattern as CustomerManagement).
+          let token = '';
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i) || '';
+            const v = localStorage.getItem(k) || '';
+            if (k === 'bm_session' || k === 'auth_token' || (k.toLowerCase().includes('token') && v.length > 20)) {
+              token = v;
+              break;
+            }
+          }
+          const res = await fetch('http://localhost:6039/api/users?limit=200', {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            credentials: 'include',
+          });
+          if (!res.ok) {
+            console.warn('[useSystemStore] /api/users failed', res.status);
+            return;
+          }
+          const data = await res.json();
+          const list: User[] = Array.isArray(data) ? data
+            : (data?.users || data?.data || data?.rows || []);
+          if (list.length === 0) return;
+
+          // Normalize each user to the local User shape and merge into the
+          // existing users array (DB UUIDs take precedence over seed ids).
+          set((state) => {
+            const byId = new Map<string, User>();
+            state.users.forEach((u) => byId.set(u.id, u));
+            list.forEach((u: any) => {
+              const id = u.id || u.user_id;
+              if (!id) return;
+              byId.set(id, {
+                id,
+                username: u.username || u.user_name || '',
+                name: u.name || u.full_name || u.username || 'User',
+                role: normalizeRole(u.role || 'STAFF'),
+                email: u.email || '',
+                branchId: u.branchId || u.branch_id || '',
+                department: u.department || '',
+                // Don't clobber a hashed password; leave it undefined.
+                password: byId.get(id)?.password,
+                active: u.active ?? true,
+              } as User);
+            });
+            return { users: Array.from(byId.values()) };
+          });
+        } catch (err) {
+          console.error('[useSystemStore] fetchUsersFromBackend failed', err);
+        }
+      },
 
       restoreSystemData: (data) => set((state) => ({
         ...state,

@@ -13,12 +13,16 @@ interface SalesHistoryProps {
 }
 
 export const SalesHistory: React.FC<SalesHistoryProps> = ({ sales = [], onVoidSale }) => {
-  const { currentUser, settleSaleDebt, processReturn, settings, formatPrice, products, customers, processSale } = useGlobal();
+  const { currentUser, settleSaleDebt, processReturn, settings, formatPrice, products, customers, processSale, branches } = useGlobal();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // BUG-FE-03 fix: empty string value on <input type="date"> renders as "0/0/0".
+  // Use undefined so the browser shows its native placeholder ("mm/dd/yyyy").
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
+  const [endDate, setEndDate] = useState<string | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'voided' | 'unpaid'>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>('all');
   
   // Modal States
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -47,9 +51,12 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({ sales = [], onVoidSa
         matchesDate = matchesDate && new Date(sale.date) <= end;
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      const matchesBranch = branchFilter === 'all' || sale.branchId === branchFilter;
+      const matchesPayment = paymentMethodFilter === 'all' || sale.paymentMethod?.toLowerCase() === paymentMethodFilter.toLowerCase();
+
+      return matchesSearch && matchesStatus && matchesDate && matchesBranch && matchesPayment;
     });
-  }, [safeSales, searchTerm, startDate, endDate, statusFilter]);
+  }, [safeSales, searchTerm, startDate, endDate, statusFilter, branchFilter, paymentMethodFilter]);
 
   const handleVoid = () => {
     if (!selectedSale) return;
@@ -142,6 +149,36 @@ export const SalesHistory: React.FC<SalesHistoryProps> = ({ sales = [], onVoidSa
                 <option value="voided">Voided</option>
               </select>
            </div>
+
+           <div className="relative min-w-[140px]">
+              <select
+                value={paymentMethodFilter}
+                onChange={e => setPaymentMethodFilter(e.target.value)}
+                className="w-full pl-4 pr-4 py-3 bg-slate-100 border-none rounded-xl text-slate-700 focus:ring-2 focus:ring-slate-200 focus:outline-none appearance-none font-medium"
+              >
+                <option value="all">All Methods</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="transfer">Transfer</option>
+                <option value="qr">QR</option>
+                <option value="credit">Credit</option>
+              </select>
+           </div>
+
+           {branches.length > 0 && (
+             <div className="relative min-w-[140px]">
+               <select
+                 value={branchFilter}
+                 onChange={e => setBranchFilter(e.target.value)}
+                 className="w-full pl-4 pr-4 py-3 bg-slate-100 border-none rounded-xl text-slate-700 focus:ring-2 focus:ring-slate-200 focus:outline-none appearance-none font-medium"
+               >
+                 <option value="all">All Branches</option>
+                 {branches.map(b => (
+                   <option key={b.id} value={b.id}>{b.name}</option>
+                 ))}
+               </select>
+             </div>
+           )}
         </div>
       </div>
 
