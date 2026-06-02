@@ -83,9 +83,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
     let totalOrders = filteredSales.length;
     
     // Merge API daily summary when available (today's real data)
-    if (apiDailySummary && apiDailySummary.totalRevenue !== undefined) {
-      totalRevenue = apiDailySummary.totalRevenue;
-      totalOrders = apiDailySummary.orderCount ?? totalOrders;
+    // Only override if API returns a positive value (avoid zeroing out local sales data)
+    if (apiDailySummary && (apiDailySummary.totalRevenue ?? 0) > 0) {
+      totalRevenue = apiDailySummary.totalRevenue!;
+      if ((apiDailySummary.orderCount ?? 0) > 0) {
+        totalOrders = apiDailySummary.orderCount!;
+      }
     }
     
     // Average Order Value

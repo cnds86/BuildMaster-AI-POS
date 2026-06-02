@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Customer, CustomerLevel, Sale } from '../types';
 import { useGlobal } from '../context/GlobalContext';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Trash2, X } from 'lucide-react';
+import { useToast } from './toast/ToastContext';
 
 // Backend API base URL
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:6039/api';
@@ -54,6 +55,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
     customers: globalCustomers,
     formatPrice 
   } = useGlobal();
+  const { addToast } = useToast();
 
   // We use the parent-supplied `customers` prop so the reconciliation
   // algorithm reads the same data the table is rendering.
@@ -184,8 +186,20 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
     }
   };
 
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
+
   const handleDeleteCustomer = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this customer?')) return;
+    const customer = customers.find(c => c.id === id);
+    if (customer) {
+      setDeletingCustomer(customer);
+      return;
+    }
+  };
+
+  const confirmDeleteCustomer = async () => {
+    if (!deletingCustomer) return;
+    const id = deletingCustomer.id;
+    setDeletingCustomer(null);
     const token = getAuthToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -207,6 +221,7 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
       onDeleteCustomer(id);
     }
     if (viewingCustomer?.id === id) setViewingCustomer(null);
+    addToast(`ลบลูกค้า "${deletingCustomer.name}" สำเร็จ`, 'success');
   };
 
   // --- Handlers for Levels ---
@@ -307,6 +322,41 @@ export const CustomerManagement: React.FC<CustomerManagementProps> = ({
         onSubmit={handleLevelSubmit}
         initialData={editingLevel}
       />
+
+      {/* Delete Confirmation Dialog */}
+      {deletingCustomer && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 animate-fade-in" data-testid="customer-delete-confirm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">ยืนยันการลบลูกค้า</h3>
+              <p className="text-slate-600 text-sm mb-1">คุณต้องการลบลูกค้า</p>
+              <p className="text-slate-900 font-bold text-base mb-3">"{deletingCustomer.name}"</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+                ⚠️ การลบจะไม่สามารถกู้คืนได้
+              </div>
+            </div>
+            <div className="flex border-t border-slate-100 bg-slate-50">
+              <button
+                onClick={() => setDeletingCustomer(null)}
+                className="flex-1 px-6 py-4 text-slate-700 font-bold hover:bg-slate-100 transition-colors border-r border-slate-100"
+                data-testid="customer-delete-cancel"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={confirmDeleteCustomer}
+                className="flex-1 px-6 py-4 bg-red-600 text-white font-bold hover:bg-red-700 transition-colors flex items-center justify-center"
+                data-testid="customer-delete-confirm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> ลบลูกค้า
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
