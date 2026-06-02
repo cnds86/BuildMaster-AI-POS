@@ -16,9 +16,9 @@ services:
         max-file: "3"
         compress: "true"
     environment:
-      POSTGRES_USER: mhxpos
-      POSTGRES_PASSWORD: mhxpos123
-      POSTGRES_DB: mhxpos
+      POSTGRES_USER: ${POSTGRES_USER:-mhxpos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-mhxpos}
     ports:
       - "54330:5432"
     volumes:
@@ -70,12 +70,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://mhxpos:mhxpos123@postgres:5432/mhxpos
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mhxpos}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-mhxpos}
       DB_HOST: postgres
       DB_PORT: "5432"
-      DB_NAME: mhxpos
-      DB_USER: mhxpos
-      DB_PASSWORD: mhxpos123
+      DB_NAME: ${POSTGRES_DB:-mhxpos}
+      DB_USER: ${POSTGRES_USER:-mhxpos}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5180}

@@ -46,31 +46,68 @@ export const NEWLINE = Buffer.from([0x0a])
 export const CRLF = Buffer.from([0x0d, 0x0a])
 
 /**
- * Convert string to bytes with Thai support (most ESC/POS printers support TIS-620 or CP874)
- * For simplicity, we'll use ASCII-safe output
+ * Convert string to bytes with Thai support (TIS-620 / CP874).
+ * Most Thai ESC/POS printers default to CP874; some accept TIS-620.
+ * If the input is pure ASCII, we still emit ASCII bytes for max compatibility.
  */
-export function textToBytes(text: string): Buffer {
-  // Replace Thai characters with approximations or remove non-printable
-  // ESC/POS printers typically use TIS-620 encoding for Thai
-  const encoder = new TextEncoder()
-  // Try TIS-620 (Thai) if available, fall back to Latin-1
+let cachedTis620Encoder: ((input: string) => Buffer) | null = null
+
+function getTis620Encoder(): ((input: string) => Buffer) | null {
+  if (cachedTis620Encoder) return cachedTis620Encoder
   try {
-    return encoder.encode(text)
+    // Build a manual TIS-620 mapper. TIS-620 / ISO-8859-11 maps the
+    // Thai Unicode block 0x0E01-0x0E5B to bytes 0xA1-0xDA. This is the
+    // encoding most Thai ESC/POS thermal printers expect by default.
+    cachedTis620Encoder = (s: string): Buffer => {
+      const out = Buffer.allocUnsafe(s.length)
+      for (let i = 0; i < s.length; i++) {
+        const code = s.charCodeAt(i)
+        if (code < 0x80) {
+          out[i] = code
+        } else if (code >= 0x0E01 && code <= 0x0E5B) {
+          // Thai Unicode → TIS-620 byte
+          out[i] = code - 0x0E01 + 0xA1
+        } else {
+          // Non-Thai (Lao, Chinese, emoji) — replace with `?`
+          out[i] = 0x3F
+        }
+      }
+      return out
+    }
+    return cachedTis620Encoder
   } catch {
-    return Buffer.from(text.replace(/[^\x00-\x7F]/g, '?'), 'latin1')
+    return null
   }
 }
 
+export function textToBytes(text: string): Buffer {
+  const enc = getTis620Encoder()
+  if (enc) return enc(text)
+  // Fallback: Latin-1 with non-ASCII replaced (will look like `?` on Thai
+  // printers without auto-detect, but won't crash the print job)
+  return Buffer.from(text.replace(/[^\x00-\x7F]/g, '?'), 'latin1')
+}
+
 /**
- * Pad text to width with spaces
+ * Pad text to width with spaces. We pad using ASCII spaces — even
+ * for Thai/Lao text — because ESC/POS printers advance the cursor on
+ * a per-byte basis, so visible width approximates byte width for the
+ * Thai/Lao scripts we print.
  */
 export function padText(text: string, width: number, align: 'left' | 'center' | 'right' = 'left'): string {
-  const clean = text.replace(/[^\x00-\x7F]/g, '?') // Remove non-ASCII
-  const padded = clean.padStart(clean.length).padEnd(width)
-  if (align === 'left') return padded.substring(0, width)
-  if (align === 'right') return padded.padStart(width).substring(padded.length - width)
-  const leftPad = Math.floor((width - clean.length) / 2)
-  return padded.substring(0, leftPad) + clean + padded.substring(leftPad + clean.length)
+  // For East-Asian/Thai/Lao text we approximate width = char count.
+  // The final bytes are produced by textToBytes, which keeps Thai bytes
+  // proportional to source length (1 Thai char → 1 byte in TIS-620).
+  const displayWidth = text.length
+  if (align === 'left') {
+    return text + ' '.repeat(Math.max(0, width - displayWidth))
+  }
+  if (align === 'right') {
+    return ' '.repeat(Math.max(0, width - displayWidth)) + text
+  }
+  const leftPad = Math.max(0, Math.floor((width - displayWidth) / 2))
+  const rightPad = Math.max(0, width - displayWidth - leftPad)
+  return ' '.repeat(leftPad) + text + ' '.repeat(rightPad)
 }
 
 // ─── Receipt Builder ─────────────────────────────────────────────────────────

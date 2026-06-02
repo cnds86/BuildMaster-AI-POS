@@ -255,7 +255,15 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
                           {delivery.deliveryAddress}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">
-                          {new Date(delivery.scheduledDate).toLocaleDateString()}
+                          {delivery.scheduledDate
+                            ? new Date(delivery.scheduledDate).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : <span className="text-slate-400 italic">—</span>}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(delivery.status)}`}>
