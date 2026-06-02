@@ -129,6 +129,7 @@ export interface Sale {
   pointsEarned?: number;
   userId?: string;
   userName?: string;
+  branchId?: string;
   type?: 'sale' | 'return';
   originalSaleId?: string;
 }
@@ -147,7 +148,7 @@ export interface Quotation {
   customerName?: string;
   customerAddress?: string;
   customerPhone?: string;
-  status: 'active' | 'converted' | 'expired';
+  status: 'draft' | 'sent' | 'approved' | 'active' | 'converted' | 'expired';
   userId?: string;
   userName?: string;
   note?: string;
@@ -202,6 +203,8 @@ export interface ExpenseCategory {
   description?: string;
 }
 
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 export interface Expense {
   id: string;
   date: string;
@@ -213,8 +216,9 @@ export interface Expense {
   description: string;
   recordedBy: string; // userId
   recordedByName?: string;
-  branchId?: string; 
+  branchId?: string;
   receiptUrl?: string; // Optional proof
+  approvalStatus?: ApprovalStatus;
 }
 
 export interface SystemRole {
@@ -225,7 +229,7 @@ export interface SystemRole {
   isSystem?: boolean; 
 }
 
-export interface User { id: string; username: string; password?: string; email?: string; name: string; role: UserRole; avatarUrl?: string; coverUrl?: string; department?: string; branchId?: string; }
+export interface User { id: string; username: string; password?: string; email?: string; name: string; role: UserRole; avatarUrl?: string; coverUrl?: string; department?: string; branchId?: string; active?: boolean; }
 
 export interface CashTransaction {
   id: string;
@@ -271,7 +275,7 @@ export type PromotionType = 'amount_off_order' | 'percent_off_order' | 'bxgy' | 
 export interface Promotion { 
   id: string; 
   title: string; 
-  description?: string;
+  description?: string; 
   imageUrl: string; 
   isActive: boolean; 
   type?: PromotionType;
@@ -282,7 +286,8 @@ export interface Promotion {
   getQuantity?: number;
   order?: number; 
   startDate?: string; 
-  endDate?: string; 
+  endDate?: string;
+  approvalStatus?: ApprovalStatus;
 }
 export interface LocalDatabaseConfig { enabled: boolean; type: 'postgresql' | 'sqlite' | 'mysql'; host: string; port: string; databaseName: string; username: string; password: string; }
 export interface TaxSettings { enabled: boolean; rate: number; calculationMode: 'included' | 'excluded'; displayOnReceipt: boolean; }

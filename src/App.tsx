@@ -23,6 +23,7 @@ import { QuotationsManagement } from '../components/QuotationsManagement';
 import { DeliveryDashboard } from '../components/delivery/DeliveryDashboard';
 import { ExpenseManagement } from '../components/ExpenseManagement';
 import { LoginPage } from '../components/LoginPage';
+import { CustomerDisplayPage } from '../components/CustomerDisplayPage';
 import { WMSDashboard } from '../components/wms/WMSDashboard';
 import { useGlobal } from '../context/GlobalContext';
 import { UserRole } from '../types';
@@ -173,6 +174,18 @@ function AppRoutes() {
     setCurrentUser(null);
     navigate('/login');
   };
+
+  // Public routes (no auth required) — e.g. customer-facing display
+  // Bug fix 2026-06-02: /customer-display must work without login (customer has no credentials)
+  // Note: CustomerDisplayPage is loaded as a SEPARATE chunk (window.open from POS) to avoid
+  // importing the heavy POS bundle into the public route.
+  if (typeof window !== 'undefined' && window.location.pathname === '/customer-display') {
+    return (
+      <Routes>
+        <Route path="/customer-display" element={<CustomerDisplayPage />} />
+      </Routes>
+    );
+  }
 
   if (!currentUser) {
     return (

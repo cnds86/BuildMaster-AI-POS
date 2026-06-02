@@ -36,7 +36,7 @@ if [ -z "$BUN" ]; then
 fi
 
 echo "🚀 Starting MHX-POS..."
-echo "   Frontend → http://localhost:${VITE_PORT:-5176}"
+echo "   Frontend → http://localhost:${VITE_PORT:-5173}"
 echo "   Backend  → http://localhost:${PORT:-3006}"
 echo "   bun      → $BUN ($($BUN --version))"
 echo ""

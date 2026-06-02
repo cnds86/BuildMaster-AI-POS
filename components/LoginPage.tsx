@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGlobal } from '../context/GlobalContext';
 import { Lock, User as UserIcon, LogIn, Loader2, AlertCircle } from 'lucide-react';
 import { verifyPasswordSync } from '../lib/auth';
@@ -9,6 +10,7 @@ import { MhxIcon } from './shared/MhxLogo';
 
 export const LoginPage: React.FC = () => {
   const { setCurrentUser, users, t } = useGlobal();
+  const navigate = useNavigate();
   
   const [loginUsername, setLoginUsername] = useState('admin');
   const [loginPassword, setLoginPassword] = useState('password123');
@@ -28,6 +30,7 @@ export const LoginPage: React.FC = () => {
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
+          credentials: 'include', // ✅ needed to receive auth_token cookie
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: cleanUsername, password: cleanPassword })
         });
@@ -35,8 +38,18 @@ export const LoginPage: React.FC = () => {
         if (res.ok) {
           const data = await res.json();
           if (data.user) {
+            // ✅ Save JWT token in localStorage so api.ts fetches can use it
+            if (data.token && typeof window !== 'undefined') {
+              try { localStorage.setItem('mhx_auth_token', data.token) } catch {}
+            }
             setCurrentUser(data.user);
             setLoading(false);
+            // Navigate to default route after successful login
+            const role = data.user.role?.toUpperCase();
+            const defaultRoute = role === 'CASHIER' ? '/pos'
+              : role === 'STAFF' ? '/inventory'
+              : '/dashboard';
+            navigate(defaultRoute, { replace: true });
             return;
           }
         } else {
@@ -59,6 +72,12 @@ export const LoginPage: React.FC = () => {
           const { password, ...safeUser } = clientMatch;
           setCurrentUser(safeUser as any);
           setLoading(false);
+          // Navigate to default route after successful login
+          const role = safeUser.role?.toUpperCase();
+          const defaultRoute = role === 'CASHIER' ? '/pos'
+            : role === 'STAFF' ? '/inventory'
+            : '/dashboard';
+          navigate(defaultRoute, { replace: true });
           return;
         }
       }

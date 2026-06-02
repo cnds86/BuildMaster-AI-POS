@@ -67,9 +67,21 @@ export const QuotationList: React.FC<QuotationListProps> = ({ quotations, format
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
                           Converted
                         </span>
-                      ) : isExpired || quote.status === 'expired' ? (
+                      ) : quote.status === 'expired' || isExpired ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
                           Expired
+                        </span>
+                      ) : quote.status === 'approved' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700 border border-green-200">
+                          Approved
+                        </span>
+                      ) : quote.status === 'sent' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200">
+                          Sent
+                        </span>
+                      ) : quote.status === 'draft' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                          Draft
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">

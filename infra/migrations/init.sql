@@ -234,6 +234,14 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- System Settings (single-row key-value store)
+CREATE TABLE IF NOT EXISTS system_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key VARCHAR(100) NOT NULL UNIQUE,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_products_category ON products(category);
 CREATE INDEX IF NOT EXISTS idx_products_sku ON products(sku);

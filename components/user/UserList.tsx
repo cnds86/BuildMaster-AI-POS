@@ -53,7 +53,7 @@ export const UserList: React.FC<UserListProps> = ({ users, branches, currentUser
                     }`}>
                       {user.role === 'ADMIN' && <ShieldCheck className="w-3 h-3 mr-1"/>}
                       {user.role === 'MANAGER' && <LayoutDashboard className="w-3 h-3 mr-1"/>}
-                      {user.role === 'Staff' && <ClipboardList className="w-3 h-3 mr-1"/>}
+                      {user.role === 'STAFF' && <ClipboardList className="w-3 h-3 mr-1"/>}
                       {user.role === 'CASHIER' && <Store className="w-3 h-3 mr-1"/>}
                       {roleLabel(user.role)}
                     </span>
@@ -77,8 +77,10 @@ export const UserList: React.FC<UserListProps> = ({ users, branches, currentUser
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                     <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                     <span className="text-sm text-slate-600">Active</span>
+                     <span className={`inline-flex items-center gap-1.5 ${user.active !== false ? 'text-green-600' : 'text-red-500'}`}>
+                       <span className={`inline-block w-2 h-2 rounded-full ${user.active !== false ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                       <span className="text-sm font-medium">{user.active !== false ? 'Active' : 'Suspended'}</span>
+                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end space-x-2">

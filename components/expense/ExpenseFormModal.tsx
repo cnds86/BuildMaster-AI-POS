@@ -50,6 +50,7 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
       id: initialData?.id || `EXP-${Date.now()}`,
       recordedBy: initialData?.recordedBy || currentUser?.id || 'sys',
       recordedByName: initialData?.recordedByName || currentUser?.name || 'System',
+      approvalStatus: initialData?.approvalStatus || 'pending',
     });
     onClose();
   };

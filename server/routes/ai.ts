@@ -121,7 +121,7 @@ async function anthropicChat(contents: string, systemInstruction: string): Promi
 
 async function ollamaChat(contents: string, systemInstruction: string): Promise<string> {
   const model = OLLAMA_MODEL
-  const res = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
+  const res = await fetch(`${OLLAMA_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -134,8 +134,8 @@ async function ollamaChat(contents: string, systemInstruction: string): Promise<
     }),
   })
   if (!res.ok) throw new Error(`Ollama error: ${res.status}`)
-  const data = await res.json() as { message: { content: string } }
-  return data.message?.content ?? ''
+  const data = await res.json() as { choices: { message: { content: string } }[] }
+  return data.choices[0]?.message?.content ?? ''
 }
 
 // ── MiniMax ────────────────────────────────────────────────────────────────────
@@ -247,7 +247,7 @@ function buildContents(req: AiRequest): string {
   switch (req.type) {
     case 'construction_estimate': {
       const inventoryList = (req.inventory as { id: string; name: string; unit: string; price: number }[])
-        .map(p => `{id: "${p.id}", name: "${p.name}", unit: "${p.unit}", price: ${p.price}}`).join('\n')
+        ?.map(p => `{id: "${p.id}", name: "${p.name}", unit: "${p.unit}", price: ${p.price}}`).join('\n') ?? ''
       return `Query: ${req.query}\n\nStore Inventory:\n${inventoryList}`
     }
     case 'inventory_analysis':
@@ -280,8 +280,13 @@ export const aiRoutes = (app: Elysia) =>
           const contents = buildContents(req)
           const text = await aiChat(contents, req.type)
           if (!text) return { result: null, error: 'Empty response from AI provider' }
-          const parsed = JSON.parse(text)
-          return { result: parsed }
+          try {
+            const parsed = JSON.parse(text)
+            return { result: parsed }
+          } catch {
+            // Not JSON — return as plain text
+            return { result: text }
+          }
         } catch (err) {
           console.error(`[AI /chat] provider=${PROVIDER} type=${req.type}`, err)
           set.status = 502

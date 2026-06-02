@@ -201,7 +201,7 @@ export const CartSidebar: React.FC<CartSidebarProps> = ({
 
            {settings?.tax?.enabled && (
               <div className="flex justify-between text-sm text-slate-500 font-medium">
-                 <span>{t('pos.tax', 'Tax')} ({settings.tax.rate}%)</span>
+                 <span>VAT {settings.tax.rate}%</span>
                  <span>{formatPrice(tax)}</span>
               </div>
            )}

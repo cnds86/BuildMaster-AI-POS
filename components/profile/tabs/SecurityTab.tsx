@@ -26,8 +26,8 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({ user, onUpdatePassword
       return;
     }
 
-    if (passForm.newPassword.length < 6) {
-      setStatus({ type: 'error', message: 'Password must be at least 6 characters' });
+    if (passForm.newPassword.length < 8) {
+      setStatus({ type: 'error', message: 'Password must be at least 8 characters' });
       return;
     }
 

@@ -1,0 +1,146 @@
+/* ==========================================================================
+   CSS Design Token System — MHX-POS
+   ========================================================================== */
+
+:root {
+  /* ---------- Color Tokens ---------- */
+  /* Primary (Brand Red) */
+  --color-primary-50: #fef2f2;
+  --color-primary-100: #fee2e2;
+  --color-primary-200: #fecaca;
+  --color-primary-300: #fca5a5;
+  --color-primary-400: #f87171;
+  --color-primary-500: #ef4444;
+  --color-primary-600: #dc2626; /* Main Brand */
+  --color-primary-700: #b91c1c;
+  --color-primary-800: #991b1b;
+  --color-primary-900: #7f1d1d;
+
+  /* Semantic Colors */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+
+  /* Construction Theme */
+  --color-construction-orange: #dc2626;
+  --color-construction-yellow: #fbbf24;
+  --color-construction-concrete: #64748b;
+  --color-construction-dark: #0f172a;
+
+  /* Gray Scale */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Background */
+  --color-bg-base: #f8fafc;
+  --color-bg-card: #ffffff;
+  --color-bg-sidebar: #ffffff;
+  --color-bg-modal: #ffffff;
+
+  /* Text */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-text-inverse: #ffffff;
+
+  /* Borders */
+  --color-border-default: #e5e7eb;
+  --color-border-muted: #f3f4f6;
+  --color-border-focus: #dc2626;
+
+  /* ---------- Typography Tokens ---------- */
+  --font-family-sans: 'Inter', 'Noto Sans Thai', 'Noto Sans Lao', sans-serif;
+  --font-family-thai: 'Noto Sans Thai', sans-serif;
+  --font-family-lao: 'Noto Sans Lao', sans-serif;
+
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;  /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* ---------- Spacing Tokens ---------- */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem;    /* 48px */
+
+  /* ---------- Border Radius Tokens ---------- */
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.375rem;   /* 6px */
+  --radius-lg: 0.5rem;    /* 8px */
+  --radius-xl: 0.75rem;   /* 12px */
+  --radius-2xl: 1rem;     /* 16px */
+  --radius-full: 9999px;
+
+  /* ---------- Shadow Tokens ---------- */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+  /* ---------- Transition Tokens ---------- */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ---------- Z-Index Tokens ---------- */
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-modal-backdrop: 200;
+  --z-modal: 250;
+  --z-toast: 300;
+  --z-tooltip: 400;
+}
+
+/* ==========================================================================
+   Dark Mode Tokens
+   ========================================================================== */
+.dark {
+  --color-bg-base: #0f172a;
+  --color-bg-card: #1e293b;
+  --color-bg-sidebar: #1e293b;
+  --color-bg-modal: #1e293b;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-border-default: #334155;
+  --color-border-muted: #1e293b;
+}
+
+/* ==========================================================================
+   Utility Classes using Tokens
+   ========================================================================== */
+.token-bg-base { background-color: var(--color-bg-base); }
+.token-bg-card { background-color: var(--color-bg-card); }
+.token-text-primary { color: var(--color-text-primary); }
+.token-text-secondary { color: var(--color-text-secondary); }
+.token-border { border-color: var(--color-border-default); }
+.token-radius { border-radius: var(--radius-md); }
+.token-shadow { box-shadow: var(--shadow-md); }

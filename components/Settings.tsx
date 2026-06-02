@@ -50,6 +50,22 @@ const TABS: { id: SettingsTab; label: string; icon: any }[] = [
 
 export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, branches = [], posMachines = [] }) => {
   const [formData, setFormData] = useState<SystemSettings>(settings);
+  const [loading, setLoading] = useState(true);
+  const [saveError, setSaveError] = useState('');
+
+  // Load settings from API on mount
+  useEffect(() => {
+    fetch('/api/settings', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.settings) {
+          setFormData(data.settings);
+          onUpdateSettings(data.settings);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
   const [successMsg, setSuccessMsg] = useState('');
   
@@ -77,9 +93,9 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
     setActiveTab(newTab);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Strict Block: Prevent saving ONLY if on Device tab AND (ID is duplicate OR Checking)
     if (activeTab === 'device') {
        if (posCheckStatus === 'taken') {
@@ -90,10 +106,28 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
           return; // Silently block
        }
     }
-    
-    onUpdateSettings(formData);
-    setSuccessMsg('Settings saved successfully!');
-    setTimeout(() => setSuccessMsg(''), 3000);
+
+    setSaveError('');
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      const data = await res.json();
+      // Sync both local state and global store
+      setFormData(data.settings);
+      onUpdateSettings(data.settings);
+      setSuccessMsg('Settings saved to server!');
+    } catch {
+      setSaveError('Failed to save settings. Please try again.');
+      // Fallback: still save to local
+      onUpdateSettings(formData);
+      setSuccessMsg('Settings saved locally.');
+    }
+    setTimeout(() => { setSuccessMsg(''); setSaveError(''); }, 3000);
   };
 
   const isSaveDisabled = activeTab === 'device' && (posCheckStatus === 'taken' || posCheckStatus === 'checking');
@@ -114,7 +148,23 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
             {successMsg}
           </div>
         )}
+        {saveError && (
+          <div className="bg-red-100 border border-red-200 text-red-700 px-4 py-2 rounded-xl flex items-center shadow-sm animate-fade-in font-bold text-sm">
+            <AlertTriangle className="w-5 h-5 mr-2" />
+            {saveError}
+          </div>
+        )}
       </div>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10">
+          <div className="flex items-center text-slate-500">
+            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            <span>Loading settings...</span>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden flex-1 min-h-0">
         {/* Sidebar Tabs - Style A: Clean list */}

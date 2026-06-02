@@ -1,0 +1,66 @@
+# Dependencies
+node_modules
+bun.lock
+
+# Build output (frontend dist needed by backend for static file serving)
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+bun-debug.log
+
+# Environment (handled via --env-file at runtime)
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs and project files not needed in container
+*.md
+docs
+*.txt
+qa-output
+
+# Test files
+__tests__
+*.test.*
+*.spec.*
+
+# Debug/dev artifacts
+debug-*.ts
+debug-*.js
+p0-*.ts
+p0-*.js
+p0-*.cjs
+
+# Migration prompts and analysis
+migrated_prompt_history
+PROJECT_ANALYSIS.md
+
+# Skills and agent files
+.hermes
+*.skill
+
+# Docker files (avoid recursive COPY)
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+infra/Dockerfile
+infra/docker-compose.yml
+
+# Local infra/db configs not needed
+infra/migrations

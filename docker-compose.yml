@@ -1,8 +1,20 @@
+# ============================================================
+# MHX-POS docker-compose — Production Stack
+# Services: postgres, redis, backend, frontend
+# ============================================================
+
 services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: mhxpos-postgres
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        compress: "true"
     environment:
       POSTGRES_USER: mhxpos
       POSTGRES_PASSWORD: mhxpos123
@@ -12,15 +24,22 @@ services:
     volumes:
       - mhxpos_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mhxpos -d mhxpos"]
+      test: ["CMD-SHELL", "pg_isready -U mhxpos -h localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # ── Redis ───────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: mhxpos-redis
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        compress: "true"
     command: redis-server --appendonly yes --requirepass ""
     ports:
       - "16379:6379"
@@ -32,6 +51,81 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Backend (Bun + Elysia) ──────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mhxpos-backend
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        compress: "true"
+    # --env-file loads .env into the bun --env-file=.env CMD arg inside the container
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://mhxpos:mhxpos123@postgres:5432/mhxpos
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: mhxpos
+      DB_USER: mhxpos
+      DB_PASSWORD: mhxpos123
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5180}
+      JWT_SECRET: ${JWT_SECRET:-}
+    ports:
+      - "3007:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Frontend (Vite build + nginx) ────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        # VITE_* vars are baked into the bundle at build time
+        VITE_API_URL: /api
+        VITE_WS_URL: /ws
+        VITE_PUBLIC_URL: ${CORS_ORIGIN:-http://localhost:5180}
+    container_name: mhxpos-frontend
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+        compress: "true"
+    environment:
+      NODE_ENV: production
+      PORT: 5173
+    ports:
+      - "5180:5173"
+    depends_on:
+      - backend
+    healthcheck:
+      # nginx.conf serves /health as a plain-text 200 for health checks
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5173/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# ── Named volumes ──────────────────────────────────────────────────────────────
 volumes:
   mhxpos_pgdata:
   mhxpos_redisdata:

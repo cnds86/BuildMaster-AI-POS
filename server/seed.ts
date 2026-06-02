@@ -43,6 +43,33 @@ async function createSchema() {
   `.execute(db)
 
   await sql`
+    CREATE TABLE IF NOT EXISTS departments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(255) NOT NULL,
+      description TEXT,
+      manager_id UUID,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS warehouses (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name VARCHAR(255) NOT NULL,
+      code VARCHAR(50) NOT NULL UNIQUE,
+      warehouse_type VARCHAR(20) NOT NULL DEFAULT 'main',
+      branch_id UUID REFERENCES branches(id),
+      address TEXT,
+      phone VARCHAR(50),
+      manager_id UUID,
+      active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `.execute(db)
+
+  await sql`
     CREATE TABLE IF NOT EXISTS categories (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       name VARCHAR(255) NOT NULL,
@@ -154,8 +181,11 @@ async function createSchema() {
       name VARCHAR(255) NOT NULL,
       phone VARCHAR(50) NOT NULL,
       license_plate VARCHAR(50),
+      branch_id UUID,
+      status VARCHAR(50) DEFAULT 'Available',
       active BOOLEAN DEFAULT true,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `.execute(db)
 
@@ -164,9 +194,13 @@ async function createSchema() {
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       plate_number VARCHAR(50) NOT NULL UNIQUE,
       vehicle_type VARCHAR(100),
-      driver_id UUID REFERENCES drivers(id),
+      capacity_weight DECIMAL(10,2),
+      capacity_volume DECIMAL(10,2),
+      branch_id UUID,
+      status VARCHAR(50) DEFAULT 'Available',
       active BOOLEAN DEFAULT true,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `.execute(db)
 
@@ -246,8 +280,14 @@ async function createSchema() {
       vehicle_id UUID REFERENCES vehicles(id),
       status VARCHAR(50) DEFAULT 'PENDING',
       delivery_address TEXT,
+      customer_name VARCHAR(255),
+      customer_phone VARCHAR(50),
+      scheduled_date DATE,
+      estimated_weight DECIMAL(10,2),
+      notes TEXT,
       delivered_at TIMESTAMP,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `.execute(db)
 
@@ -290,6 +330,23 @@ async function seedData() {
   `.execute(db)
 
   console.log('  ✅ branches (3)')
+
+  // ── Warehouses ──────────────────────────────────────────────────────────────
+  const warehouseIds = {
+    HQ_main: uuid(),
+    Vientiane_wh: uuid(),
+    Bokeo_wh: uuid(),
+  }
+
+  await sql`
+    INSERT INTO warehouses (id, name, code, warehouse_type, branch_id, address, phone, active) VALUES
+      (${warehouseIds.HQ_main}, 'WH ໃໝ່ - Main', 'WH-HQ-MAIN', 'main', ${branchIds.HQ}, '�້າ 24 ເໜ, ເ 20, ເ', '020 1234 5679', true),
+      (${warehouseIds.Vientiane_wh}, 'WH MRDIY ເໝ ເ', 'WH-MRDIY-N', 'branch', ${branchIds.Vientiane}, '20 ເເ, ເ ເ', '020 2345 6780', true),
+      (${warehouseIds.Bokeo_wh}, 'WH BOKEO', 'WH-BOKEO', 'branch', ${branchIds.Bokeo}, '2 ເ 2, ເ ເ', '020 3456 7891', true)
+    ON CONFLICT (code) DO NOTHING;
+  `.execute(db)
+
+  console.log('  ✅ warehouses (3)')
 
   // ── Users ─────────────────────────────────────────────────────────────────
   const pwHash = await bcrypt.hash('password123', 10)
@@ -493,16 +550,16 @@ async function seedData() {
   const vehicleIds = { v1: uuid(), v2: uuid() }
 
   await sql`
-    INSERT INTO drivers (id, name, phone, license_plate, active) VALUES
-      (${driverIds.d1}, 'Mr. Boun', '020 7777 8888', 'LA-1234', true),
-      (${driverIds.d2}, 'Mr. Noy', '020 8888 9999', 'LA-5678', true)
+    INSERT INTO drivers (id, name, phone, license_plate, branch_id, status, active) VALUES
+      (${driverIds.d1}, 'Mr. Boun', '020 7777 8888', 'DL-12345', ${branchIds.HQ}, 'Available', true),
+      (${driverIds.d2}, 'Mr. Noy', '020 8888 9999', 'DL-67890', ${branchIds.HQ}, 'Available', true)
     ON CONFLICT DO NOTHING;
   `.execute(db)
 
   await sql`
-    INSERT INTO vehicles (id, plate_number, vehicle_type, driver_id, active) VALUES
-      (${vehicleIds.v1}, 'LA-1234', 'Truck 2.5T', ${driverIds.d1}, true),
-      (${vehicleIds.v2}, 'LA-5678', 'Truck 1.5T', ${driverIds.d2}, true)
+    INSERT INTO vehicles (id, plate_number, vehicle_type, capacity_weight, capacity_volume, branch_id, status, active) VALUES
+      (${vehicleIds.v1}, 'LA-1234', 'Truck', 2500, NULL, ${branchIds.HQ}, 'Available', true),
+      (${vehicleIds.v2}, 'LA-5678', 'Pickup', 1500, NULL, ${branchIds.HQ}, 'Available', true)
     ON CONFLICT DO NOTHING;
   `.execute(db)
 
@@ -653,9 +710,9 @@ async function seedData() {
 
   // ── Delivery Orders ────────────────────────────────────────────────────────
   await sql`
-    INSERT INTO delivery_orders (id, sale_id, driver_id, vehicle_id, status, delivery_address, created_at) VALUES
-      (${uuid()}, ${sale1Id}, ${driverIds.d1}, ${vehicleIds.v1}, 'DELIVERED', 'ເ 24 ເ ເ ເ, ເ 20', ${new Date(now.getTime() - 3600000).toISOString()}),
-      (${uuid()}, ${sale2Id}, ${driverIds.d2}, ${vehicleIds.v2}, 'PENDING', 'ໂ 23, ເ 12', ${now.toISOString()})
+    INSERT INTO delivery_orders (id, sale_id, driver_id, vehicle_id, status, delivery_address, customer_name, customer_phone, scheduled_date, notes, created_at) VALUES
+      (${uuid()}, ${sale1Id}, ${driverIds.d1}, ${vehicleIds.v1}, 'Delivered', 'ເ 24 ເ ເ ເ, ເ 20', 'Mr. Somchai Construction', '020 1111 2222', CURRENT_DATE, 'ເ 2 ເ', ${new Date(now.getTime() - 3600000).toISOString()}),
+      (${uuid()}, ${sale2Id}, ${driverIds.d2}, ${vehicleIds.v2}, 'Pending', 'ໂ 23, ເ 12', 'Phongsavanh Builder', '020 2222 3333', CURRENT_DATE + 1, NULL, ${now.toISOString()})
     ON CONFLICT DO NOTHING;
   `.execute(db)
 

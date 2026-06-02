@@ -23,10 +23,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const getRoleBadgeColor = (role: string) => {
-    switch(role) {
-      case 'Admin': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'Manager': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
-      case 'Staff': return 'bg-blue-100 text-blue-700 border-blue-200';
+    switch(role.toUpperCase()) {
+      case 'ADMIN': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'MANAGER': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      case 'STAFF': return 'bg-blue-100 text-blue-700 border-blue-200';
       default: return 'bg-green-100 text-green-700 border-green-200';
     }
   };

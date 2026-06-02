@@ -8,7 +8,9 @@ import {
   UserCircle, 
   ChevronDown, 
   Settings, 
-  LogOut 
+  LogOut,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { User, AppNotification } from '../../types';
 
@@ -37,11 +39,28 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('mhx-dark-mode') === 'true';
+    }
+    return false;
+  });
   const searchInputRef = useRef<HTMLInputElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Dark mode toggle
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('mhx-dark-mode', 'true');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('mhx-dark-mode', 'false');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -96,6 +115,15 @@ export const TopBar: React.FC<TopBarProps> = ({
             title="Keyboard Shortcuts (Shift+?)"
          >
             <Keyboard className="w-5 h-5" />
+         </button>
+
+         {/* Dark Mode Toggle */}
+         <button
+           onClick={() => setIsDarkMode(!isDarkMode)}
+           className="p-2 text-slate-500 hover:text-orange-600 hover:bg-slate-100 rounded-full transition-colors"
+           title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+         >
+           {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
          </button>
 
          {/* Notifications */}

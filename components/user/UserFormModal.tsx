@@ -90,6 +90,14 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         alert("Password is required for new users.");
         return;
     }
+    // C3: Password complexity validation (8+ chars, uppercase, lowercase, number or special char)
+    if (formData.password) {
+      const pwd = formData.password;
+      if (pwd.length < 8) { alert("Password must be at least 8 characters."); return; }
+      if (!/[A-Z]/.test(pwd)) { alert("Password must contain at least one uppercase letter."); return; }
+      if (!/[a-z]/.test(pwd)) { alert("Password must contain at least one lowercase letter."); return; }
+      if (!/[0-9!@#$%^&*()_+\-=\[\]{};':\"\\,.<>\/?]/.test(pwd)) { alert("Password must contain at least one number or special character."); return; }
+    }
     if (currentUser?.role !== 'ADMIN' && formData.role === 'ADMIN') {
        alert("You do not have permission to create Administrator accounts.");
        return;
@@ -99,11 +107,11 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
 
   const getRolePermissions = (role: UserRole) => {
     const p = (label: string, access: boolean) => ({ label, access });
-    switch (role) {
-      case 'Admin': return [p('Full Access', true)];
-      case 'Manager': return [p('Dashboard', true), p('Approvals', true), p('Reports', true), p('Settings', false)];
-      case 'Staff': return [p('Inventory', true), p('Stock', true), p('POS', true), p('Reports', false)];
-      case 'Cashier': return [p('POS', true), p('Sales History', true), p('Shift Mgmt', true), p('Inventory', false)];
+    switch (role.toUpperCase()) {
+      case 'ADMIN': return [p('Full Access', true)];
+      case 'MANAGER': return [p('Dashboard', true), p('Approvals', true), p('Reports', true), p('Settings', false)];
+      case 'STAFF': return [p('Inventory', true), p('Stock', true), p('POS', true), p('Reports', false)];
+      case 'CASHIER': return [p('POS', true), p('Sales History', true), p('Shift Mgmt', true), p('Inventory', false)];
       default: return [];
     }
   };
@@ -298,7 +306,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                       name="role" 
                       value="MANAGER" 
                       checked={formData.role === 'MANAGER'}
-                      onChange={e => setFormData({...formData, role: 'Manager'})}
+                      onChange={e => setFormData({...formData, role: 'MANAGER'})}
                       className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                     />
                     <div className="ml-3">
@@ -306,13 +314,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                        <span className="block text-xs text-slate-500">Dashboard, Approvals & Stock</span>
                     </div>
                   </label>
-                  <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Staff' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
+                  <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'STAFF' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                     <input 
                       type="radio" 
                       name="role" 
                       value="STAFF" 
-                      checked={formData.role === 'Staff'}
-                      onChange={e => setFormData({...formData, role: 'Staff'})}
+                      checked={formData.role === 'STAFF'}
+                      onChange={e => setFormData({...formData, role: 'STAFF'})}
                       className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                     />
                     <div className="ml-3">
@@ -320,13 +328,13 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
                        <span className="block text-xs text-slate-500">Inventory, Warehouse & Stock</span>
                     </div>
                   </label>
-                  <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'Cashier' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
+                  <label className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${formData.role === 'CASHIER' ? 'bg-white border-primary-500 shadow-sm ring-1 ring-primary-500' : 'border-slate-200 hover:bg-white'}`}>
                     <input 
                       type="radio" 
                       name="role" 
                       value="CASHIER" 
-                      checked={formData.role === 'Cashier'}
-                      onChange={e => setFormData({...formData, role: 'Cashier'})}
+                      checked={formData.role === 'CASHIER'}
+                      onChange={e => setFormData({...formData, role: 'CASHIER'})}
                       className="w-4 h-4 text-primary-600 focus:ring-primary-500 border-slate-300"
                     />
                     <div className="ml-3">

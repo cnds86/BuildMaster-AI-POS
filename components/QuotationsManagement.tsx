@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
 import { Quotation } from '../types';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Filter } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
 import { QuotationList } from './sales/QuotationList';
 import { QuotationDetailModal } from './sales/QuotationDetailModal';
 import { QuotationFormModal } from './sales/QuotationFormModal';
 import { useSalesStore } from '../store/useSalesStore';
+
+type QuotationStatus = 'all' | 'draft' | 'sent' | 'approved' | 'active' | 'converted' | 'expired';
 
 export const QuotationsManagement: React.FC = () => {
   const { 
@@ -20,16 +22,30 @@ export const QuotationsManagement: React.FC = () => {
   const { quotations, addQuotation, updateQuotation } = useSalesStore();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<QuotationStatus>('all');
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   
   // Form State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingQuotation, setEditingQuotation] = useState<Quotation | null>(null);
 
-  const filteredQuotations = quotations.filter(q => 
-    q.referenceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (q.customerName && q.customerName.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredQuotations = quotations.filter(q => {
+    const matchesSearch = 
+      q.referenceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (q.customerName && q.customerName.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const isExpired = new Date(q.validUntil) < new Date() && q.status === 'active';
+    let matchesStatus = true;
+    if (statusFilter === 'all') {
+      matchesStatus = true;
+    } else if (statusFilter === 'expired') {
+      matchesStatus = isExpired || q.status === 'expired';
+    } else {
+      matchesStatus = q.status === statusFilter;
+    }
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const handleOpenCreate = () => {
     setEditingQuotation(null);
@@ -120,6 +136,23 @@ export const QuotationsManagement: React.FC = () => {
                 className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
            </div>
+        </div>
+
+        <div className="relative min-w-[160px]">
+           <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+           <select
+             value={statusFilter}
+             onChange={e => setStatusFilter(e.target.value as QuotationStatus)}
+             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-slate-700 focus:ring-2 focus:ring-blue-500 appearance-none font-medium"
+           >
+             <option value="all">All Status</option>
+             <option value="draft">Draft</option>
+             <option value="sent">Sent</option>
+             <option value="approved">Approved</option>
+             <option value="active">Active</option>
+             <option value="converted">Converted</option>
+             <option value="expired">Expired</option>
+           </select>
         </div>
       </div>
 
