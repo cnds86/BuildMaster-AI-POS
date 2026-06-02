@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useToast } from './toast/ToastContext';
 import { Product, CartItem, EstimateResultItem, SystemSettings, Customer, Sale, ProductVariant } from '../types';
 import { Sparkles, User, ClipboardList, Monitor, Menu, ChevronLeft } from 'lucide-react';
 import { AiAssistant } from './AiAssistant';
@@ -20,24 +21,26 @@ import { VariantSelectorModal } from './pos/VariantSelectorModal';
 interface PosTerminalProps {
   products: Product[];
   onProcessSale: (
-    items: CartItem[], 
-    total: number, 
-    customerId?: string, 
-    discountAmount?: number, 
+    items: CartItem[],
+    total: number,
+    customerId?: string,
+    discountAmount?: number,
     subtotal?: number,
     paymentMethod?: 'cash' | 'card' | 'transfer' | 'qr' | 'credit',
     amountReceived?: number,
     change?: number,
     pointsRedeemed?: number,
     source?: 'pos' | 'back-office',
-    roundingDifference?: number // Added
+    roundingDifference?: number, // Added
+    taxAmount?: number
   ) => Promise<Sale>;
   settings?: SystemSettings;
 }
 
 export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSale, settings }) => {
   const { customers, customerLevels, t, branches, warehouses, currentUser, formatPrice, categories, shifts, startShift, posMachines, promotions } = useGlobal();
-  const { 
+  const { addToast } = useToast();
+  const {
     cart, addToCart, clearCart,
     heldOrders, holdCurrentOrder, recallOrder, discardHeldOrder
   } = useCartStore();
@@ -45,8 +48,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const [searchTerm, setSearchTerm] = useState('');
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isScannerOpen, setIsScannerOpen] = useState(false); 
-  
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
   // Modal States
   const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
@@ -73,7 +76,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     const a = apiShifts || [];
     // Prefer Zustand shifts (local/demo store) since backend /api/shifts
     // requires auth_token cookie which the login endpoint doesn't set.
-    // PostgreSQL is source of truth for persistent data — local Zustand
+    // PostgreSQL is source of truth for persistent data - local Zustand
     // handles active shift for current session.
     const zIds = new Set(z.map(s => s.id));
     return [...z, ...a.filter(s => !zIds.has(s.id))];
@@ -192,7 +195,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   // --- Automated Promotions ---
   const autoDiscountAmount = useMemo(() => {
     let totalAutoDiscount = 0;
-    
+
     // Get valid/active promotions
     const now = new Date();
     const activePromos = promotions?.filter(p => {
@@ -239,7 +242,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
   let taxAmount = 0;
   let exactTotal = discountedSubtotal; // Track exact amount before rounding
-  
+
   const taxConfig = settings?.tax;
 
   if (taxConfig && taxConfig.enabled) {
@@ -305,12 +308,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      
+
       // Ignore if typing inside input/textarea (but allow barcode scanner if it types fast)
       // Usually, scanners type faster than humas (< 30ms per char).
       // If target is an input, we might still want to intercept if they blindly scan.
       // But let's build the buffer anyway.
-      
+
       if (e.key.length === 1) {
         barcodeBuffer += e.key;
         clearTimeout(barcodeTimeout);
@@ -376,13 +379,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
        clearTimeout(barcodeTimeout);
     };
   }, [
-    cart.length, 
-    isCheckoutOpen, 
-    isDiscountModalOpen, 
-    isCustomerModalOpen, 
-    isRecallModalOpen, 
-    isReceiptOpen, 
-    isAiModalOpen, 
+    cart.length,
+    isCheckoutOpen,
+    isDiscountModalOpen,
+    isCustomerModalOpen,
+    isRecallModalOpen,
+    isReceiptOpen,
+    isAiModalOpen,
     isScannerOpen,
     isCartOpen,
     productForSelector,
@@ -399,8 +402,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     // 1. Priority: Check specific Variant Barcodes first (Direct Add)
     for (const p of branchProducts) {
       if (p.variants) {
-        const variantMatch = p.variants.find(v => 
-          (v.barcode && v.barcode.toLowerCase() === normalizedCode) || 
+        const variantMatch = p.variants.find(v =>
+          (v.barcode && v.barcode.toLowerCase() === normalizedCode) ||
           (v.code && v.code.toLowerCase() === normalizedCode)
         );
         if (variantMatch) {
@@ -415,8 +418,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
     // 2. Check Top-level Product Barcodes/SKUs
     if (!productFound) {
-      const mainMatch = branchProducts.find(p => 
-        (p.barcode && p.barcode.toLowerCase() === normalizedCode) || 
+      const mainMatch = branchProducts.find(p =>
+        (p.barcode && p.barcode.toLowerCase() === normalizedCode) ||
         (p.sku && p.sku.toLowerCase() === normalizedCode)
       );
 
@@ -480,20 +483,20 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
     setIsProcessing(true);
     try {
       const sale = await onProcessSale(
-        cart, 
-        finalTotal, 
-        selectedCustomer?.id, 
-        discountAmount, 
+        cart,
+        finalTotal,
+        selectedCustomer?.id,
+        discountAmount,
         rawSubtotal,
-        method, 
-        receivedAmount, 
-        change, 
-        redeemPoints, 
+        method,
+        receivedAmount,
+        change,
+        redeemPoints,
         'pos',
         roundingDifference, // Pass rounding info
         taxAmount // Pass tax amount for receipt
       );
-      
+
       setLastSale(sale);
       setIsCheckoutOpen(false);
       clearCart();
@@ -501,9 +504,10 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
       setRedeemPoints(0);
       setSelectedCustomer(null);
       setIsReceiptOpen(true);
+      addToast(t('pos.saleCompleted') || 'Transaction completed successfully!', 'success');
     } catch (error) {
       console.error("Sale failed", error);
-      alert("Transaction failed. Please try again.");
+      addToast(t('pos.saleFailed') || 'Transaction failed. Please try again.', 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -527,7 +531,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
       alert("Please enter a valid starting cash amount.");
       return;
     }
-    
+
     // Ensure POS Machine is selected if there are any available for this branch
     const branchPosMachines = posMachines.filter(p => p.branchId === activeBranchId);
     if (branchPosMachines.length > 0 && !selectedPosId) {
@@ -541,7 +545,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   // Guard: Restrict POS access if no active shift
   if (!activeShift) {
     const branchPosMachines = posMachines.filter(p => p.branchId === activeBranchId);
-    
+
     return (
       <div className="flex flex-col items-center justify-center h-full bg-slate-50 md:-m-6 px-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
@@ -550,12 +554,12 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Open Register</h2>
           <p className="text-slate-500 mb-8">You must open a shift and declare starting cash before you can process sales.</p>
-          
+
           <div className="space-y-5 text-left">
             {branchPosMachines.length > 0 && (
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">Select POS Machine</label>
-                <select 
+                <select
                   className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 bg-slate-50"
                   value={selectedPosId}
                   onChange={(e) => setSelectedPosId(e.target.value)}
@@ -567,15 +571,15 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
                 </select>
               </div>
             )}
-            
+
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Starting Cash in Drawer</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">
                   {settings?.currencySymbol || '$'}
                 </span>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="w-full pl-8 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 text-xl font-bold bg-slate-50"
                   value={startCashValue}
                   onChange={(e) => setStartCashValue(e.target.value)}
@@ -585,7 +589,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
               </div>
             </div>
 
-            <button 
+            <button
               onClick={handleStartShift}
               className="w-full py-3 mt-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 active:scale-[0.98] transition-all shadow-md"
             >
@@ -598,23 +602,26 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-full overflow-hidden bg-white md:-m-6">
+    <div className="flex flex-col lg:flex-row h-full overflow-hidden bg-white md:-m-6 relative">
       {/* Main Product Area (Left Side) */}
+      {/* Bug fix 2026-06-02: Cart is now part of flex layout (not fixed) so products area naturally leaves space for it.
+         - mobile (<lg): Cart becomes full-screen overlay (absolute, full inset-0, no flex sibling)
+         - desktop (>=lg): Cart sits in flex row as fixed-width panel (lg:w-[420px] xl:w-[480px]) */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative border-r border-slate-200">
-        
+
         {/* Header / Top Bar for POS - Style A */}
         <div className="px-6 py-4 bg-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-extrabold text-slate-900 hidden md:block">{t('pos.newOrder')}</h2>
-            
+
             <div className="flex space-x-2">
-               <button 
+               <button
                  onClick={() => setIsRecallModalOpen(true)}
                  disabled={heldOrders.length === 0}
                  title="Shortcut: F6"
                  className={`flex items-center px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
-                   heldOrders.length > 0 
-                     ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' 
+                   heldOrders.length > 0
+                     ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
                      : 'bg-slate-50 text-slate-400 border-transparent cursor-not-allowed'
                  }`}
                >
@@ -622,7 +629,7 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
                  Recall
                  {heldOrders.length > 0 && <span className="ml-2 bg-orange-200 text-orange-800 px-1.5 rounded-full text-xs font-bold">{heldOrders.length}</span>}
                </button>
-               
+
                <button onClick={() => setIsAiModalOpen(true)} className="flex items-center px-4 py-2 bg-violet-50 text-violet-700 border border-violet-100 rounded-full hover:bg-violet-100 transition-all text-sm font-bold whitespace-nowrap">
                   <Sparkles className="w-4 h-4 mr-2" /> AI Estimate
                </button>
@@ -635,13 +642,13 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
                  <Monitor className="w-4 h-4 mr-2" /> Screen
                </button>
              )}
-             
-             <button 
+
+             <button
               onClick={() => setIsCustomerModalOpen(true)}
               title="Shortcut: F4"
               className={`flex items-center px-5 py-2.5 rounded-full shadow-sm font-bold text-sm border transition-all ${
-                selectedCustomer 
-                  ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800' 
+                selectedCustomer
+                  ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
                   : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400'
               }`}
             >
@@ -658,8 +665,8 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
 
         {/* Product Grid Container */}
         <div className="flex-1 overflow-hidden relative">
-           <ProductGrid 
-             products={productsWithDisplayPrice} 
+           <ProductGrid
+             products={productsWithDisplayPrice}
              categories={categories}
              searchTerm={searchTerm}
              setSearchTerm={setSearchTerm}
@@ -670,13 +677,32 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         </div>
       </div>
 
-      {/* Cart Sidebar (Right Side) */}
+      {/* Cart Drawer (responsive) */}
+      {/* Mobile backdrop */}
+      {isCartOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-30 animate-fade-in"
+          onClick={() => setIsCartOpen(false)}
+          aria-label="Close cart"
+        />
+      )}
+
+      {/* Cart Drawer — Bug fix 2026-06-02: cart is now part of flex layout (not fixed) on desktop
+         so products area is not hidden behind it. On mobile stays absolute/fixed. */}
+      {/* IMPORTANT: use `hidden lg:flex` (not `lg:hidden`) so the desktop has display:flex, not display:none (which forces 0x0 size) */}
       <div className={`
-         absolute inset-y-0 right-0 z-40 w-[420px] xl:w-[480px] bg-white shadow-2xl transform transition-transform duration-300
+         z-40 bg-white shadow-2xl
+         /* Mobile (lg and below): full-screen overlay with slide animation */
+         hidden lg:flex
+         fixed lg:relative inset-y-0 right-0 lg:inset-auto
+         w-full sm:w-[420px] lg:w-[420px] lg:xl:w-[480px]
+         transform transition-transform duration-300 ease-in-out
          ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}
-         hidden lg:block
+         /* Desktop (lg+): always visible, no animation */
+         lg:translate-x-0 lg:transform-none
+         lg:flex-col lg:shrink-0 lg:shadow-none lg:border-l lg:border-slate-200
       `}>
-         <CartSidebar 
+         <CartSidebar
             isOpen={isCartOpen}
             onClose={() => setIsCartOpen(false)}
             selectedCustomer={selectedCustomer}
@@ -694,9 +720,9 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
          />
       </div>
 
-      {/* Mobile Cart Toggle Button */}
+      {/* Mobile Cart Toggle Button (only on screens < lg) */}
       {cartItemCount > 0 && !isCartOpen && (
-        <button 
+        <button
           onClick={() => setIsCartOpen(true)}
           className="lg:hidden fixed bottom-6 right-6 z-50 bg-slate-900 text-white pl-4 pr-6 py-4 rounded-full shadow-2xl flex items-center justify-between min-w-[200px] animate-bounce-in"
         >
@@ -711,38 +737,38 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
       )}
 
       {/* Modals */}
-      <CheckoutModal 
+      <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         total={finalTotal}
         onProcessPayment={handleProcessPayment}
         selectedCustomer={selectedCustomer}
         isProcessing={isProcessing}
-        settings={settings} 
+        settings={settings}
       />
 
-      <ReceiptModal 
+      <ReceiptModal
         isOpen={isReceiptOpen}
         onClose={() => setIsReceiptOpen(false)}
         sale={lastSale}
         settings={settings}
       />
 
-      <CustomerModal 
+      <CustomerModal
         isOpen={isCustomerModalOpen}
         onClose={() => setIsCustomerModalOpen(false)}
         customers={customers}
         onSelectCustomer={(c) => { setSelectedCustomer(c); setIsCustomerModalOpen(false); }}
       />
 
-      <DiscountModal 
+      <DiscountModal
         isOpen={isDiscountModalOpen}
         onClose={() => setIsDiscountModalOpen(false)}
         onApplyDiscount={setManualDiscount}
         currencySymbol={settings?.currencySymbol}
       />
 
-      <RecallModal 
+      <RecallModal
         isOpen={isRecallModalOpen}
         onClose={() => setIsRecallModalOpen(false)}
         heldOrders={heldOrders}
@@ -750,21 +776,21 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
         onDiscard={discardHeldOrder}
       />
 
-      <AiAssistant 
-        isOpen={isAiModalOpen} 
-        onClose={() => setIsAiModalOpen(false)} 
-        inventory={branchProducts} 
-        onAddItemsToCart={handleAiItemsAdded} 
+      <AiAssistant
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
+        inventory={branchProducts}
+        onAddItemsToCart={handleAiItemsAdded}
       />
-      
-      <BarcodeScanner 
-        isOpen={isScannerOpen} 
-        onClose={() => setIsScannerOpen(false)} 
-        onScan={performScan} 
+
+      <BarcodeScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={performScan}
       />
 
       {productForSelector && (
-        <VariantSelectorModal 
+        <VariantSelectorModal
           product={productForSelector}
           isOpen={!!productForSelector}
           onClose={() => setProductForSelector(null)}
