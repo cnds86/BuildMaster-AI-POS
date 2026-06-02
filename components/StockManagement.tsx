@@ -5,6 +5,7 @@ import {
   DocumentStatus 
 } from '../types';
 import { Plus } from 'lucide-react';
+import { useConfirm } from '../common/ConfirmDialog';
 import { StockNavigation } from './stock/StockNavigation';
 import { StockList } from './stock/StockList';
 import { StockDocumentModal } from './stock/StockDocumentModal';
@@ -100,15 +101,28 @@ export const StockManagement: React.FC<StockManagementProps> = ({
     setIsModalOpen(false);
   };
 
-  const handleComplete = (item: any) => {
-    if (window.confirm('Confirm completion? This will update stock levels permanently.')) {
-      onStatusChange(activeTab, item.id, 'Completed');
-      if (isModalOpen) setIsModalOpen(false);
-    }
+  const confirm = useConfirm();
+
+  const handleComplete = async (item: any) => {
+    const ok = await confirm({
+      title: 'Confirm Completion',
+      message: 'This will update stock levels permanently. Continue?',
+      confirmText: 'Complete',
+      variant: 'warning',
+    });
+    if (!ok) return;
+    onStatusChange(activeTab, item.id, 'Completed');
+    if (isModalOpen) setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Delete this document?')) return;
+  const handleDelete = async (id: string) => {
+    const ok = await confirm({
+      title: 'Delete Document',
+      message: 'This document will be permanently removed. This action cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!ok) return;
     switch(activeTab) {
       case 'transfer': onDeleteTransfer(id); break;
       case 'count': onDeleteCount(id); break;

@@ -7,6 +7,7 @@ import { useCartStore } from '../../store/useCartStore';
 import { useSalesStore } from '../../store/useSalesStore';
 import { usePrint } from '../../lib/usePrint';
 import { IframePrintWarning } from '../shared/IframePrintWarning';
+import { useConfirm } from '../common/ConfirmDialog';
 
 interface QuotationDetailModalProps {
   quotation: Quotation | null;
@@ -21,6 +22,7 @@ export const QuotationDetailModal: React.FC<QuotationDetailModalProps> = ({
 }) => {
   const addToCart = useCartStore((state) => state.addToCart);
   const clearCart = useCartStore((state) => state.clearCart);
+  const confirm = useConfirm();
   const updateQuotation = useSalesStore((state) => state.updateQuotation);
   const deleteQuotation = useSalesStore((state) => state.deleteQuotation);
   
@@ -28,33 +30,43 @@ export const QuotationDetailModal: React.FC<QuotationDetailModalProps> = ({
 
   if (!isOpen || !quotation) return null;
 
-  const handleConvertToSale = () => {
-    if (window.confirm("This will clear your current cart and load items from this quotation. Continue?")) {
-       clearCart();
-       
-       if (quotation.items && quotation.items.length > 0) {
-         quotation.items.forEach(item => {
-            addToCart(item, item.quantity, item.selectedVariantId, item.sellPrice);
-         });
-         
-         updateQuotation({ ...quotation, status: 'converted' });
-         
-         onClose();
-         
-         // Trigger POS tab switch if not already there? 
-         // In a real app we might navigate, but here user usually goes to POS manually or we rely on notification
-         setTimeout(() => {
-            alert("Items loaded to POS Cart. Please proceed to Point of Sale.");
-         }, 100);
-       }
+  const handleConvertToSale = async () => {
+    const ok = await confirm({
+      title: 'Load Quotation to Cart',
+      message: 'This will clear your current cart and load items from this quotation.',
+      confirmText: 'Continue',
+      variant: 'warning',
+    });
+    if (!ok) return;
+    clearCart();
+
+    if (quotation.items && quotation.items.length > 0) {
+      quotation.items.forEach(item => {
+         addToCart(item, item.quantity, item.selectedVariantId, item.sellPrice);
+      });
+
+      updateQuotation({ ...quotation, status: 'converted' });
+
+      onClose();
+
+      // Trigger POS tab switch if not already there?
+      // In a real app we might navigate, but here user usually goes to POS manually or we rely on notification
+      setTimeout(() => {
+         alert("Items loaded to POS Cart. Please proceed to Point of Sale.");
+      }, 100);
     }
   };
 
-  const handleDelete = () => {
-     if (window.confirm("Delete this quotation permanently?")) {
-        deleteQuotation(quotation.id);
-        onClose();
-     }
+  const handleDelete = async () => {
+     const ok = await confirm({
+        title: 'Delete Quotation',
+        message: 'This quotation will be permanently removed.',
+        confirmText: 'Delete',
+        variant: 'danger',
+     });
+     if (!ok) return;
+     deleteQuotation(quotation.id);
+     onClose();
   };
 
   return (

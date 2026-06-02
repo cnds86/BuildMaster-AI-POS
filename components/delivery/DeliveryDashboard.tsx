@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Truck, Users, Package, CheckCircle, Plus, Search, Trash2 } from 'lucide-react';
+import { useConfirm } from '../common/ConfirmDialog';
 import { useDeliveryStore } from '../../store/useDeliveryStore';
 import { useSystemStore } from '../../store/useSystemStore';
 import { DeliveryOrder, DeliveryStatus, Sale } from '../../types';
@@ -91,8 +92,16 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
     }
   };
 
+  const confirm = useConfirm();
+
   const handleDeleteDelivery = async (id: string) => {
-    if (!window.confirm('Delete this delivery order?')) return;
+    const ok = await confirm({
+      title: 'Delete Delivery Order',
+      message: 'This delivery order will be permanently removed. This action cannot be undone.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    });
+    if (!ok) return;
     try {
       await deleteDelivery(id);
     } catch {
@@ -356,7 +365,13 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
                       </span>
                       <button
                         onClick={async () => {
-                          if (!window.confirm('Delete this vehicle?')) return;
+                          const ok = await confirm({
+                            title: 'Delete Vehicle',
+                            message: `Permanently remove vehicle ${vehicle.plateNumber}?`,
+                            confirmText: 'Delete',
+                            variant: 'danger',
+                          });
+                          if (!ok) return;
                           try { await deleteVehicle(vehicle.id); } catch { alert('Failed to delete vehicle.'); }
                         }}
                         className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
@@ -406,7 +421,13 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
                       </span>
                       <button
                         onClick={async () => {
-                          if (!window.confirm('Delete this driver?')) return;
+                          const ok = await confirm({
+                            title: 'Delete Driver',
+                            message: `Permanently remove driver ${driver.name}?`,
+                            confirmText: 'Delete',
+                            variant: 'danger',
+                          });
+                          if (!ok) return;
                           try { await deleteDriver(driver.id); } catch { alert('Failed to delete driver.'); }
                         }}
                         className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"

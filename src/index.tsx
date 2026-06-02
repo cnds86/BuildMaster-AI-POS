@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { GlobalProvider } from '../context/GlobalContext';
 import { ToastProvider } from '../components/toast/ToastContext';
+import { ConfirmProvider } from '../components/common/ConfirmDialog';
 import './styles/tokens.css';
 
 const rootElement = document.getElementById('root');
@@ -17,7 +18,9 @@ root.render(
     <BrowserRouter>
       <GlobalProvider>
         <ToastProvider>
-          <App />
+          <ConfirmProvider>
+            <App />
+          </ConfirmProvider>
         </ToastProvider>
       </GlobalProvider>
     </BrowserRouter>

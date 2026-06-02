@@ -23,6 +23,7 @@ import {
   Tag
 } from 'lucide-react';
 import { useToast } from './toast/ToastContext';
+import { useConfirm } from './common/ConfirmDialog';
 import { ApprovalList } from './approval/ApprovalList';
 import { StockDocumentModal } from './stock/StockDocumentModal';
 import { useGlobal } from '../context/GlobalContext';
@@ -62,6 +63,7 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
     expenseCategories
   } = useGlobal();
   const { addToast } = useToast();
+  const confirm = useConfirm();
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -294,58 +296,102 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
     }
   };
 
-  const handleApprove = (e: React.MouseEvent, item: any) => {
+  const handleApprove = async (e: React.MouseEvent, item: any) => {
     e.stopPropagation();
     // Expense / Promotion — use dedicated API
     if (item.type === 'expense') {
-      if (window.confirm(`Approve expense "${item.description}"?`)) {
-        handleApproveExpense(item.id);
-      }
+      const ok = await confirm({
+        title: 'Approve Expense',
+        message: 'Are you sure you want to approve this expense?',
+        details: item.description,
+        confirmText: 'Approve',
+        variant: 'success',
+      });
+      if (ok) handleApproveExpense(item.id);
       return;
     }
     if (item.type === 'promotion') {
-      if (window.confirm(`Approve promotion "${item.description}"?`)) {
-        handleApprovePromotion(item.id);
-      }
+      const ok = await confirm({
+        title: 'Approve Promotion',
+        message: 'Are you sure you want to approve this promotion?',
+        details: item.description,
+        confirmText: 'Approve',
+        variant: 'success',
+      });
+      if (ok) handleApprovePromotion(item.id);
       return;
     }
     // Stock documents
     if (statusFilter === 'Draft') {
-      if (window.confirm('Are you sure you want to Approve this request?')) {
+      const ok = await confirm({
+        title: 'Approve Request',
+        message: 'Are you sure you want to Approve this request?',
+        confirmText: 'Approve',
+        variant: 'success',
+      });
+      if (ok) {
         onStatusChange(item.type, item.id, 'Approved');
         addToast('Request approved successfully', 'success');
       }
     } else {
-      if (window.confirm('Are you sure you want to Complete this document?')) {
+      const ok = await confirm({
+        title: 'Complete Document',
+        message: 'Are you sure you want to Complete this document?',
+        confirmText: 'Complete',
+        variant: 'success',
+      });
+      if (ok) {
         onStatusChange(item.type, item.id, 'Completed');
         addToast('Document completed successfully', 'success');
       }
     }
   };
 
-  const handleReject = (e: React.MouseEvent, item: any) => {
+  const handleReject = async (e: React.MouseEvent, item: any) => {
     e.stopPropagation();
     // Expense / Promotion
     if (item.type === 'expense') {
-      if (window.confirm(`Reject expense "${item.description}"?`)) {
-        handleRejectExpense(item.id);
-      }
+      const ok = await confirm({
+        title: 'Reject Expense',
+        message: 'Are you sure you want to reject this expense?',
+        details: item.description,
+        confirmText: 'Reject',
+        variant: 'danger',
+      });
+      if (ok) handleRejectExpense(item.id);
       return;
     }
     if (item.type === 'promotion') {
-      if (window.confirm(`Reject promotion "${item.description}"?`)) {
-        handleRejectPromotion(item.id);
-      }
+      const ok = await confirm({
+        title: 'Reject Promotion',
+        message: 'Are you sure you want to reject this promotion?',
+        details: item.description,
+        confirmText: 'Reject',
+        variant: 'danger',
+      });
+      if (ok) handleRejectPromotion(item.id);
       return;
     }
     // Stock documents
     if (statusFilter === 'Draft') {
-      if (window.confirm('Are you sure you want to Reject this request?')) {
+      const ok = await confirm({
+        title: 'Reject Request',
+        message: 'Are you sure you want to Reject this request?',
+        confirmText: 'Reject',
+        variant: 'danger',
+      });
+      if (ok) {
         onStatusChange(item.type, item.id, 'Cancelled');
         addToast('Request rejected', 'warning');
       }
     } else {
-      if (window.confirm('Are you sure you want to Cancel this document?')) {
+      const ok = await confirm({
+        title: 'Cancel Document',
+        message: 'Are you sure you want to Cancel this document?',
+        confirmText: 'Cancel',
+        variant: 'warning',
+      });
+      if (ok) {
         onStatusChange(item.type, item.id, 'Cancelled');
         addToast('Document cancelled', 'warning');
       }
@@ -371,8 +417,14 @@ export const ApprovalManagement: React.FC<ApprovalManagementProps> = ({
     addToast("Changes saved.", "success");
   };
 
-  const handleModalComplete = (data: any) => {
-    if (window.confirm('Approve this document?')) {
+  const handleModalComplete = async (data: any) => {
+    const ok = await confirm({
+      title: 'Approve Document',
+      message: 'Approve this document and save changes?',
+      confirmText: 'Approve',
+      variant: 'success',
+    });
+    if (ok) {
       handleModalSave(data);
       onStatusChange(activeTab as any, data.id, 'Approved');
       setIsModalOpen(false);
