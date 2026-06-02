@@ -356,59 +356,60 @@ export const CustomerDisplayPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Totals */}
-              <div className="border-t border-white/10 bg-black/30 backdrop-blur-md px-12 py-8">
-                <div className="max-w-4xl ml-auto space-y-3">
-                  <div className="flex justify-between text-xl text-slate-300">
-                    <span>{tx('subtotal')}</span>
-                    <span className="font-mono">{fmt(subtotal)}</span>
+              {/* Totals + PromptPay QR (single bar) */}
+              <div className="border-t border-white/10 bg-black/30 backdrop-blur-md px-12 py-6">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6 items-center">
+                  {/* Left: Totals */}
+                  <div className="max-w-2xl space-y-2">
+                    <div className="flex justify-between text-lg text-slate-300">
+                      <span>{tx('subtotal')}</span>
+                      <span className="font-mono">{fmt(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg text-slate-300">
+                      <span>{tx('vat')}</span>
+                      <span className="font-mono">{fmt(tax)}</span>
+                    </div>
+                    <div className="h-px bg-white/20 my-1" />
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xl text-white font-bold">{tx('total')}</span>
+                      <span
+                        className="text-5xl font-extrabold text-emerald-400 font-mono"
+                        data-testid="customer-display-total"
+                      >
+                        {fmt(total)}
+                      </span>
+                    </div>
+                    <p className="text-right text-xs text-slate-400">
+                      {itemCount} {itemCount === 1 ? tx('item') : tx('items')} • {lineCount} {tx('line')}(s)
+                    </p>
                   </div>
-                  <div className="flex justify-between text-xl text-slate-300">
-                    <span>{tx('vat')}</span>
-                    <span className="font-mono">{fmt(tax)}</span>
-                  </div>
-                  <div className="h-px bg-white/20 my-2" />
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-2xl text-white font-bold">{tx('total')}</span>
-                    <span
-                      className="text-6xl font-extrabold text-emerald-400 font-mono"
-                      data-testid="customer-display-total"
-                    >
-                      {fmt(total)}
-                    </span>
-                  </div>
-                  <p className="text-right text-sm text-slate-400 mt-2">
-                    {itemCount} {itemCount === 1 ? tx('item') : tx('items')} • {lineCount} {tx('line')}(s)
-                  </p>
-                </div>
 
-                {/* ----- PromptPay QR (full-width banner under totals) ----- */}
-                {showQR && qrSvgUri && (
-                  <div
-                    className="mt-8 -mx-12 -mb-8 px-12 py-6 bg-gradient-to-r from-sky-900/60 via-blue-900/60 to-indigo-900/60 border-t border-white/10 flex items-center gap-8"
-                    data-testid="promptpay-panel"
-                  >
-                    <div className="bg-white rounded-2xl p-3 shadow-2xl shrink-0">
-                      <img src={qrSvgUri} alt="PromptPay QR" className="w-[140px] h-[140px]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold">PP</div>
-                        <h3 className="text-2xl font-bold text-white">{tx('promptPay')}</h3>
-                      </div>
-                      <p className="text-base text-slate-200">{tx('scanToPay')}</p>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {promptpayPhone}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setShowQR(false)}
-                      className="shrink-0 text-sm text-slate-300 hover:text-white underline px-4 py-2"
+                  {/* Right: QR (same bar) */}
+                  {showQR && qrSvgUri && (
+                    <div
+                      className="flex items-center gap-4 bg-gradient-to-r from-sky-900/60 via-blue-900/60 to-indigo-900/60 rounded-2xl px-4 py-3 border border-white/10"
+                      data-testid="promptpay-panel"
                     >
-                      {lang === 'lo' ? 'ປິດ' : lang === 'th' ? 'ปิด' : 'Hide'} QR
-                    </button>
-                  </div>
-                )}
+                      <div className="bg-white rounded-xl p-2 shadow-xl shrink-0">
+                        <img src={qrSvgUri} alt="PromptPay QR" className="w-[100px] h-[100px]" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">PP</div>
+                          <h3 className="text-base font-bold text-white">{tx('promptPay')}</h3>
+                        </div>
+                        <p className="text-xs text-slate-200">{tx('scanToPay')}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{promptpayPhone}</p>
+                      </div>
+                      <button
+                        onClick={() => setShowQR(false)}
+                        className="shrink-0 text-xs text-slate-300 hover:text-white underline px-2 self-start"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
