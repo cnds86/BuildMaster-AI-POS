@@ -381,37 +381,40 @@ export const CustomerDisplayPage: React.FC = () => {
                     {itemCount} {itemCount === 1 ? tx('item') : tx('items')} • {lineCount} {tx('line')}(s)
                   </p>
                 </div>
+
+                {/* ----- PromptPay QR (full-width banner under totals) ----- */}
+                {showQR && qrSvgUri && (
+                  <div
+                    className="mt-8 -mx-12 -mb-8 px-12 py-6 bg-gradient-to-r from-sky-900/60 via-blue-900/60 to-indigo-900/60 border-t border-white/10 flex items-center gap-8"
+                    data-testid="promptpay-panel"
+                  >
+                    <div className="bg-white rounded-2xl p-3 shadow-2xl shrink-0">
+                      <img src={qrSvgUri} alt="PromptPay QR" className="w-[140px] h-[140px]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold">PP</div>
+                        <h3 className="text-2xl font-bold text-white">{tx('promptPay')}</h3>
+                      </div>
+                      <p className="text-base text-slate-200">{tx('scanToPay')}</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        {promptpayPhone}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowQR(false)}
+                      className="shrink-0 text-sm text-slate-300 hover:text-white underline px-4 py-2"
+                    >
+                      {lang === 'lo' ? 'ປິດ' : lang === 'th' ? 'ปิด' : 'Hide'} QR
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
         </div>
 
-        {/* ----- RIGHT: PromptPay QR panel ----- */}
-        {showQR && qrSvgUri && total > 0 && (
-          <div
-            className="w-[320px] shrink-0 border-l border-white/10 bg-gradient-to-b from-sky-900/40 to-blue-900/40 backdrop-blur-sm p-6 flex flex-col items-center justify-center"
-            data-testid="promptpay-panel"
-          >
-            <div className="bg-white rounded-3xl p-5 shadow-2xl mb-3">
-              <img src={qrSvgUri} alt="PromptPay QR" className="w-[200px] h-[200px]" />
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">PP</div>
-                <h3 className="text-lg font-bold text-white">{tx('promptPay')}</h3>
-              </div>
-              <p className="text-xs text-slate-300">{tx('scanToPay')}</p>
-            </div>
-            <button
-              onClick={() => setShowQR(false)}
-              className="mt-4 text-xs text-slate-500 hover:text-slate-300 underline"
-            >
-              {lang === 'lo' ? 'ປິດ' : lang === 'th' ? 'ปิด' : 'Hide'} QR
-            </button>
-          </div>
-        )}
-
-        {/* QR toggle when hidden */}
+        {/* QR toggle when hidden — floats at bottom-right */}
         {!showQR && total > 0 && (
           <button
             onClick={() => setShowQR(true)}
