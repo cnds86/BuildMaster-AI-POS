@@ -5,7 +5,7 @@ import {
   DocumentStatus 
 } from '../types';
 import { Plus } from 'lucide-react';
-import { useConfirm } from '../common/ConfirmDialog';
+import { useConfirm } from '@/components/common/Confirm';
 import { StockNavigation } from './stock/StockNavigation';
 import { StockList } from './stock/StockList';
 import { StockDocumentModal } from './stock/StockDocumentModal';

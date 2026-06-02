@@ -7,7 +7,7 @@ import { useCartStore } from '../../store/useCartStore';
 import { useSalesStore } from '../../store/useSalesStore';
 import { usePrint } from '../../lib/usePrint';
 import { IframePrintWarning } from '../shared/IframePrintWarning';
-import { useConfirm } from '../common/ConfirmDialog';
+import { useConfirm } from '@/components/common/Confirm';
 
 interface QuotationDetailModalProps {
   quotation: Quotation | null;

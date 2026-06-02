@@ -23,7 +23,7 @@ import {
   Tag
 } from 'lucide-react';
 import { useToast } from './toast/ToastContext';
-import { useConfirm } from './common/ConfirmDialog';
+import { useConfirm } from '@/components/common/Confirm';
 import { ApprovalList } from './approval/ApprovalList';
 import { StockDocumentModal } from './stock/StockDocumentModal';
 import { useGlobal } from '../context/GlobalContext';

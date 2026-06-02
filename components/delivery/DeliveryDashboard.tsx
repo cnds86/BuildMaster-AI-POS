@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Truck, Users, Package, CheckCircle, Plus, Search, Trash2 } from 'lucide-react';
-import { useConfirm } from '../common/ConfirmDialog';
+import { useConfirm } from '@/components/common/Confirm';
 import { useDeliveryStore } from '../../store/useDeliveryStore';
 import { useSystemStore } from '../../store/useSystemStore';
 import { DeliveryOrder, DeliveryStatus, Sale } from '../../types';

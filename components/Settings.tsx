@@ -127,7 +127,9 @@ export const Settings: React.FC<SettingsProps> = ({ settings, onUpdateSettings, 
       onUpdateSettings(formData);
       setSuccessMsg('Settings saved locally.');
     }
-    setTimeout(() => { setSuccessMsg(''); setSaveError(''); }, 3000);
+    // 5s gives users enough time to read the message, especially in
+    // bilingual locales where they may need a moment to switch focus.
+    setTimeout(() => { setSuccessMsg(''); setSaveError(''); }, 5000);
   };
 
   const isSaveDisabled = activeTab === 'device' && (posCheckStatus === 'taken' || posCheckStatus === 'checking');
