@@ -211,7 +211,6 @@ export const CustomerDisplayPage: React.FC = () => {
   const dateLocale = lang === 'lo' ? 'lo-LA' : lang === 'th' ? 'th-TH' : 'en-US';
   const dateStr = now.toLocaleDateString(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = now.toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  const thbEstimate = (total / 650).toFixed(2);
 
   // ---------- Render ----------
   return (
@@ -390,27 +389,22 @@ export const CustomerDisplayPage: React.FC = () => {
         {/* ----- RIGHT: PromptPay QR panel ----- */}
         {showQR && qrSvgUri && total > 0 && (
           <div
-            className="w-[420px] border-l border-white/10 bg-gradient-to-b from-sky-900/40 to-blue-900/40 backdrop-blur-sm p-8 flex flex-col items-center justify-center"
+            className="w-[320px] shrink-0 border-l border-white/10 bg-gradient-to-b from-sky-900/40 to-blue-900/40 backdrop-blur-sm p-6 flex flex-col items-center justify-center"
             data-testid="promptpay-panel"
           >
-            <div className="bg-white rounded-3xl p-6 shadow-2xl mb-4">
-              <img src={qrSvgUri} alt="PromptPay QR" className="w-[220px] h-[220px]" />
+            <div className="bg-white rounded-3xl p-5 shadow-2xl mb-3">
+              <img src={qrSvgUri} alt="PromptPay QR" className="w-[200px] h-[200px]" />
             </div>
             <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">PP</div>
-                <h3 className="text-xl font-bold text-white">{tx('promptPay')}</h3>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">PP</div>
+                <h3 className="text-lg font-bold text-white">{tx('promptPay')}</h3>
               </div>
-              <p className="text-sm text-slate-300 mb-4">{tx('scanToPay')}</p>
-              <div className="bg-white/10 rounded-xl px-4 py-3 border border-white/20">
-                <p className="text-xs text-slate-400 mb-1">{tx('amount')}</p>
-                <p className="text-2xl font-extrabold text-emerald-400 font-mono">฿{thbEstimate}</p>
-                <p className="text-xs text-slate-500 mt-1">≈ {fmt(total)} LAK</p>
-              </div>
+              <p className="text-xs text-slate-300">{tx('scanToPay')}</p>
             </div>
             <button
               onClick={() => setShowQR(false)}
-              className="mt-6 text-xs text-slate-500 hover:text-slate-300 underline"
+              className="mt-4 text-xs text-slate-500 hover:text-slate-300 underline"
             >
               {lang === 'lo' ? 'ປິດ' : lang === 'th' ? 'ปิด' : 'Hide'} QR
             </button>
