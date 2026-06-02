@@ -38,6 +38,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
   
   const [variants, setVariants] = useState<Partial<ProductVariant>[]>([]);
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -182,6 +184,17 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitAttempted(true);
+    // Validation
+    const newErrors: Record<string, string> = {};
+    if (!formData.name || !formData.name.trim()) newErrors.name = 'ກະລຸນາໃສ່ຊື່ສິນຄ້າ / Please enter product name';
+    if (!formData.sku || !formData.sku.trim()) newErrors.sku = 'ກະລຸນາໃສ່ລະຫັດ SKU / Please enter SKU';
+    if (!formData.category) newErrors.category = 'ກະລຸນາເລືອກໝວດໝູ່ / Please select category';
+    if (!formData.unit) newErrors.unit = 'ກະລຸນາເລືອກຫົວໜ່ວຍ / Please select unit';
+    if (formData.price === undefined || formData.price < 0) newErrors.price = 'ກະລຸນາໃສ່ລາຄາ / Please enter price';
+    if (formData.stock === undefined || formData.stock < 0) newErrors.stock = 'ກະລຸນາໃສ່ຈຳນວນສະຕັອກ / Please enter stock';
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
     if (formData.name && formData.unit) {
       const defaultWarehouse = 'wh1';
       const newInventory: ProductInventory[] = [
@@ -247,6 +260,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               handleImageUpload={handleImageUpload}
               onAnalyzeImage={handleAnalyzeImage}
               isAiAnalyzing={isAiAnalyzing}
+              errors={errors}
+              submitAttempted={submitAttempted}
             />
           )}
 

@@ -1,10 +1,11 @@
 
 import React, { useState, useRef } from 'react';
 import { Product, UnitDefinition, CategoryItem, Warehouse, Sale } from '../types';
-import { Search, Plus, Sparkles, Download, Upload, ScanBarcode, LayoutGrid, List, AlertCircle, X } from 'lucide-react';
+import { Search, Plus, Sparkles, Download, Upload, ScanBarcode, LayoutGrid, List, AlertCircle, AlertTriangle, Trash2, X } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
 import { BarcodeScanner } from './BarcodeScanner';
 import { useInventoryStore } from '../store/useInventoryStore';
+import { useToast } from './toast/ToastContext';
 
 // Sub-components
 import { InventoryList } from './inventory/InventoryList';
@@ -26,6 +27,7 @@ interface InventoryProps {
 
 export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   const { settings, t, formatPrice, customerLevels, branches } = useGlobal(); // Access branches here
+  const { addToast } = useToast();
   
   // Store Access
   const products = useInventoryStore((state) => state.products);
@@ -46,7 +48,8 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | undefined>(undefined);
-  
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(false);
   
@@ -95,6 +98,19 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
   const handleAdd = () => {
     setEditingProduct(undefined);
     setIsFormOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (product) setDeletingProduct(product);
+  };
+
+  const confirmDelete = () => {
+    if (deletingProduct) {
+      deleteProduct(deletingProduct.id);
+      addToast(`ลบ "${deletingProduct.name}" สำเร็จ`, 'success');
+      setDeletingProduct(null);
+    }
   };
 
   const handleFormSubmit = (product: Product) => {
@@ -246,9 +262,9 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
           categories={categories} 
           formatPrice={formatPrice} 
           viewMode={viewMode}
-          onEdit={handleEdit} 
-          onDelete={deleteProduct} 
-          onPrintLabel={(p) => setLabelProduct(p)} 
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onPrintLabel={(p) => setLabelProduct(p)}
         />
       </div>
 
@@ -328,6 +344,46 @@ export const Inventory: React.FC<InventoryProps> = ({ sales }) => {
           product={labelProduct} 
           formatPrice={formatPrice} 
         />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deletingProduct && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 animate-fade-in" data-testid="delete-confirm-dialog">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">ยืนยันการลบสินค้า</h3>
+              <p className="text-slate-600 text-sm mb-1">
+                คุณต้องการลบสินค้า
+              </p>
+              <p className="text-slate-900 font-bold text-base mb-3" data-testid="delete-confirm-product-name">
+                "{deletingProduct.name}"
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs text-red-700">
+                ⚠️ การลบจะไม่สามารถกู้คืนได้<br />
+                (This action cannot be undone)
+              </div>
+            </div>
+            <div className="flex border-t border-slate-100 bg-slate-50">
+              <button 
+                onClick={() => setDeletingProduct(null)}
+                className="flex-1 px-6 py-4 text-slate-700 font-bold hover:bg-slate-100 transition-colors border-r border-slate-100"
+                data-testid="delete-cancel"
+              >
+                ยกเลิก
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-4 bg-red-600 text-white font-bold hover:bg-red-700 transition-colors flex items-center justify-center"
+                data-testid="delete-confirm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> ลบสินค้า
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
