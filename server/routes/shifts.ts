@@ -95,6 +95,7 @@ export const shiftsRoutes = (app: Elysia) =>
 
       // GET /api/shifts/:id — single shift
       .get('/:id', async ({ params: { id }, jwt: jwtFn, cookie: { auth_token }, set, request }: any) => {
+        const user = await authGuard(jwtFn, auth_token, set, request)
         if (!user) return { error: 'Authentication required' }
         if (id !== undefined && typeof id === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) { set.status = 404; return { error: 'Not found' } }
 
@@ -165,6 +166,7 @@ export const shiftsRoutes = (app: Elysia) =>
 
       // PUT /api/shifts/:id — update shift
       .put('/:id', async ({ params: { id }, body, jwt: jwtFn, cookie: { auth_token }, set, request }: any) => {
+        const user = await authGuard(jwtFn, auth_token, set, request)
         if (!user) return { error: 'Authentication required' }
         if (id !== undefined && typeof id === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) { set.status = 404; return { error: 'Not found' } }
 

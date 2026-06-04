@@ -3,7 +3,7 @@ import { Sale, SystemSettings } from '../../types';
 import { CheckCircle, X, Printer, Plus, Loader2 } from 'lucide-react';
 import { PrintableReceipt } from '../shared/PrintableReceipt';
 import { usePrint } from '../../lib/usePrint';
-import { printReceipt, saleToReceiptData, getPrintStatus } from '../../lib/printApi';
+import { printReceipt, saleToReceiptData, getPrintStatus } from '../../src/lib/printApi';
 import { IframePrintWarning } from '../shared/IframePrintWarning';
 
 interface ReceiptModalProps {
