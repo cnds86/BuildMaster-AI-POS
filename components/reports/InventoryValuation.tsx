@@ -2,6 +2,7 @@
 import React from 'react';
 import { DollarSign, Users, Package } from 'lucide-react';
 import { EmptyState } from '../ux';
+import { isLowStock } from '../../utils/inventory';
 
 interface InventoryValuationProps {
   data: {
@@ -18,7 +19,7 @@ export const InventoryValuation: React.FC<InventoryValuationProps> = ({ data, mo
   
   // Filter for low stock if mode matches
   const displayItems = mode === 'low-stock' 
-    ? reportItems.filter(p => p.stock <= (p.minStock || 0)) 
+    ? reportItems.filter(isLowStock)
     : reportItems;
 
   return (
@@ -78,7 +79,7 @@ export const InventoryValuation: React.FC<InventoryValuationProps> = ({ data, mo
                              <div className="text-xs text-slate-500">{item.sku}</div>
                           </td>
                           <td className="px-6 py-4 text-right">
-                             <span className={`font-bold ${item.stock <= (item.minStock || 0) ? 'text-red-600' : 'text-slate-700'}`}>
+                             <span className={`font-bold ${isLowStock(item) ? 'text-red-600' : 'text-slate-700'}`}>
                                 {item.stock} {item.unit}
                              </span>
                           </td>

@@ -2,7 +2,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, CategoryItem } from '../../types';
 import { AlertTriangle, Box, Edit2, Tag, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { EmptyState } from '../ux';
+import { EmptyState, ResponsiveTable } from '../ux';
+import { isLowStock as isLowStockProduct, effectiveMinStock } from '../../utils/inventory';
 
 interface InventoryListProps {
   products: Product[];
@@ -60,7 +61,8 @@ export const InventoryList: React.FC<InventoryListProps> = ({
       <div className="flex-1 overflow-y-auto">
         {/* LIST VIEW (TABLE) */}
         {viewMode === 'list' && (
-          <table className="w-full text-left border-collapse">
+          <ResponsiveTable ariaLabel="Inventory product list">
+          <table className="w-full min-w-[800px] text-left border-collapse">
             <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap pl-8">Product Name</th>
@@ -73,7 +75,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
             </thead>
             <tbody className="divide-y divide-slate-100">
               {paginatedProducts.map((product) => {
-                const isLowStock = product.stock < (product.minStock || 20);
+                const isLowStock = isLowStockProduct(product);
                 return (
                   <tr key={product.id} className={`hover:bg-slate-50 transition-colors group ${isLowStock ? 'bg-red-50/30' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap pl-8">
@@ -121,7 +123,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
                           )}
                           {product.stock}
                         </div>
-                        <span className="text-[10px] text-slate-400">Min: {product.minStock || 20}</span>
+                        <span className="text-[10px] text-slate-400">Min: {effectiveMinStock(product)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap pr-8">
@@ -152,6 +154,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
               })}
             </tbody>
           </table>
+          </ResponsiveTable>
         )}
 
         {/* GRID VIEW (CARDS) */}
@@ -159,7 +162,7 @@ export const InventoryList: React.FC<InventoryListProps> = ({
           <div className="p-4">
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                {paginatedProducts.map((product) => {
-                  const isLowStock = product.stock < (product.minStock || 20);
+                  const isLowStock = isLowStockProduct(product);
                   return (
                      <div 
                         key={product.id}

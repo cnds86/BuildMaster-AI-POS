@@ -7,6 +7,10 @@ import { DeliveryOrder, DeliveryStatus, Sale } from '../../types';
 import { DeliveryFormModal } from './DeliveryFormModal';
 import { VehicleFormModal } from './VehicleFormModal';
 import { DriverFormModal } from './DriverFormModal';
+import { LoadingSpinner } from '../ux/LoadingSpinner';
+// BUG-FE-02 FIX (FIX-BUGS-01): guard against null/invalid scheduledDate so the
+// UI never renders the literal "Invalid Date" string.
+import { formatDateTime, isValidDate } from '../../utils/date';
 
 interface Props {
   /** Optional sale to pre-fill when opening the "New Delivery" modal */
@@ -121,7 +125,11 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Delivery & Fleet Management</h1>
           <p className="text-slate-500">
-            {loading ? 'Loading...' : `${deliveries.length} orders, ${vehicles.length} vehicles, ${drivers.length} drivers`}
+            {loading ? (
+              <LoadingSpinner size="sm" label="Loading delivery data..." />
+            ) : (
+              `${deliveries.length} orders, ${vehicles.length} vehicles, ${drivers.length} drivers`
+            )}
           </p>
         </div>
         <div className="flex gap-3">
@@ -195,9 +203,8 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
         </div>
 
         {loading && (
-          <div className="p-8 text-center text-slate-400">
-            <div className="inline-block w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mr-2" />
-            Loading...
+          <div className="p-8 flex justify-center">
+            <LoadingSpinner size="md" label="Loading deliveries..." />
           </div>
         )}
 
@@ -264,14 +271,10 @@ export const DeliveryDashboard: React.FC<Props> = ({ preselectedSale, onRequestO
                           {delivery.deliveryAddress}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">
-                          {delivery.scheduledDate
-                            ? new Date(delivery.scheduledDate).toLocaleDateString('en-GB', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })
+                          {/* BUG-FE-02 FIX: was `new Date(...).toLocaleDateString(...)` which
+                              printed "Invalid Date" for null/bad scheduledDate strings. */}
+                          {isValidDate(delivery.scheduledDate)
+                            ? formatDateTime(delivery.scheduledDate)
                             : <span className="text-slate-400 italic">—</span>}
                         </td>
                         <td className="px-4 py-3">

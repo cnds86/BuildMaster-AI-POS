@@ -4,6 +4,7 @@ import { Product, CategoryItem } from '../../types';
 import { Search, Box, ScanBarcode, LayoutGrid, List, Plus, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
 import { EmptyState } from '../ux';
+import { isLowStock } from '../../utils/inventory';
 
 interface ProductGridProps {
   products: (Product & { displayPrice?: number })[]; 
@@ -160,9 +161,10 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
             {paginatedProducts.map((product) => {
                const hasVariants = product.variants && product.variants.length > 0;
                const stock = product.stock;
-               // BUG FIX (issue_1778400960746): Was `stock <= (product.minStock || 0)` — inconsistent
-               // with InventoryList (which uses `<` and fallback 20). Now matches inventory page.
-               const isLowStock = stock <= (product.minStock || 20);
+               // BUG FIX (issue_1778400960746, FIX-BUGS-01): now uses the shared
+               // utils/inventory.isLowStock() helper so POS, Inventory, Dashboard,
+               // and Reports all render the same low-stock state.
+               const isLowStockFlag = isLowStock(product);
 
                let displayPrice = product.displayPrice !== undefined ? product.displayPrice : product.price;
                if (hasVariants && product.displayPrice === undefined) {
@@ -185,7 +187,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                       <Box className="w-10 h-10 md:w-12 md:h-12 text-slate-200" />
                     )}
                     
-                    <span className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold shadow-sm backdrop-blur-md ${isLowStock ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800'}`}>
+                    <span className={`absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] md:text-[10px] font-bold shadow-sm backdrop-blur-md ${isLowStockFlag ? 'bg-red-500 text-white' : 'bg-white/90 text-slate-800'}`}>
                       {stock} {product.unit}
                     </span>
                   </div>

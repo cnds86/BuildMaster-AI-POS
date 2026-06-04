@@ -11,3 +11,4 @@ export { Button } from './Button';
 export type { ButtonProps } from './Button';
 export { PageHeader } from './PageHeader';
 export { Card, CardHeader } from './Card';
+export { ResponsiveTable } from './ResponsiveTable';

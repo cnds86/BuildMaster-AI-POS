@@ -11,6 +11,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
+import { isLowStock } from '../utils/inventory';
 
 // Sub-components
 import { SalesAnalytics } from './reports/SalesAnalytics';
@@ -304,7 +305,7 @@ export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, pro
   const effectiveHourlyData = hourlyData || clientHourlyData;
   const effectiveInventoryData = inventoryData || clientInventoryReportData;
   const effectiveExpenseData = expenseData || clientExpenseReportData;
-  const effectiveLowStockData = lowStockData || { items: clientInventoryReportData.reportItems.filter((p: any) => p.stock <= (p.minStock || 0)) };
+  const effectiveLowStockData = lowStockData || { items: clientInventoryReportData.reportItems.filter(isLowStock) };
 
   // ─── Tab Metadata ───────────────────────────────────────────────────────────
   const tabMeta: Record<ReportType, { label: string; icon: React.ReactNode; hasDateRange: boolean; hasPDF: boolean }> = {
@@ -323,7 +324,7 @@ export const ReportsManagement: React.FC<ReportsManagementProps> = ({ sales, pro
       if (activeTab === 'sales') exportSalesPDF(salesData || clientSalesReportData, formatPrice);
       else if (activeTab === 'staff') exportStaffPDF(staffData || { staffList: clientStaffReportData }, formatPrice);
       else if (activeTab === 'inventory') exportInventoryPDF(inventoryData || clientInventoryReportData, formatPrice);
-      else if (activeTab === 'low-stock') exportLowStockPDF(lowStockData || { items: clientInventoryReportData.reportItems.filter((p: any) => p.stock <= (p.minStock || 0)) }, formatPrice);
+      else if (activeTab === 'low-stock') exportLowStockPDF(lowStockData || { items: clientInventoryReportData.reportItems.filter(isLowStock) }, formatPrice);
     } catch (err) { console.error('PDF export error:', err); }
   };
 

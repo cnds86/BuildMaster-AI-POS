@@ -5,6 +5,7 @@ import { CalendarRange, Sparkles } from 'lucide-react';
 import { INITIAL_CATEGORIES_TREE } from '../services/data';
 import { useGlobal } from '../context/GlobalContext';
 import { generateBusinessInsights } from '../services/geminiService';
+import { isLowStock } from '../utils/inventory';
 
 // Sub-components
 import { DashboardStats } from './dashboard/DashboardStats';
@@ -189,7 +190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ sales, products }) => {
   }, [dashboardMetrics.filteredSales]);
 
   // Low Stock Logic
-  const lowStockProducts = products.filter(p => p.stock < (p.minStock || 20)).sort((a, b) => a.stock - b.stock);
+  const lowStockProducts = products.filter(isLowStock).sort((a, b) => a.stock - b.stock);
   
   // Outstanding Debt
   const totalOutstanding = useMemo(() => {
