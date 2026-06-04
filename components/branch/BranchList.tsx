@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Branch } from '../../types';
 import { Building, MapPin, User, Edit2, Trash2, Search } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface BranchListProps {
   branches: Branch[];
@@ -93,10 +94,16 @@ export const BranchList: React.FC<BranchListProps> = ({
           </div>
         ))}
         {filteredBranches.length === 0 && (
-            <div className="text-center py-10 text-slate-400 flex flex-col items-center">
-                <Building className="w-12 h-12 mb-3 opacity-20" />
-                <p>No branches found.</p>
-            </div>
+            <EmptyState
+              icon={Building}
+              compact
+              title={branches.length === 0 ? 'No branches yet' : 'No branches match'}
+              description={
+                branches.length === 0
+                  ? 'Create your first branch to start organizing locations.'
+                  : 'Try a different search term.'
+              }
+            />
         )}
       </div>
     </div>

@@ -1,7 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { Customer } from '../../types';
-import { Search, X } from 'lucide-react';
+import { Search, X, Users } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface CustomerModalProps {
   isOpen: boolean;
@@ -43,7 +44,16 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({ isOpen, onClose, c
              </div>
              <div className="overflow-y-auto flex-1 space-y-2">
                 {filteredCustomers.length === 0 ? (
-                   <div className="text-center py-8 text-slate-400">No customers found.</div>
+                  <EmptyState
+                    icon={Users}
+                    compact
+                    title={customers.length === 0 ? 'No customers yet' : 'No matching customers'}
+                    description={
+                      customers.length === 0
+                        ? 'Add a customer from the Customers page first, then pick one here at checkout.'
+                        : `No customers match "${customerSearch}". Try a different name, phone, or code.`
+                    }
+                  />
                 ) : (
                    filteredCustomers.map(c => (
                       <button 

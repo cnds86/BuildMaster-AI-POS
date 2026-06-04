@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Department, User } from '../../types';
 import { useGlobal } from '../../context/GlobalContext';
 import { Plus, Edit2, Trash2, Building2, Search, X } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 export const DepartmentManager: React.FC = () => {
   const { departments, addDepartment, updateDepartment, deleteDepartment, users } = useGlobal();
@@ -104,7 +105,16 @@ export const DepartmentManager: React.FC = () => {
                       );
                    })}
                    {filteredDepts.length === 0 && (
-                      <tr><td colSpan={4} className="p-8 text-center text-slate-400">No departments found.</td></tr>
+                      <tr>
+                         <td colSpan={4}>
+                            <EmptyState
+                               icon={Building2}
+                               compact
+                               title={departments.length === 0 ? 'No departments yet' : 'No departments match'}
+                               description={departments.length === 0 ? 'Organize your staff into departments to assign managers and permissions.' : 'Try a different search term.'}
+                            />
+                         </td>
+                      </tr>
                    )}
                 </tbody>
              </table>

@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { SyncLog } from '../../types';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Activity } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface SyncLogTableProps {
   logs: SyncLog[];
@@ -60,7 +61,16 @@ export const SyncLogTable: React.FC<SyncLogTableProps> = ({ logs }) => {
              </tbody>
           </table>
           {logs.length === 0 && (
-             <div className="p-8 text-center text-slate-400">No logs available.</div>
+             <tr>
+                <td colSpan={5}>
+                   <EmptyState
+                      icon={Activity}
+                      compact
+                      title="No sync activity yet"
+                      description="Sync events from this device will be logged here. Trigger a manual sync to see logs."
+                   />
+                </td>
+             </tr>
           )}
        </div>
     </div>

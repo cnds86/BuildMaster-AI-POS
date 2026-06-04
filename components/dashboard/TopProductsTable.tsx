@@ -1,5 +1,7 @@
 
 import React from 'react';
+import { EmptyState } from '../ux';
+import { BarChart2 } from 'lucide-react';
 
 interface TopProductsTableProps {
   products: any[];
@@ -27,7 +29,14 @@ export const TopProductsTable: React.FC<TopProductsTableProps> = ({ products, ti
            <tbody className="divide-y divide-slate-100">
              {products.length === 0 ? (
                 <tr>
-                   <td colSpan={3} className="text-center py-8 text-slate-400 text-sm">No sales data for this period.</td>
+                  <td colSpan={3}>
+                    <EmptyState
+                      icon={BarChart2}
+                      compact
+                      title="No sales data for this period"
+                      description="Try a wider date range to see your top-selling products and revenue."
+                    />
+                  </td>
                 </tr>
              ) : (
                 products.map((p, idx) => (

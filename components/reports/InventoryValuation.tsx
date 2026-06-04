@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { DollarSign, Users } from 'lucide-react';
+import { DollarSign, Users, Package } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface InventoryValuationProps {
   data: {
@@ -94,7 +95,7 @@ export const InventoryValuation: React.FC<InventoryValuationProps> = ({ data, mo
                        </tr>
                     ))}
                     {displayItems.length === 0 && (
-                        <tr><td colSpan={6} className="text-center py-8 text-slate-400">No items found.</td></tr>
+                        <tr><td colSpan={6}><EmptyState icon={Package} compact title={mode === 'low-stock' ? 'No low-stock items' : 'No inventory items'} description={mode === 'low-stock' ? 'All products are above their minimum stock threshold.' : 'Add products to see valuation and margin analysis.'} /></td></tr>
                     )}
                  </tbody>
               </table>

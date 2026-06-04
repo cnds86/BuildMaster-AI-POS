@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { Award } from 'lucide-react';
+import { Award, Users } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface StaffPerformanceProps {
   data: {
@@ -50,7 +51,16 @@ export const StaffPerformance: React.FC<StaffPerformanceProps> = ({ data, format
                       </tr>
                    ))}
                    {data.length === 0 && (
-                      <tr><td colSpan={5} className="text-center py-8 text-slate-400">No data available for this period.</td></tr>
+                      <tr>
+                         <td colSpan={5}>
+                            <EmptyState
+                               icon={Users}
+                               compact
+                               title="No staff performance data"
+                               description="No sales were recorded in the selected period. Try a wider date range."
+                            />
+                         </td>
+                      </tr>
                    )}
                 </tbody>
              </table>

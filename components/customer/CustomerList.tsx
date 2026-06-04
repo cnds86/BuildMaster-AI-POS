@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Customer, CustomerLevel } from '../../types';
-import { Search, Plus, User, Phone, Mail, Award, Edit2, Trash2, Star, ChevronRight } from 'lucide-react';
+import { Search, Plus, User, Phone, Mail, Award, Edit2, Trash2, Star, ChevronRight, Users } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface CustomerListProps {
   customers: Customer[];
@@ -65,12 +66,16 @@ export const CustomerList: React.FC<CustomerListProps> = ({
 
         <div className="overflow-y-auto flex-1 p-4 space-y-3 bg-slate-50/50">
           {filteredCustomers.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 flex flex-col items-center">
-               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                  <User className="w-8 h-8 opacity-20" />
-               </div>
-               <p>{customers.length > 0 ? `No customers found matching "${searchTerm}"` : "No customers yet."}</p>
-            </div>
+            <EmptyState
+              icon={Users}
+              title={customers.length === 0 ? 'No customers yet' : 'No matching customers'}
+              description={
+                customers.length === 0
+                  ? 'Add your first customer to start tracking purchases and loyalty points.'
+                  : `No customers match "${searchTerm}". Try a different name, phone, or code.`
+              }
+              action={customers.length === 0 ? { label: 'Add Customer', onClick: onAdd } : undefined}
+            />
           ) : (
             filteredCustomers.map((customer) => {
               const level = customer.level || levels.find(l => l.id === customer.levelId);

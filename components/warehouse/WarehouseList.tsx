@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Warehouse, Branch } from '../../types';
 import { Container, Plus, Edit2, Trash2, Search, MapPin } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface WarehouseListProps {
   branches: Branch[];
@@ -67,10 +68,17 @@ export const WarehouseList: React.FC<WarehouseListProps> = ({
 
       <div className="overflow-y-auto flex-1 p-3 space-y-3">
         {filteredWarehouses.length === 0 ? (
-          <div className="text-center py-10 text-slate-400 flex flex-col items-center">
-            <Container className="w-12 h-12 mb-3 opacity-20" />
-            <p>No warehouses found.</p>
-          </div>
+          <EmptyState
+            icon={Container}
+            compact
+            title={warehouses.length === 0 ? 'No warehouses yet' : 'No warehouses match'}
+            description={
+              warehouses.length === 0
+                ? 'Add your first warehouse to start tracking stock by location.'
+                : 'Try a different search term or branch.'
+            }
+            action={warehouses.length === 0 ? { label: 'Add Warehouse', onClick: onAdd, variant: 'primary' } : undefined}
+          />
         ) : (
           filteredWarehouses.map(wh => (
             <div 

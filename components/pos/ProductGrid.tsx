@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Product, CategoryItem } from '../../types';
 import { Search, Box, ScanBarcode, LayoutGrid, List, Plus, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useGlobal } from '../../context/GlobalContext';
+import { EmptyState } from '../ux';
 
 interface ProductGridProps {
   products: (Product & { displayPrice?: number })[]; 
@@ -145,18 +146,23 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
       <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-2 custom-scrollbar bg-white">
         {filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-400 mt-10">
-            <div className="bg-slate-50 p-6 rounded-full mb-4">
-               <Box className="w-12 h-12 text-slate-300" />
-            </div>
-            <p className="font-medium">No products found.</p>
-          </div>
+          <EmptyState
+            icon={Box}
+            title="No products found"
+            description={
+              searchTerm
+                ? `No products match "${searchTerm}". Try a different term or scan a barcode.`
+                : 'No products in this category. Try a different category or add a new product.'
+            }
+          />
         ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4 pb-20">
             {paginatedProducts.map((product) => {
                const hasVariants = product.variants && product.variants.length > 0;
                const stock = product.stock;
-               const isLowStock = stock <= (product.minStock || 0);
+               // BUG FIX (issue_1778400960746): Was `stock <= (product.minStock || 0)` — inconsistent
+               // with InventoryList (which uses `<` and fallback 20). Now matches inventory page.
+               const isLowStock = stock <= (product.minStock || 20);
 
                let displayPrice = product.displayPrice !== undefined ? product.displayPrice : product.price;
                if (hasVariants && product.displayPrice === undefined) {

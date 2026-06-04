@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Expense, ExpenseCategory, User, Branch } from '../types';
-import { Plus, Search, Filter, Trash2, Edit2, FileText, Download } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, Edit2, FileText, Download, Receipt } from 'lucide-react';
 import { useGlobal } from '../context/GlobalContext';
 import { ExpenseFormModal } from './expense/ExpenseFormModal';
+import { EmptyState } from './ux';
 
 interface ExpenseManagementProps {
   expenses: Expense[];
@@ -142,8 +143,13 @@ export const ExpenseManagement: React.FC<ExpenseManagementProps> = ({
                <tbody>
                   {filteredExpenses.length === 0 ? (
                      <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-500">
-                           No expenses found.
+                        <td colSpan={6}>
+                           <EmptyState
+                              icon={Receipt}
+                              compact
+                              title={expenses.length === 0 ? 'No expenses recorded' : 'No expenses match your filters'}
+                              description={expenses.length === 0 ? 'Track operational expenses like rent, utilities, and supplies.' : 'Try a different search or date range.'}
+                           />
                         </td>
                      </tr>
                   ) : (

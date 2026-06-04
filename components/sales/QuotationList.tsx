@@ -2,6 +2,7 @@
 import React from 'react';
 import { Quotation } from '../../types';
 import { FileText, CalendarClock, Eye } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface QuotationListProps {
   quotations: Quotation[];
@@ -13,10 +14,11 @@ export const QuotationList: React.FC<QuotationListProps> = ({ quotations, format
   if (quotations.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
-        <div className="text-center py-12 text-slate-400 flex flex-col items-center justify-center w-full h-full">
-          <FileText className="w-12 h-12 mb-2 opacity-20" />
-          No quotations found.
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No quotations yet"
+          description="Create a quotation to send pricing to a customer before issuing an invoice."
+        />
       </div>
     );
   }

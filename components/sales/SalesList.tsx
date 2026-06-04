@@ -2,6 +2,7 @@
 import React from 'react';
 import { Sale } from '../../types';
 import { FileText, Ban, AlertTriangle, History, CheckCircle, Eye } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface SalesListProps {
   sales: Sale[];
@@ -13,10 +14,11 @@ export const SalesList: React.FC<SalesListProps> = ({ sales, formatPrice, onView
   if (sales.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col">
-        <div className="text-center py-12 text-slate-400 flex flex-col items-center justify-center w-full h-full">
-          <FileText className="w-12 h-12 mb-2 opacity-20" />
-          No sales found matching your filters.
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No sales found"
+          description="No sales match your current filters. Try clearing the date range or search term."
+        />
       </div>
     );
   }

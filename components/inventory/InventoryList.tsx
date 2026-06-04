@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, CategoryItem } from '../../types';
 import { AlertTriangle, Box, Edit2, Tag, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface InventoryListProps {
   products: Product[];
@@ -44,9 +45,12 @@ export const InventoryList: React.FC<InventoryListProps> = ({
 
   if (products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center flex-1 py-12 text-slate-400">
-        <Box className="w-12 h-12 mb-2 opacity-20" />
-        <p>No products found matching your filters.</p>
+      <div className="flex flex-col items-center justify-center flex-1">
+        <EmptyState
+          icon={Box}
+          title="No products match your filters"
+          description="Try clearing the search or category filter to see all inventory items."
+        />
       </div>
     );
   }

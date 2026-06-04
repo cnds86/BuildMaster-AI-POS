@@ -5,7 +5,9 @@ import App from './App';
 import { GlobalProvider } from '../context/GlobalContext';
 import { ToastProvider } from '../components/toast/ToastContext';
 import { ConfirmProvider } from '@/components/common/Confirm';
+import { ErrorBoundary } from '../components/ux/ErrorBoundary';
 import './styles/tokens.css';
+import './styles/utilities.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -15,14 +17,16 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <GlobalProvider>
-        <ToastProvider>
-          <ConfirmProvider>
-            <App />
-          </ConfirmProvider>
-        </ToastProvider>
-      </GlobalProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <GlobalProvider>
+          <ToastProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </ToastProvider>
+        </GlobalProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </React.StrictMode>
 );

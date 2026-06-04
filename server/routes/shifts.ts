@@ -22,11 +22,19 @@ async function authGuard(jwtFn: any, authToken: any, set: any, request: any) {
 
 // ─── DB → Frontend shift mapper ───────────────────────────────────────────────
 // API uses snake_case + UPPER status; frontend uses camelCase + PascalCase.
+// BUG-FE-05 FIX: `shifts` table has no `user_name` column, so the old mapper
+// always returned `userName: ''` and the UI rendered "Unknown Main HQ".
+// We now resolve the user's display name from the joined `users` row, and
+// fall back to the raw `user_name` column (kept for backwards compatibility
+// with any future schema that adds it) and finally to 'Unknown'.
 function toShift(s: any) {
   return {
     id: s.id,
     userId: s.user_id,
-    userName: s.user_name || '',
+    userName: s.user_name
+      || s.user_display_name
+      || (s.user && (s.user.name || s.user.username))
+      || '',
     branchId: s.branch_id || '',
     posId: s.pos_machine_id || undefined,
     startTime: s.opened_at,
@@ -52,10 +60,31 @@ export const shiftsRoutes = (app: Elysia) =>
         if (!user) return { error: 'Authentication required' }
 
         try {
+          // BUG-FE-05 FIX: LEFT JOIN users so we can populate userName on the
+          // returned shifts. The shifts table itself has no user_name column.
           const apiShifts = await db
             .selectFrom('shifts')
-            .selectAll()
-            .orderBy('opened_at', 'desc')
+            .leftJoin('users', 'users.id', 'shifts.user_id')
+            .select([
+              'shifts.id',
+              'shifts.user_id',
+              'shifts.branch_id',
+              'shifts.pos_machine_id',
+              'shifts.opening_cash',
+              'shifts.starting_cash',
+              'shifts.closing_cash',
+              'shifts.cash_in_drawer',
+              'shifts.expected_cash',
+              'shifts.cash_difference',
+              'shifts.status',
+              'shifts.opened_at',
+              'shifts.closed_at',
+              'shifts.notes',
+              'shifts.cash_transactions',
+              'users.name as user_display_name',
+              'users.username as user_username',
+            ])
+            .orderBy('shifts.opened_at', 'desc')
             .limit(100)
             .execute()
 

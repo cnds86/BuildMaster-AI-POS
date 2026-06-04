@@ -27,6 +27,54 @@ import { CustomerDisplayPage } from '../components/CustomerDisplayPage';
 import { WMSDashboard } from '../components/wms/WMSDashboard';
 import { useGlobal } from '../context/GlobalContext';
 import { UserRole } from '../types';
+import { ErrorBoundary } from '../components/ux/ErrorBoundary';
+
+/**
+ * Wraps a page component in an inline ErrorBoundary so a single page
+ * crash (e.g. unexpected null in a render) shows a recoverable error
+ * card in the main area instead of white-screening the whole POS.
+ * Critical for a 24/7 cash register — one bad page must not block
+ * the operator from continuing to ring up sales on /pos.
+ */
+function withPageBoundary<P extends object>(
+  Page: React.ComponentType<P>,
+  displayName: string,
+): React.ComponentType<P> {
+  const Wrapped: React.FC<P> = (props) => (
+    <ErrorBoundary
+      fallback={(err, reset) => (
+        <div className="max-w-2xl mx-auto mt-8 bg-white rounded-2xl border border-red-200 shadow-sm p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-1">
+            {displayName} failed to load
+          </h2>
+          <p className="text-sm text-slate-600 mb-4 break-words">
+            {err.message}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={reset}
+              className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            >
+              Try again
+            </button>
+            <button
+              type="button"
+              onClick={() => { window.location.href = '/dashboard'; }}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
+    >
+      <Page {...props} />
+    </ErrorBoundary>
+  );
+  Wrapped.displayName = `withPageBoundary(${displayName})`;
+  return Wrapped;
+}
 
 // RBAC permission map — mirrors original PERMISSIONS but uses path keys
 const PERMISSIONS: Record<string, string[]> = {
@@ -199,28 +247,28 @@ function AppRoutes() {
   return (
     <Layout onLogout={handleLogout}>
       <Routes>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/pos" element={<PosTerminalPage />} />
-        <Route path="/shifts" element={<ShiftManagementPage />} />
-        <Route path="/sales" element={<SalesHistoryPage />} />
-        <Route path="/expenses" element={<ExpenseManagementPage />} />
-        <Route path="/quotations" element={<QuotationsManagement />} />
-        <Route path="/inventory" element={<InventoryPage />} />
-        <Route path="/stock" element={<StockManagementPage />} />
-        <Route path="/delivery" element={<DeliveryDashboard />} />
-        <Route path="/customers" element={<CustomerManagementPage />} />
-        <Route path="/approvals" element={<ApprovalManagementPage />} />
-        <Route path="/promotions" element={<PromotionsManagementPage />} />
-        <Route path="/sync" element={<SyncManagementPage />} />
-        <Route path="/units" element={<UnitManagementPage />} />
-        <Route path="/categories" element={<CategoryManagementPage />} />
-        <Route path="/branches" element={<BranchManagementPage />} />
-        <Route path="/warehouses" element={<WarehouseManagementPage />} />
-        <Route path="/wms" element={<WMSDashboard />} />
-        <Route path="/users" element={<UserManagementPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={<UserProfilePage />} />
+        <Route path="/dashboard" element={withPageBoundary(DashboardPage, 'Dashboard')()} />
+        <Route path="/reports" element={withPageBoundary(ReportsPage, 'Reports')()} />
+        <Route path="/pos" element={withPageBoundary(PosTerminalPage, 'Point of Sale')()} />
+        <Route path="/shifts" element={withPageBoundary(ShiftManagementPage, 'Shift Management')()} />
+        <Route path="/sales" element={withPageBoundary(SalesHistoryPage, 'Sales History')()} />
+        <Route path="/expenses" element={withPageBoundary(ExpenseManagementPage, 'Expenses')()} />
+        <Route path="/quotations" element={withPageBoundary(QuotationsManagement, 'Quotations')()} />
+        <Route path="/inventory" element={withPageBoundary(InventoryPage, 'Inventory')()} />
+        <Route path="/stock" element={withPageBoundary(StockManagementPage, 'Stock Management')()} />
+        <Route path="/delivery" element={withPageBoundary(DeliveryDashboard, 'Delivery & Fleet')()} />
+        <Route path="/customers" element={withPageBoundary(CustomerManagementPage, 'Customers')()} />
+        <Route path="/approvals" element={withPageBoundary(ApprovalManagementPage, 'Approvals')()} />
+        <Route path="/promotions" element={withPageBoundary(PromotionsManagementPage, 'Promotions')()} />
+        <Route path="/sync" element={withPageBoundary(SyncManagementPage, 'Data Sync')()} />
+        <Route path="/units" element={withPageBoundary(UnitManagementPage, 'Unit Management')()} />
+        <Route path="/categories" element={withPageBoundary(CategoryManagementPage, 'Categories')()} />
+        <Route path="/branches" element={withPageBoundary(BranchManagementPage, 'Branches & POS')()} />
+        <Route path="/warehouses" element={withPageBoundary(WarehouseManagementPage, 'Warehouses')()} />
+        <Route path="/wms" element={withPageBoundary(WMSDashboard, 'Warehouse (WMS)')()} />
+        <Route path="/users" element={withPageBoundary(UserManagementPage, 'Users & Roles')()} />
+        <Route path="/settings" element={withPageBoundary(SettingsPage, 'Settings')()} />
+        <Route path="/profile" element={withPageBoundary(UserProfilePage, 'User Profile')()} />
         <Route path="*" element={<Navigate to={defaultRoute} replace />} />
       </Routes>
     </Layout>

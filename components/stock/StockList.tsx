@@ -2,6 +2,7 @@
 import React from 'react';
 import { Warehouse } from '../../types';
 import { Edit2, Trash2, PlayCircle, FileText, Package, Calendar, MapPin, ArrowRight } from 'lucide-react';
+import { EmptyState } from '../ux';
 
 interface StockListProps {
   activeTab: 'transfer' | 'count' | 'reservation' | 'receipt' | 'adjustment';
@@ -47,13 +48,19 @@ export const StockList: React.FC<StockListProps> = ({
   };
 
   if (items.length === 0) {
+    const tabLabel: Record<typeof activeTab, string> = {
+      transfer: 'transfers',
+      count: 'stock counts',
+      reservation: 'reservations',
+      receipt: 'goods receipts',
+      adjustment: 'adjustments',
+    };
     return (
-      <div className="text-center py-20 text-slate-400 flex flex-col items-center">
-        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-           <Package className="w-8 h-8 text-slate-300" />
-        </div>
-        <p>No documents found.</p>
-      </div>
+      <EmptyState
+        icon={Package}
+        title={`No ${tabLabel[activeTab]} yet`}
+        description="Documents you create in this section will appear here. Use the New button to get started."
+      />
     );
   }
 

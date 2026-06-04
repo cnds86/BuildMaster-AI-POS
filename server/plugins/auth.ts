@@ -114,4 +114,72 @@ export const authRoutes = (app: Elysia) =>
         auth_token.remove()
         return { success: true }
       })
+
+      // POST /api/auth/change-password — change own password (BUG FIX: previously missing)
+      // Issue: issue_1778404332774 — UserProfile.tsx calls this endpoint but it returned 404
+      .post('/change-password', async ({ body, jwt: jwtFn, cookie: { auth_token }, set, request }: any) => {
+        const token = extractToken(auth_token, request)
+        if (!token) { set.status = 401; return { error: 'Authentication required' } }
+
+        let payload: any
+        try { payload = await (jwtFn as any).verify(token) } catch { set.status = 401; return { error: 'Invalid token' } }
+        if (!payload || typeof payload === 'boolean') { set.status = 401; return { error: 'Invalid token' } }
+
+        const { currentPassword, newPassword, userId } = body as { currentPassword: string; newPassword: string; userId?: string }
+        if (!currentPassword || !newPassword) {
+          set.status = 400; return { error: 'Both currentPassword and newPassword are required' }
+        }
+        if (newPassword.length < 8) {
+          set.status = 400; return { error: 'New password must be at least 8 characters' }
+        }
+        if (newPassword === currentPassword) {
+          set.status = 400; return { error: 'New password must be different from current password' }
+        }
+
+        // Allow user to change own password; admin/manager can change another user's
+        const targetUserId = userId || payload.sub
+        const isSelf = targetUserId === payload.sub
+        const isAdmin = payload.role?.toLowerCase() === 'admin'
+        const isManager = payload.role?.toLowerCase() === 'manager'
+        if (!isSelf && !isAdmin && !isManager) {
+          set.status = 403; return { error: 'Forbidden: cannot change another user\'s password' }
+        }
+
+        const user = await db
+          .selectFrom('users')
+          .select(['id', 'username', 'password_hash'])
+          .where('id', '=', targetUserId)
+          .executeTakeFirst()
+
+        if (!user) { set.status = 404; return { error: 'User not found' } }
+
+        // Only verify current password when changing own password
+        if (isSelf) {
+          const valid = await bcrypt.compare(currentPassword, user.password_hash)
+          if (!valid) { set.status = 403; return { error: 'Current password is incorrect' } }
+        }
+
+        const hash = await bcrypt.hash(newPassword, 12)
+        await db
+          .updateTable('users')
+          .set({ password_hash: hash })
+          .where('id', '=', targetUserId)
+          .execute()
+
+        // Audit log
+        await db.insertInto('audit_log').values({
+          user_id: payload.sub,
+          action: 'PASSWORD_CHANGE',
+          entity_type: 'users',
+          entity_id: targetUserId,
+        }).execute()
+
+        return { success: true, message: 'Password changed successfully' }
+      }, {
+        body: t.Object({
+          currentPassword: t.String({ minLength: 1 }),
+          newPassword: t.String({ minLength: 8 }),
+          userId: t.Optional(t.String()),
+        }),
+      })
   )
