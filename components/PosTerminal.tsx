@@ -246,7 +246,11 @@ export const PosTerminal: React.FC<PosTerminalProps> = ({ products, onProcessSal
   const taxConfig = settings?.tax;
 
   if (taxConfig && taxConfig.enabled) {
-    const rate = taxConfig.rate / 100;
+    // SET-01 defensive clamp: even if a stale/bad value slipped into settings
+    // (rate < 0 or rate > 100), the tax calc must never produce a negative
+    // tax line that effectively makes the cashier owe the customer money.
+    const safeRate = Math.min(100, Math.max(0, Number(taxConfig.rate) || 0));
+    const rate = safeRate / 100;
     if (taxConfig.calculationMode === 'excluded') {
        taxAmount = discountedSubtotal * rate;
        exactTotal = discountedSubtotal + taxAmount;
